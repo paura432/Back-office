@@ -174,4 +174,17 @@ Cuestiones que **no pueden resolverse con la evidencia actual del repositorio**.
 
 ---
 
+## 7. Propuesta de mejora no aplicada
+
+### Entrypoint inconsistente en `packages/shared/package.json`
+
+- **Evidencia:** `packages/shared/package.json` declara `"main": "index.ts"` y `"types": "index.ts"`. El archivo `index.ts` no existe en `packages/shared/`. El código TypeScript real está en `packages/shared/types/index.ts`.
+- **Riesgo:** Cualquier consumo del paquete `@repo/shared-types` que resuelva el entrypoint (`import ... from "@repo/shared-types"`) fallará porque el punto de entrada declarado no existe. Esto afectará tanto a `uis/` como a `services/` cuando comiencen a consumir los tipos compartidos.
+- **Propuesta de alineación futura:** Renombrar o ajustar el campo `main` en `package.json` para que apunte a `types/index.ts`, o crear un `index.ts` en la raíz de `packages/shared/` que re-exporte desde `./types`.
+- **Estado:** NO APLICADA
+
+> Esta corrección no se aplica en esta fase para mantener el principio de no modificar archivos existentes durante el reconocimiento. Se aplicará cuando se inicie la implementación que consuma `@repo/shared-types`.
+
+---
+
 *Documento generado en Fase 1 de reconocimiento. Ninguna funcionalidad ha sido implementada todavía.*
