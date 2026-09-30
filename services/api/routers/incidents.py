@@ -50,8 +50,8 @@ def incident_row_to_response(row: dict) -> dict:
     }
 
 
-def fetch_audit_log(cursor, incident_id: str) -> list[dict]:
-    cursor.execute(
+def fetch_audit_log(conn, incident_id: str) -> list[dict]:
+    cursor = conn.execute(
         "SELECT * FROM incident_audit_log WHERE incident_id = ? ORDER BY changed_at ASC",
         (incident_id,),
     )
