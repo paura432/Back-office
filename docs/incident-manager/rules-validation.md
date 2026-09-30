@@ -64,8 +64,8 @@ Para cada caso, se simula una instrucción que un agente o desarrollador podría
 |---|---|
 | **Regla aplicada** | `repository-structure.md` |
 | **Decisión sin regla** | El agente podría crear un microservicio independiente en una nueva carpeta raíz o fuera del monorepo. Es una práctica común en arquitecturas de microservicios. |
-| **Decisión con regla** | La regla establece "Colocar APIs y workers en segundo plano dentro de `services/`" y "❌ No crear un backend o API fuera de `services/`". La recomendación del README es "avoid splitting into many microservices early; add endpoints to the same FastAPI app". |
-| **PASS/FAIL** | **PASS** — La regla obliga a que el backend de incidencias viva dentro de `services/api/` como un router, no como un servicio separado. Sin la regla, crear un servicio independiente sería una decisión arquitectónicamente aceptable. |
+| **Decisión con regla** | La regla establece "Colocar APIs y workers en segundo plano dentro de `services/`", "❌ No crear un backend o API fuera de `services/`", y explícitamente "❌ No crear un microservicio independiente para incidencias — toda la funcionalidad de backend debe vivir en la API centralizada de `services/`". La recomendación del README es "avoid splitting into many microservices early; add endpoints to the same FastAPI app". |
+| **PASS/FAIL** | **PASS** — La regla obliga a que el backend de incidencias viva dentro de la API central en `services/` como un router, no como un servicio separado. Sin la regla, crear un servicio independiente sería una decisión arquitectónicamente aceptable. |
 
 ---
 

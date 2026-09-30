@@ -20,6 +20,7 @@
 
 - Colocar **aplicaciones con interfaz de usuario** (webs, backoffices, dashboards con UI) dentro de `uis/`.
 - Colocar **APIs y workers en segundo plano** dentro de `services/`.
+- Añadir la funcionalidad de incidencias como un nuevo router o módulo dentro de la API central en `services/`, no como un servicio independiente.
 - Colocar **librerías y tipos compartidos versionables** dentro de `packages/`.
 - Colocar **agentes de IA** dentro de `agents/`. Un agente = una subcarpeta.
 - Colocar **pipelines de datos** dentro de `data/pipelines/`.
@@ -32,6 +33,7 @@
 
 - ❌ Crear una aplicación UI en la raíz del repositorio, en `/app`, o en cualquier lugar fuera de `uis/`.
 - ❌ Crear un backend o API fuera de `services/`.
+- ❌ Crear un microservicio independiente para incidencias — toda la funcionalidad de backend debe vivir en la API centralizada de `services/`. Extraer un worker o servicio separado solo si hay una decisión arquitectónica explícita y documentada.
 - ❌ Duplicar tipos compartidos en múltiples carpetas en lugar de extraerlos a `packages/`.
 - ❌ Crear nuevos directorios raíz sin justificación documentada (el monorepo ya tiene 13 carpetas con responsabilidad definida).
 - ❌ Mezclar responsabilidades: no poner lógica de backend dentro de `uis/` ni código de UI dentro de `services/`.

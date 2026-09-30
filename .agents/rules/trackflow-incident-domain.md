@@ -6,7 +6,7 @@
 ---
 
 - **Aplicación:** `always_active`
-- **Ámbito/patrón de archivos:** `packages/shared/types/incident.ts`, `services/api/routers/incidents.py`, `services/api/schemas/incident.py`, `services/api/models/incident.py`, `uis/backoffice/src/**/*.ts`, `data/raw/incidents_seed.json`, `data/pipelines/seed_incidents.py`
+- **Ámbito/patrón de archivos:** `packages/shared/types/**/*incident*.ts`, `services/**/*incident*.py`, `uis/backoffice/**/*.{ts,tsx}`, archivos de seed del Incident Manager (independientemente de dónde se decida almacenarlos)
 
 ## Evidencia de origen
 
@@ -65,7 +65,7 @@ reopened  (desde resolved)
 1. **Grafo de estados:** Las transiciones válidas son `open → assigned → in_progress → resolved → closed`. `reopened` solo puede activarse desde `resolved`.
 2. **Severidad critical:** Una incidencia `critical` no puede transicionar directamente a `closed`. Debe pasar por `resolved` primero.
 3. **Auditoría obligatoria:** Cada cambio de `status`, `assigned_to` o `responsible_area` debe registrar un *timestamp* y el *autor* del cambio.
-4. **Responsible_area dinámico:** Puede cambiar en cualquier momento. El cambio queda auditado (misma regla que punto 3).
+4. **Responsible_area dinámico:** Puede cambiar después de la creación de la incidencia y cada cambio debe quedar registrado con timestamp y autor.
 5. **Cobertura de datos semilla:** Mínimo 12 incidencias semilla con: las 4 severidades, ambos almacenes (`los_angeles`, `zaragoza`), al menos 4 canales distintos, al menos 1 incidencia `reopened`, y al menos 1 incidencia con `client_name = null`.
 
 ## Qué NO se debe hacer
@@ -79,9 +79,9 @@ reopened  (desde resolved)
 
 ## Cómo verificar su cumplimiento
 
-- Los enums/tipos en `packages/shared/types/incident.ts` deben coincidir exactamente con los catálogos.
-- Los schemas Pydantic en `services/api/schemas/` deben validar contra los mismos catálogos.
-- El endpoint de transición de estado debe rechazar transiciones no válidas con error 422.
-- El endpoint de transición para incidencias `critical` debe rechazar `critical → closed` sin paso intermedio por `resolved`.
-- La tabla de auditoría (o estructura equivalente) debe existir y poblarse en cada cambio de `status`, `assigned_to` o `responsible_area`.
-- El dataset semilla debe tener exactamente 12+ registros que cumplan la cobertura especificada.
+- Los enums/tipos en `packages/shared/types/` para incidencias deben coincidir exactamente con los catálogos.
+- La API de incidencias debe rechazar valores de catálogo no válidos (error 422).
+- La API de transición de estado debe rechazar transiciones no definidas en el grafo.
+- Una incidencia `critical` no debe poder transicionar directamente a `closed` sin pasar por `resolved`.
+- Debe existir un mecanismo de auditoría que registre timestamp + autor en cada cambio de `status`, `assigned_to` o `responsible_area`.
+- El dataset semilla debe tener 12+ registros que cumplan la cobertura especificada.
