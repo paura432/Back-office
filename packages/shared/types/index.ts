@@ -11,3 +11,6 @@ export interface BaseEntity {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// Incident domain — TrackFlow Incident Manager
+export * from './incident';
