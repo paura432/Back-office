@@ -1,6 +1,6 @@
 """
 Comprehensive tests for TrackFlow Incident Manager API.
-Uses TestClient from FastAPI with an isolated in-memory SQLite database.
+Uses TestClient from FastAPI with an isolated temporary SQLite database.
 """
 
 from __future__ import annotations
@@ -651,16 +651,242 @@ class TestEdgeCases:
             assert resp.status_code == 201, f"Failed for location {loc}: {resp.json()}"
             assert resp.json()["warehouse_location"] == loc
 
-    def test_zaragoza_location(self, client):
+
+# ──────────────────────── Seed Tests ────────────────────────
+
+
+class TestSeed:
+    VALID_CHANNELS = {"wms_alert", "client_email", "carrier_portal_alert", "warehouse_call", "dashboard"}
+    VALID_TYPES = {"lost_parcel", "inventory_discrepancy", "carrier_failure", "system_outage", "return_dispute", "sla_breach"}
+    VALID_SEVERITIES = {"critical", "high", "medium", "low"}
+    VALID_AREAS = {"warehouse_operations", "last_mile_carrier", "reverse_logistics", "customer_experience", "commercial", "technology"}
+    VALID_STATUSES = {"open", "assigned", "in_progress", "resolved", "closed", "reopened"}
+    VALID_LOCATIONS = {"los_angeles", "zaragoza"}
+
+    def test_seed_creates_12_plus_incidents(self):
+        from seed import run_seed, SEED_INCIDENTS, SEED_FLAG_KEY
+        conn = get_connection()
+        init_db(conn)
+        conn.execute("CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT)")
+        conn.commit()
+        run_seed(conn)
+        count = conn.execute("SELECT COUNT(*) as cnt FROM incidents").fetchone()["cnt"]
+        assert count >= 12, f"Expected >= 12, got {count}"
+        conn.close()
+
+    def test_seed_all_catalogs_valid(self):
+        """Every seed incident uses only allowed catalog values."""
+        from seed import SEED_INCIDENTS
+        errors = []
+        for i, inc in enumerate(SEED_INCIDENTS):
+            if inc["channel"] not in self.VALID_CHANNELS:
+                errors.append(f"#{i}: invalid channel '{inc['channel']}'")
+            if inc["type"] not in self.VALID_TYPES:
+                errors.append(f"#{i}: invalid type '{inc['type']}'")
+            if inc["severity"] not in self.VALID_SEVERITIES:
+                errors.append(f"#{i}: invalid severity '{inc['severity']}'")
+            if inc["responsible_area"] not in self.VALID_AREAS:
+                errors.append(f"#{i}: invalid area '{inc['responsible_area']}'")
+            if inc["status"] not in self.VALID_STATUSES:
+                errors.append(f"#{i}: invalid status '{inc['status']}'")
+            if inc["warehouse_location"] is not None and inc["warehouse_location"] not in self.VALID_LOCATIONS:
+                errors.append(f"#{i}: invalid location '{inc['warehouse_location']}'")
+        assert not errors, f"Catalog validation errors:\n" + "\n".join(errors)
+
+    def test_seed_covers_all_severities(self):
+        from seed import SEED_INCIDENTS
+        severities = {inc["severity"] for inc in SEED_INCIDENTS}
+        assert severities == self.VALID_SEVERITIES, f"Missing severities: {self.VALID_SEVERITIES - severities}"
+
+    def test_seed_covers_both_warehouses(self):
+        from seed import SEED_INCIDENTS
+        locations = {inc["warehouse_location"] for inc in SEED_INCIDENTS}
+        assert "los_angeles" in locations
+        assert "zaragoza" in locations
+
+    def test_seed_covers_at_least_4_channels(self):
+        from seed import SEED_INCIDENTS
+        channels = {inc["channel"] for inc in SEED_INCIDENTS}
+        assert len(channels) >= 4, f"Only {len(channels)} channels: {channels}"
+
+    def test_seed_has_null_client_name(self):
+        from seed import SEED_INCIDENTS
+        nulls = [inc for inc in SEED_INCIDENTS if inc["client_name"] is None]
+        assert len(nulls) >= 1, "No incident with null client_name"
+
+    def test_seed_has_reopened(self):
+        from seed import SEED_INCIDENTS
+        reopened = [inc for inc in SEED_INCIDENTS if inc["status"] == "reopened"]
+        assert len(reopened) >= 1, "No reopened incident in seeds"
+
+    def test_seed_reopened_has_audit_trail(self):
+        from seed import run_seed, SEED_INCIDENTS
+        conn = get_connection()
+        init_db(conn)
+        conn.execute("CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT)")
+        conn.commit()
+        run_seed(conn)
+        reopened = [inc for inc in SEED_INCIDENTS if inc["status"] == "reopened"]
+        assert len(reopened) >= 1
+        target_id = reopened[0]["id"]
+        audit = conn.execute(
+            "SELECT * FROM incident_audit_log WHERE incident_id = ? AND field_changed = 'status'",
+            (target_id,),
+        ).fetchall()
+        assert len(audit) >= 1, "No audit log for reopened incident"
+        assert audit[-1]["old_value"] == "resolved"
+        assert audit[-1]["new_value"] == "reopened"
+        conn.close()
+
+    def test_seed_idempotent(self):
+        from seed import run_seed
+        conn = get_connection()
+        init_db(conn)
+        conn.execute("CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT)")
+        conn.commit()
+        run_seed(conn)
+        count1 = conn.execute("SELECT COUNT(*) as cnt FROM incidents").fetchone()["cnt"]
+        run_seed(conn)
+        count2 = conn.execute("SELECT COUNT(*) as cnt FROM incidents").fetchone()["cnt"]
+        assert count1 == count2, f"Seed not idempotent: {count1} vs {count2}"
+        conn.close()
+
+
+# ──────────────────────── Critical Rule Tests ────────────────────────
+
+
+class TestCriticalRule:
+    """Critical incidents can go resolved→closed; the graph already enforces the rule."""
+
+    @pytest.fixture
+    def critical_id(self, client):
         resp = client.post("/api/incidents", json={
-            "warehouse_location": "zaragoza",
-            "channel": "dashboard",
-            "type": "inventory_discrepancy",
-            "severity": "low",
-            "responsible_area": "warehouse_operations",
-            "title": "Zaragoza incident",
-            "description": "Desc",
+            "channel": "client_email",
+            "type": "sla_breach",
+            "severity": "critical",
+            "responsible_area": "last_mile_carrier",
+            "title": "Critical rule test",
+            "description": "Testing critical transition chain",
             "author": "system",
         })
-        assert resp.status_code == 201
-        assert resp.json()["warehouse_location"] == "zaragoza"
+        return resp.json()["id"]
+
+    def _transition(self, client, inc_id, status, author="tester"):
+        return client.patch(f"/api/incidents/{inc_id}/status",
+                            json={"status": status, "author": author})
+
+    def test_critical_full_chain_to_closed(self, client, critical_id):
+        """critical: open → assigned → in_progress → resolved → closed = 200"""
+        for status in ("assigned", "in_progress", "resolved", "closed"):
+            resp = self._transition(client, critical_id, status)
+            assert resp.status_code == 200, f"Failed at {status}: {resp.json()}"
+        assert resp.json()["status"] == "closed"
+
+    def test_critical_open_to_closed_invalid(self, client, critical_id):
+        """open → closed must be 422 (bypassed by graph)"""
+        resp = self._transition(client, critical_id, "closed")
+        assert resp.status_code == 422
+        assert "Invalid transition" in resp.json()["detail"]
+
+
+# ──────────────────────── Filter Validation Tests ────────────────────────
+
+
+class TestFilterValidation:
+    def test_invalid_status_returns_422(self, client):
+        resp = client.get("/api/incidents?status=invalid_status")
+        assert resp.status_code == 422
+
+    def test_invalid_severity_returns_422(self, client):
+        resp = client.get("/api/incidents?severity=ultra_critical")
+        assert resp.status_code == 422
+
+    def test_invalid_responsible_area_returns_422(self, client):
+        resp = client.get("/api/incidents?responsible_area=unknown_department")
+        assert resp.status_code == 422
+
+    def test_valid_filters_return_200(self, client):
+        resp = client.get("/api/incidents?status=open")
+        assert resp.status_code == 200
+        resp = client.get("/api/incidents?severity=critical")
+        assert resp.status_code == 200
+        resp = client.get("/api/incidents?responsible_area=technology")
+        assert resp.status_code == 200
+
+
+# ──────────────────────── PUT Nullable Tests ────────────────────────
+
+
+class TestPutNullable:
+    @pytest.fixture
+    def inc_id(self, client):
+        resp = client.post("/api/incidents", json={
+            "warehouse_location": "los_angeles",
+            "client_name": "TestCorp",
+            "channel": "client_email",
+            "type": "lost_parcel",
+            "severity": "high",
+            "responsible_area": "last_mile_carrier",
+            "title": "Nullable test",
+            "description": "Testing nullable fields",
+            "assigned_to": "OriginalUser",
+            "author": "system",
+        })
+        return resp.json()["id"]
+
+    def test_clear_assigned_to_to_null(self, client, inc_id):
+        resp = client.put(f"/api/incidents/{inc_id}", json={
+            "assigned_to": None,
+            "author": "manager",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["assigned_to"] is None
+
+    def test_clear_warehouse_location_to_null(self, client, inc_id):
+        resp = client.put(f"/api/incidents/{inc_id}", json={
+            "warehouse_location": None,
+            "author": "manager",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["warehouse_location"] is None
+
+    def test_clear_client_name_to_null(self, client, inc_id):
+        resp = client.put(f"/api/incidents/{inc_id}", json={
+            "client_name": None,
+            "author": "manager",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["client_name"] is None
+
+    def test_assigned_to_null_generates_audit(self, client, inc_id):
+        client.put(f"/api/incidents/{inc_id}", json={
+            "assigned_to": None,
+            "author": "manager",
+        })
+        detail = client.get(f"/api/incidents/{inc_id}").json()
+        relevant = [e for e in detail["audit_log"] if e["field_changed"] == "assigned_to"]
+        assert len(relevant) == 1
+        assert relevant[0]["old_value"] == "OriginalUser"
+        assert relevant[0]["new_value"] is None
+        assert relevant[0]["changed_by"] == "manager"
+
+    def test_no_audit_when_value_unchanged(self, client, inc_id):
+        """Sending same value must not generate audit."""
+        client.put(f"/api/incidents/{inc_id}", json={
+            "assigned_to": "OriginalUser",
+            "author": "manager",
+        })
+        detail = client.get(f"/api/incidents/{inc_id}").json()
+        assert len(detail["audit_log"]) == 0
+
+    def test_omit_field_does_not_change(self, client, inc_id):
+        """Omitting a field must preserve its current value."""
+        resp = client.put(f"/api/incidents/{inc_id}", json={
+            "title": "Only title changed",
+            "author": "manager",
+        })
+        data = resp.json()
+        assert data["title"] == "Only title changed"
+        assert data["client_name"] == "TestCorp"  # unchanged
+        assert data["assigned_to"] == "OriginalUser"  # unchanged
+        assert data["warehouse_location"] == "los_angeles"  # unchanged

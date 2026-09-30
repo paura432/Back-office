@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class ChannelEnum(str, Enum):
@@ -137,11 +137,6 @@ class IncidentResponse(BaseModel):
 
 class IncidentDetailResponse(IncidentResponse):
     audit_log: list[AuditLogEntry] = []
-
-
-class OpenBySeverityEntry(BaseModel):
-    severity: str
-    count: int
 
 
 class OpenBySeverityResponse(BaseModel):

@@ -7,6 +7,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from database import init_db
 from routers.incidents import router as incidents_router
+from seed import run_seed
 
 app = FastAPI(
     title="TrackFlow Incident Manager",
@@ -18,6 +19,7 @@ app = FastAPI(
 @app.on_event("startup")
 def startup():
     init_db()
+    run_seed()
 
 
 app.include_router(incidents_router)

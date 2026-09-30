@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from schemas import (
-    AuditLogEntry,
-    ErrorResponse,
     IncidentCreate,
     IncidentDetailResponse,
     IncidentResponse,
@@ -17,6 +15,9 @@ from schemas import (
     generate_id,
     is_valid_transition,
     utc_now,
+    IncidentStatusEnum,
+    SeverityEnum,
+    ResponsibleAreaEnum,
 )
 from database import get_connection
 
@@ -68,6 +69,14 @@ def list_incidents(
     responsible_area: str | None = Query(None),
     db=Depends(get_db),
 ):
+    # Validate enum filters
+    if status is not None and status not in IncidentStatusEnum._value2member_map_:
+        raise HTTPException(status_code=422, detail=f"Invalid status: {status}")
+    if severity is not None and severity not in SeverityEnum._value2member_map_:
+        raise HTTPException(status_code=422, detail=f"Invalid severity: {severity}")
+    if responsible_area is not None and responsible_area not in ResponsibleAreaEnum._value2member_map_:
+        raise HTTPException(status_code=422, detail=f"Invalid responsible_area: {responsible_area}")
+
     query = "SELECT * FROM incidents WHERE 1=1"
     params: list[str] = []
     if status:
@@ -151,46 +160,50 @@ def update_incident(incident_id: str, payload: IncidentUpdate, db=Depends(get_db
     updates: list[str] = []
     params: list[str | None] = []
 
-    # Fields that can be updated
-    UPDATABLE_FIELDS = [
-        "warehouse_location",
-        "client_name",
-        "channel",
-        "type",
-        "severity",
-        "responsible_area",
-        "title",
-        "description",
-        "assigned_to",
-    ]
+    # Map Pydantic field → DB column (same name here, but explicit for clarity)
+    UPDATABLE_FIELDS = {
+        "warehouse_location": lambda v: v.value if v else None,
+        "client_name": lambda v: v,
+        "channel": lambda v: v.value if v else None,
+        "type": lambda v: v.value if v else None,
+        "severity": lambda v: v.value if v else None,
+        "responsible_area": lambda v: v.value if v else None,
+        "title": lambda v: v,
+        "description": lambda v: v,
+        "assigned_to": lambda v: v,
+    }
 
-    for field in UPDATABLE_FIELDS:
-        new_val = getattr(payload, field, None)
-        if new_val is not None:
-            # Convert enum to value if needed
-            if hasattr(new_val, "value"):
-                new_val = new_val.value
-            old_val = current.get(field)
-            if str(new_val) != str(old_val) if old_val else True:
-                updates.append(f"{field} = ?")
-                params.append(new_val)
-                # Audit tracked fields
-                if field in ("assigned_to", "responsible_area"):
-                    db.execute(
-                        """
-                        INSERT INTO incident_audit_log (id, incident_id, field_changed, old_value, new_value, changed_by, changed_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            generate_id(),
-                            incident_id,
-                            field,
-                            str(old_val) if old_val else None,
-                            str(new_val),
-                            payload.author,
-                            now,
-                        ),
-                    )
+    # Fields that generate audit trail when changed
+    AUDIT_FIELDS = {"assigned_to", "responsible_area"}
+
+    for field, converter in UPDATABLE_FIELDS.items():
+        if field not in payload.model_fields_set:
+            continue  # field was not sent → do not touch
+        new_val = converter(getattr(payload, field))
+        old_val = current.get(field)
+        # Compare explicitly
+        if old_val == new_val:
+            continue  # no real change → skip
+
+        updates.append(f"{field} = ?")
+        params.append(new_val)
+
+        if field in AUDIT_FIELDS:
+            db.execute(
+                """
+                INSERT INTO incident_audit_log (id, incident_id, field_changed, old_value, new_value, changed_by, changed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    generate_id(),
+                    incident_id,
+                    field,
+                    str(old_val) if old_val is not None else None,
+                    str(new_val) if new_val is not None else None,
+                    payload.author,
+                    now,
+                ),
+            )
 
     if not updates:
         return incident_row_to_response(current)
@@ -223,14 +236,6 @@ def transition_status(incident_id: str, payload: StatusTransition, db=Depends(ge
         raise HTTPException(
             status_code=422,
             detail=f"Invalid transition: {current_status} → {next_status}",
-        )
-
-    # Critical rule: cannot go directly to closed without passing through resolved
-    # This is already enforced by the graph, but add explicit check
-    if current["severity"] == "critical" and next_status == "closed":
-        raise HTTPException(
-            status_code=422,
-            detail="Critical incidents cannot transition directly to closed. Must pass through resolved first.",
         )
 
     now = utc_now()

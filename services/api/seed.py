@@ -247,7 +247,6 @@ def run_seed(conn=None) -> None:
 
     # Add audit trail for reopened incident (seed #11: TechGear → reopened)
     reopened_inc = SEED_INCIDENTS[10]  # index 10 = TechGear
-    before_reopen = now.replace("T", " ")[:10] + " 00:00:00"
 
     # Insert resolved→reopened audit log
     conn.execute(
