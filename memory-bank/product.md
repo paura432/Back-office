@@ -14,10 +14,10 @@ Hoy, cuando algo falla en la operación (paquete perdido, discrepancia de invent
 
 ## Significado operativo de severidades
 
-- **critical** — bloquea la operación. No puede cerrarse sin pasar por `resolved`. Ej: caída de SGA.
-- **high** — impacto grave pero no bloqueante. Ej: transportista no entrega.
-- **medium** — impacto moderado, requiere planificación. Ej: discrepancia menor de inventario.
-- **low** — impacto menor o consulta. Ej: devolución pendiente de revisión.
+- **critical** — SLA de cara al cliente incumplido o un almacén no operativo. No puede cerrarse sin pasar por `resolved`.
+- **high** — riesgo significativo para volumen de envío o plazo de un cliente.
+- **medium** — impacto notable pero contenido.
+- **low** — sin impacto operativo inmediato.
 
 ## Catálogos exactos (del CONTEXT)
 
