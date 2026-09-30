@@ -56,7 +56,7 @@
   - `257559b` — feat: add comprehensive pytest suite with 47 tests
   - `a75af4f` — fix: harden incident backend behavior and coverage (FASE A)
   - `1b758ea` — feat: implement TrackFlow incident backoffice (FASE B)
-  - `<pending>` — test: verify incident manager end to end (FASE C)
+  - `3ee9c07` — test: verify incident manager end to end (FASE C)
 - Sin cambios en `packages/shared/package.json`
 - Backend funcional con SQLite y FastAPI — 67 tests pasando
 - Frontend funcional con Vite + TypeScript vanilla — build OK, 0 errores TS
