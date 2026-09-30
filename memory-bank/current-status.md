@@ -18,36 +18,50 @@
 - [x] Auditoría de status, assigned_to, responsible_area
 - [x] Filtros (status, severity, responsible_area) con validación 422
 - [x] Endpoint volumen abierto por severidad (`/api/incidents/open-by-severity`)
-- [x] FASE A — Hardening backend:
+- [x] **FASE A** — Hardening backend:
   - [x] Fix regla crítica: critical permite resolved→closed
   - [x] Seeds auto-ejecutados en startup
   - [x] PUT con campos nullables (model_fields_set + auditoría)
   - [x] Validación de filtros inválidos → 422
   - [x] Limpieza de código muerto (seed, schemas)
   - [x] Tests backend — 67 tests (pytest, todos pasando)
+- [x] **FASE B** — Frontend (Vite + TypeScript vanilla):
+  - [x] Dashboard con tarjetas de severidad y tabla de incidents abiertos
+  - [x] Listado con filtros (status, severity, responsible_area)
+  - [x] Formulario de creación con selects del catálogo
+  - [x] Detalle con timeline de auditoría y botones de transición
+  - [x] Formulario de edición con PUT nullable
+  - [x] Router cliente con history.pushState
+  - [x] Capa API client con tipado y manejo de errores
+  - [x] Proxy Vite /api → http://localhost:8000
+  - [x] TypeScript strict mode, 0 errores de tipo
+  - [x] Build producción OK (13 módulos, 17.55 kB JS)
+- [x] **FASE C** — Verificación E2E:
+  - [x] 52/52 assertions pasando (0 fallos)
+  - [x] Dashboard, listado, filtros, CRUD, transiciones, auditoría, regla crítica, persistencia
+  - [x] Documentación en `docs/incident-manager/verification.md`
+  - [x] Tests backend: 67/67 pasando
 
-## Lo que NO se ha hecho (pendiente)
+## Lo que NO se ha completado
 
-- [ ] FASE B — UI dashboard, listado, filtros, alta, edición, detalle, historial
-- [ ] FASE C — Verificación E2E
-- [ ] Pull Request
+- [ ] Pull Request (pendiente de instrucciones del usuario — "NO merge. NO PR todavía.")
 
 ## Estado del repositorio
 
-- 7 commits en `feature/incident-manager`:
+- 9 commits en `feature/incident-manager`:
   - `28ec667` — docs: align incident domain memory and rules
   - `ae686e5` — feat: add shared incident domain types
   - `ef9a7df` — feat: scaffold incident API persistence and seeds
   - `1d43321` — feat: add API endpoints with audit trail and status validation
   - `257559b` — feat: add comprehensive pytest suite with 47 tests
-  - `xxxxxxx` — fix: harden incident backend behavior and coverage
-  - `yyyyyyy` — feat: implement TrackFlow incident backoffice
-  - `zzzzzzz` — test: verify incident manager end to end
+  - `a75af4f` — fix: harden incident backend behavior and coverage (FASE A)
+  - `1b758ea` — feat: implement TrackFlow incident backoffice (FASE B)
+  - `<pending>` — test: verify incident manager end to end (FASE C)
 - Sin cambios en `packages/shared/package.json`
-- Backend funcional con SQLite y FastAPI
-- 67/67 tests pasando
-- Seeds ejecutados automáticamente al iniciar el servidor
+- Backend funcional con SQLite y FastAPI — 67 tests pasando
+- Frontend funcional con Vite + TypeScript vanilla — build OK, 0 errores TS
+- Verificación E2E completa — 52/52 assertions OK
 
 ## Próximo paso
 
-FASE B — Desarrollar UI frontend (TypeScript + Vite + vanilla).
+Esperar instrucciones del usuario sobre Pull Request o nuevos desarrollos.
