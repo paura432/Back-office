@@ -37,7 +37,8 @@ Crear catálogos e interfaces TypeScript para el dominio de inventario.
 - `Lot` — lote vinculado a un artículo
 - `StockMovement` — movimiento de inventario
 - `ItemWithStock` — Item + `stock: number` + `is_low_stock: boolean`
-- `ItemCreatePayload`, `ItemUpdatePayload`
+- `ItemCreatePayload` — campos del artículo + `initial_lot?: { lot_code: string; expiry_date: string; received_at: string }` (obligatorio si category=cosmetics)
+- `ItemUpdatePayload`
 - `MovementCreatePayload`
 
 Se exportan desde `packages/shared/types/index.ts`.
@@ -59,12 +60,14 @@ CREATE TABLE IF NOT EXISTS items (
     name TEXT NOT NULL,
     category TEXT NOT NULL CHECK (category IN ('fashion', 'electronics', 'cosmetics')),
     unit_of_measure TEXT NOT NULL CHECK (unit_of_measure IN ('unit', 'box', 'kg')),
-    reorder_point INTEGER NOT NULL DEFAULT 0,
+    reorder_point REAL NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     UNIQUE (client_name, sku, warehouse)
 );
 ```
+
+**Decisión — `reorder_point REAL`**: TrackFlow opera con `kg`, que admite fracciones (p.ej. 1.5 kg). SQLite `REAL` almacena un número de punto flotante de 64 bits que Python recupera como `float`. El cálculo de stock (también `REAL`) y la comparación `stock <= reorder_point` conservan decimales de forma natural.
 
 ### 2.2 Tabla `lots`
 
@@ -86,17 +89,30 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     item_id TEXT NOT NULL REFERENCES items(id),
     lot_id TEXT REFERENCES lots(id),
     movement_type TEXT NOT NULL CHECK (movement_type IN ('inbound', 'outbound', 'adjustment')),
-    quantity INTEGER NOT NULL,
+    quantity REAL NOT NULL,
     reason TEXT,
     created_at TEXT NOT NULL
 );
 ```
 
+**Decisión — `quantity REAL`**: Al igual que `reorder_point`, `quantity` debe admitir decimales para operaciones con unidades fraccionables (especialmente `kg`). La fórmula `inbound - outbound + adjustment` funciona correctamente con `REAL` y Python `float`.
+
+### 2.4 Tabla `inventory_metadata`
+
+```sql
+CREATE TABLE IF NOT EXISTS inventory_metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+```
+
+Tabla propia de metadatos para el módulo de inventario, completamente aislada de la DB del Incident Manager. Se usa para marcar `seed_inventory_applied` y cualquier otra flag interna del módulo.
+
 ---
 
 ## 3. Lógica de stock — sin columna stock
 
-### 3.1 Función `get_stock(conn, item_id) -> int`
+### 3.1 Función `get_stock(conn, item_id) -> float`
 
 ```sql
 SELECT COALESCE(SUM(
@@ -140,6 +156,15 @@ Cada creación de movimiento se ejecuta dentro de una transacción SQLite:
 6. Insertar el movimiento.
 7. `COMMIT`.
 
+### Concurrencia en outbound (race condition)
+
+Dos peticiones `outbound` concurrentes podrían leer el mismo saldo, validar ambas que hay stock suficiente y pasarlo a negativo. Para evitarlo se usa **`BEGIN IMMEDIATE`**:
+
+- La transacción se abre con `BEGIN IMMEDIATE` en lugar de `BEGIN DEFERRED`. Esto adquiere un lock de escritura al inicio, bloqueando otras transacciones que intenten escribir en la misma base de datos hasta que la primera termine (commit o rollback).
+- Como SQLite no permite concurrencia real de escritura, `BEGIN IMMEDIATE` garantiza que la lectura del stock, la validación y la inserción sean atómicas: no puede haber dos transacciones que lean el mismo saldo antes de escribir.
+- La conexión SQLite debe usar `conn.execute("BEGIN IMMEDIATE")` explícitamente (en lugar de dejar que SQLite elija `DEFERRED` por defecto).
+- Si la conexión ya está en una transacción, se inicia una nueva guardando el estado actual; al hacer `commit()` o `rollback()` se restaura. Para este caso, cada petición POST movement abre su propia transacción `IMMEDIATE` y la cierra con commit.
+
 ---
 
 ## 5. Endpoints backend
@@ -152,9 +177,9 @@ Router: `/api/inventory/` en `services/api/routers/inventory.py`
 |---|---|---|---|
 | `/api/inventory/items` | GET | Listar artículos (con stock derivado, `is_low_stock`, filtro opcional por warehouse) | INV-044 |
 | `/api/inventory/items/{id}` | GET | Detalle de artículo (con stock derivado, `is_low_stock`, lotes, últimos movimientos) | INV-002–009 |
-| `/api/inventory/items` | POST | Crear artículo (UNIQUE client_name + sku + warehouse) | INV-010, INV-011, INV-042 |
+| `/api/inventory/items` | POST | Crear artículo. Si `category=cosmetics`, el payload debe incluir `initial_lot` (objeto con `lot_code`, `expiry_date`, `received_at`). El item y el lote se crean en la misma transacción; si falla el lote, no se crea el item. Para fashion/electronics `initial_lot` es opcional. `initial_lot` no es campo persistente del Item — es solo parte del contrato de creación. | INV-010, INV-011, INV-016, INV-017, INV-042 |
 | `/api/inventory/items/{id}` | PUT | Editar artículo (rechazar cambio de warehouse si tiene movimientos) | INV-009, INV-043 |
-| `/api/inventory/items/{id}` | DELETE | Borrar artículo (rechazar si tiene movimientos) | INV-045, INV-046 |
+| `/api/inventory/items/{id}` | DELETE | Borrar artículo. Si tiene movimientos → rechazar (422). Si no tiene movimientos → borrar el item y todos sus lotes asociados en la misma transacción. Nunca se elimina historial de movimientos. | INV-045, INV-046 |
 
 ### Lotes
 
@@ -227,7 +252,7 @@ Añadir rutas para `/inventory*` que cargan las nuevas páginas. No romper las r
 
 Archivo: `services/api/seed_inventory.py`
 
-Ejecutado en startup (igual que Incident Manager) si la flag `seed_inventory_applied` no existe en tabla `metadata`.
+Ejecutado en startup. Consulta la tabla `inventory_metadata` (dentro de `inventory.db`, independiente del Incident Manager). Si la clave `seed_inventory_applied` no existe, ejecuta los seeds y la inserta. Si ya existe, omite la ejecución (idempotente).
 
 | Requisito | Cobertura mínima | INV |
 |---|---|---|
@@ -269,7 +294,7 @@ Archivo: `services/api/tests/test_inventory.py`
 | INV-018 | Crear lote con item_id inexistente → 422 | unit |
 | INV-019 – INV-024 | Crear movimiento con campos correctos | unit |
 | INV-023 | Crear adjustment sin reason → 422 | unit |
-| INV-025 – INV-029 | Verificar que GET item no devuelve columna stock; que no hay endpoint de stock directo | integration |
+| INV-025 – INV-029 | GET item **SÍ devuelve `stock` calculado** como dato derivado. Verificar que: (a) no existe columna `stock` persistente en la tabla `items`, (b) POST/PUT item no acepta campo `stock`, (c) no existe endpoint de edición directa de stock, (d) no existe formulario de edición de stock. | integration |
 | INV-030 – INV-033 | Calcular stock tras inbound, outbound, adjustment (positivo y negativo) | integration |
 | INV-034 | Outbound que dejaría stock < 0 → 422 | unit |
 | INV-035 | Outbound con item_id inexistente → 422 | unit |
