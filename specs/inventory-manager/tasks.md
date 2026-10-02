@@ -35,21 +35,26 @@
 
 ---
 
-### INV-T04 — CRUD de items (listado, detalle, edición, baja)
+### INV-T04 — CRUD de items (listado, detalle, creación, edición, baja)
 
-**Criterios:** INV-001 (warehouse), INV-002 (client_name), INV-003 (sku), INV-004 (name), INV-005 (category), INV-006 (unit_of_measure), INV-007 (reorder_point), INV-008 (created_at), INV-009 (updated_at), INV-042 (crear sin stock directo), INV-043 (PUT bloquea warehouse si hay movimientos), INV-044 (listado con stock derivado), INV-045 (DELETE rechaza si hay movimientos), INV-046 (DELETE sin movimientos → borra item + lotes en transacción)  
+**Criterios:** INV-001 (warehouse), INV-002 (client_name), INV-003 (sku), INV-004 (name), INV-005 (category), INV-006 (unit_of_measure), INV-007 (reorder_point), INV-008 (created_at), INV-009 (updated_at), INV-010 (UNIQUE client_name+sku+warehouse), INV-011 (identidad multi-almacén), INV-042 (crear sin stock directo), INV-043 (PUT bloquea warehouse si hay movimientos), INV-044 (listado con stock derivado), INV-045 (DELETE rechaza si hay movimientos), INV-046 (DELETE sin movimientos → borra item + lotes en transacción)  
 **Dependencias:** INV-T02, INV-T03  
-**Cambios:** `services/api/routers/inventory.py` — endpoints `GET /api/inventory/items` (con filtro warehouse opcional, stock derivado), `GET /api/inventory/items/{id}` (stock, lotes, últimos movimientos), `PUT /api/inventory/items/{id}` (rechazar cambio de warehouse si tiene movimientos), `DELETE /api/inventory/items/{id}` (rechazar si tiene movimientos; si no, borrar item + lotes en una transacción).  
-**Verificación:** GET items devuelve stock calculado; PUT con warehouse diferente → 422 si tiene movimientos; DELETE sin movimientos → 200 y item + lotes eliminados; DELETE con movimientos → 422.  
+**Cambios:** `services/api/routers/inventory.py` — endpoints:
+- `POST /api/inventory/items` — alta general de artículo. Valida catálogos (warehouse, category, unit_of_measure), rechaza duplicado UNIQUE(client_name, sku, warehouse), nunca acepta stock directo (ni campo stock en payload). La creación de cosmetics con lote se delega a INV-T05.
+- `GET /api/inventory/items` — listado con filtro warehouse opcional, stock derivado por artículo.
+- `GET /api/inventory/items/{id}` — detalle con stock, lotes, últimos movimientos.
+- `PUT /api/inventory/items/{id}` — edición; rechaza cambio de warehouse si el artículo tiene movimientos.
+- `DELETE /api/inventory/items/{id}` — rechaza si tiene movimientos; si no, borra item + lotes en una transacción.  
+**Verificación:** POST con datos válidos → 201 sin stock directo; POST duplicado (client+sku+warehouse) → 422; POST con catálogo inválido → 422; GET items devuelve stock calculado; PUT con warehouse diferente → 422 si tiene movimientos; DELETE sin movimientos → 200 y item + lotes eliminados; DELETE con movimientos → 422.  
 **Commit esperado:** `feat(INV-T04): implement items CRUD endpoints`
 
 ---
 
-### INV-T05 — Creación atómica de cosmetics + initial_lot
+### INV-T05 — Creación atómica de cosmetics + initial_lot (extensión del POST)
 
 **Criterios:** INV-016 (cosmetics requiere lote al alta), INV-017 (fashion/electronics sin lote es válido), INV-018 (lote asociado a item existente), INV-042 (alta sin stock directo)  
-**Dependencias:** INV-T04 (extiende POST items)  
-**Cambios:** En `POST /api/inventory/items` — si `category=cosmetics`, validar que `initial_lot` está presente con `lot_code`, `expiry_date`, `received_at`; crear item + lote en la misma transacción SQLite; si `category=fashion|electronics`, `initial_lot` es opcional; `initial_lot` no persiste como campo del Item.  
+**Dependencias:** INV-T04 (extiende el `POST /api/inventory/items` implementado en T04)  
+**Cambios:** En `POST /api/inventory/items` — añadir lógica específica: si `category=cosmetics`, validar que `initial_lot` está presente con `lot_code`, `expiry_date`, `received_at`; crear item + lote en la misma transacción SQLite; si `category=fashion|electronics`, `initial_lot` es opcional. `initial_lot` no persiste como campo del Item.  
 **Verificación:** POST cosmetics sin initial_lot → 422; POST cosmetics con initial_lot válido → 201 y lote creado; POST fashion/electronics sin initial_lot → 201; POST con initial_lot inválido (falta campo) → 422.  
 **Commit esperado:** `feat(INV-T05): implement atomic cosmetics creation with initial_lot`
 
@@ -105,12 +110,13 @@
 
 ---
 
-### INV-T11 — Cliente API frontend
+### INV-T11 — Cliente API frontend (con tipos importados desde shared)
 
 **Criterios:** (soporte — no abre nuevos INV)  
 **Dependencias:** INV-T01, INV-T10  
-**Cambios:** `uis/backoffice/src/types.ts` — añadir catálogos y tipos de inventario (importar o replicar desde `packages/shared/types/inventory.ts`). `uis/backoffice/src/api.ts` — añadir métodos: `listItems(warehouse?)`, `getItem(id)`, `createItem(payload)`, `updateItem(id, payload)`, `deleteItem(id)`, `createLot(itemId, payload)`, `listLots(itemId)`, `createMovement(itemId, payload)`, `listMovements(itemId)`, `getLowStock()`.  
-**Verificación:** `tsc --noEmit` pasa sin errores; los tipos y la API client se importan sin problemas.  
+**Cambios:** `uis/backoffice/src/types.ts` — NO replicar tipos de dominio de inventario. Importarlos desde `packages/shared/types/inventory.ts` con ruta relativa (ej. `import type { Item, Lot, StockMovement, ItemWithStock, ItemCreatePayload, ItemUpdatePayload, MovementCreatePayload, Warehouse } from '../../../../packages/shared/types/inventory'`). Únicamente declarar aquí tipos locales de presentación que no dupliquen el dominio (ej. `ItemTableRow`, `LowStockAlert`).  
+`uis/backoffice/src/api.ts` — añadir métodos: `listItems(warehouse?)`, `getItem(id)`, `createItem(payload)`, `updateItem(id, payload)`, `deleteItem(id)`, `createLot(itemId, payload)`, `listLots(itemId)`, `createMovement(itemId, payload)`, `listMovements(itemId)`, `getLowStock()`.  
+**Verificación:** `tsc --noEmit` pasa sin errores; los imports proceden de `packages/shared/types/`; no hay interfaces de dominio duplicadas en `uis/backoffice/src/types.ts`; los métodos API funcionan.  
 **Commit esperado:** `feat(INV-T11): add inventory types and API client to frontend`
 
 ---
@@ -199,12 +205,17 @@ Indicador en el nav (header.ts) si hay artículos low-stock.
 
 ---
 
-### INV-T20 — Verificación final y trazabilidad
+### INV-T20 — Verificación final y trazabilidad (sin código nuevo)
 
 **Criterios:** todos INV-001–055 (cobertura completa E2E)  
 **Dependencias:** todas INV-T01–T19  
-**Cambios:** Ningún archivo de código. Documento de verificación o script E2E que recorre todos los criterios y confirma que el sistema implementado los cumple. Validar que el Incident Manager sigue funcionando (health check, CRUD incidencias).  
-**Verificación:** Cada INV-001–055 tiene una aserción positiva. El Incident Manager pasa su propia verificación (health, endpoints).  
+**Cambios:** Ningún archivo de código funcional. Actividades:
+1. **Tests existentes** — ejecutar `pytest services/api/tests/test_inventory.py -v` y confirmar que todos los tests (T18 + T19) pasan.
+2. **Build / typecheck** — ejecutar `tsc --noEmit` en el frontend y confirmar que no hay errores de tipos.
+3. **Trazabilidad INV → test → commit** — comprobar que cada INV-001–055 tiene al menos un test que lo ejercita, y que cada tarea INV-T01–T19 tiene su commit.
+4. **Documento de verificación** — generar o actualizar `specs/inventory-manager/verification.md` enumerando cada criterio, su test asociado y el resultado de la ejecución.
+5. **Compatibilidad** — verificar que el Incident Manager sigue funcionando (health check, CRUD de incidencias).  
+**Verificación:** Cada INV-001–055 tiene una aserción positiva documentada. `pytest` pasa. `tsc --noEmit` pasa. El Incident Manager pasa su propia verificación. No se ha añadido código funcional nuevo.  
 **Commit esperado:** `test(INV-T20): verify complete inventory manager implementation`
 
 ---
@@ -216,14 +227,14 @@ Indicador en el nav (header.ts) si hay artículos low-stock.
 | INV-T01 | 001–009, 012–015, 019–024 | ninguna | `tsc --noEmit` sin errores | `feat(INV-T01): add shared inventory domain types` |
 | INV-T02 | 001, 005–007, 010–015, 021–022, 024–026 | ninguna | Tablas creadas con columnas y constraints correctos | `feat(INV-T02): add inventory database schema and connection` |
 | INV-T03 | 025–033, 041, 044 | INV-T02 | `get_stock()` devuelve float correcto con decimales | `feat(INV-T03): implement derived stock calculation logic` |
-| INV-T04 | 001–009, 042–046 | INV-T02, INV-T03 | CRUD funcional; PUT bloquea warehouse; DELETE gestiona lotes | `feat(INV-T04): implement items CRUD endpoints` |
+| INV-T04 | 001–011, 042–046 | INV-T02, INV-T03 | POST con CRUD completo; PUT bloquea warehouse; DELETE gestiona lotes | `feat(INV-T04): implement items CRUD endpoints` |
 | INV-T05 | 016–018, 042 | INV-T04 | POST cosmetics sin initial_lot → 422; con initial_lot → 201 + lote | `feat(INV-T05): implement atomic cosmetics creation with initial_lot` |
 | INV-T06 | 012–015, 018 | INV-T02, INV-T04 | POST/GET lots funcional; item_id inexistente → 422 | `feat(INV-T06): implement lot creation and listing endpoints` |
 | INV-T07 | 019–024, 030–040 | INV-T02, INV-T03, INV-T04, INV-T06 | Movimiento válido → 201; outbound que excede → 422; BEGIN IMMEDIATE | `feat(INV-T07): implement transactional movement registration with all validations` |
 | INV-T08 | 041 | INV-T03, INV-T04 | GET low-stock devuelve items con stock ≤ reorder_point | `feat(INV-T08): implement low-stock endpoint` |
 | INV-T09 | 047–055 | INV-T02, INV-T05, INV-T06, INV-T07 | Seeds idempotentes con cobertura completa | `feat(INV-T09): implement idempotent inventory seeds` |
 | INV-T10 | (compatibilidad) | INV-T04–T09 | App arranca; Incident Manager funciona; Inventory responde | `feat(INV-T10): integrate inventory module into existing FastAPI app` |
-| INV-T11 | (soporte) | INV-T01, INV-T10 | `tsc --noEmit` pasa; métodos API funcionan | `feat(INV-T11): add inventory types and API client to frontend` |
+| INV-T11 | (soporte) | INV-T01, INV-T10 | `tsc --noEmit` pasa; imports desde `packages/shared/types/`; sin tipos de dominio duplicados | `feat(INV-T11): add inventory types and API client to frontend` |
 | INV-T12 | (soporte) | INV-T11 | Navegación funcional; rutas Incident Manager intactas | `feat(INV-T12): add inventory navigation and routing` |
 | INV-T13 | 041, 044 | INV-T11, INV-T12 | Tabla con stock derivado; filtro por warehouse; badge low-stock | `feat(INV-T13): implement inventory list page` |
 | INV-T14 | 016, 017, 042, 043, 045, 046 | INV-T11, INV-T12, INV-T13 | Alta cosmetics sin lote → error; edición bloquea warehouse; DELETE condicional | `feat(INV-T14): implement item create, edit, and delete pages` |
@@ -232,4 +243,4 @@ Indicador en el nav (header.ts) si hay artículos low-stock.
 | INV-T17 | 041 | INV-T11, INV-T12 | Vista low-stock; dashboard; indicador en nav | `feat(INV-T17): implement low-stock view and dashboard` |
 | INV-T18 | 001–018, 025–033, 041–046 | INV-T02–T06, INV-T08 | pytest pasa tests de items, lots, stock, cosmetics, CRUD | `test(INV-T18): add backend tests for items, lots, stock, and cosmetics` |
 | INV-T19 | 019–024, 034–040, 047–055 | INV-T07, INV-T08, INV-T09 | pytest pasa tests de movimientos, rechazos y semilla | `test(INV-T19): add backend tests for movements, rejections, and seeds` |
-| INV-T20 | 001–055 | todas | Cada INV tiene aserción; Incident Manager sigue operativo | `test(INV-T20): verify complete inventory manager implementation` |
+| INV-T20 | 001–055 | todas | pytest + tsc pasan; trazabilidad INV→test→commit documentada; sin código nuevo | `test(INV-T20): verify complete inventory manager implementation` |
