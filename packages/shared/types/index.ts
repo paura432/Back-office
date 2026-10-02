@@ -14,3 +14,6 @@ export interface BaseEntity {
 
 // Incident domain — TrackFlow Incident Manager
 export * from './incident';
+
+// Inventory domain — TrackFlow Inventory Manager
+export * from './inventory';
