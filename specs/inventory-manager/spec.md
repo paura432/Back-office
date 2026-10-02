@@ -15,8 +15,8 @@ Cada criterio expresa un contrato observable. Los valores enumerados son cerrado
 - **INV-007 (EARS: Ubicuo)** Todo artículo deberá exponer `reorder_point` como parte de sus datos.
 - **INV-008 (EARS: Ubicuo)** Todo artículo deberá exponer `created_at`, que representa cuándo se dio de alta.
 - **INV-009 (EARS: Dirigido por evento)** Cuando se cree o edite un artículo, el sistema deberá exponer `updated_at` con el momento de esa creación o edición.
-- **INV-010 (EARS: Dirigido por evento)** Cuando se dé de alta un artículo, el sistema deberá rechazar un `sku` ya usado por otro artículo del mismo cliente.
-- **INV-011 (EARS: Ubicuo)** El sistema deberá permitir que clientes distintos tengan artículos con el mismo `sku` y deberá tratarlos como artículos diferentes.
+- **INV-010 (EARS: Dirigido por evento)** Cuando se dé de alta un artículo, el sistema deberá rechazar la combinación `client_name` + `sku` + `warehouse` si ya existe otro artículo con esos mismos tres valores.
+- **INV-011 (EARS: Ubicuo)** El sistema deberá identificar un artículo de forma única por la tupla `client_name` + `sku` + `warehouse`, permitiendo que el mismo `client_name` + `sku` coexista una vez en `los_angeles` y otra en `zaragoza`, y que clientes distintos usen el mismo `sku` sin conflicto.
 
 ### Lotes
 
@@ -96,8 +96,8 @@ Cada criterio expresa un contrato observable. Los valores enumerados son cerrado
 | INV-007 | Ubicuo | El artículo expone `reorder_point`. |
 | INV-008 | Ubicuo | El artículo expone `created_at` como momento de alta. |
 | INV-009 | Dirigido por evento | Alta o edición refleja el momento en `updated_at`. |
-| INV-010 | Dirigido por evento | Se rechaza SKU repetido dentro del mismo cliente. |
-| INV-011 | Ubicuo | Clientes distintos pueden compartir SKU y sus artículos son distintos. |
+| INV-010 | Dirigido por evento | Se rechaza duplicado de `client_name` + `sku` + `warehouse`. |
+| INV-011 | Ubicuo | La identidad del artículo es `client_name` + `sku` + `warehouse`; mismo par cliente+SKU puede coexistir en ambos almacenes. |
 | INV-012 | Ubicuo | El lote identifica su artículo mediante `item_id`. |
 | INV-013 | Ubicuo | El lote expone `lot_code`. |
 | INV-014 | Ubicuo | El lote expone `expiry_date`. |
