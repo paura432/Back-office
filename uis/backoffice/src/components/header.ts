@@ -2,17 +2,18 @@
  * Navigation bar component for TrackFlow Incident Manager.
  */
 
-export function renderNav(currentPath: string): string {
-  const links = [
+export function renderNav(currentPath: string, lowStockCount: number = 0): string {
+  const links: Array<{ path: string; label: string; badge?: number }> = [
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/list', label: 'Incidents' },
     { path: '/create', label: 'New Incident' },
     { path: '/inventory/items', label: 'Inventory' },
-    { path: '/inventory/low-stock', label: 'Low Stock' },
+    { path: '/inventory/low-stock', label: 'Low Stock', badge: lowStockCount },
   ];
   const items = links.map((l) => {
     const active = currentPath.startsWith(l.path) ? ' active' : '';
-    return `<a href="${l.path}" class="${active}" data-nav>${l.label}</a>`;
+    const badge = l.badge && l.badge > 0 ? ` <span class="badge" style="background:#dc2626;color:#fff;font-size:0.7rem">${l.badge}</span>` : '';
+    return `<a href="${l.path}" class="${active}" data-nav>${l.label}${badge}</a>`;
   }).join('');
   return `
     <nav class="nav-links">

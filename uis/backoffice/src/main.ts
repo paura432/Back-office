@@ -8,6 +8,7 @@ import { renderList } from './pages/list.ts';
 import { renderCreate, handleCreateSubmit } from './pages/create.ts';
 import { renderDetail, handleTransitionClick } from './pages/detail.ts';
 import { renderEdit, handleEditSubmit } from './pages/edit.ts';
+import { renderInventoryDashboard } from './pages/inventory-dashboard.ts';
 import { renderInventoryList } from './pages/inventory-list.ts';
 import { renderInventoryCreate, handleInventoryCreateSubmit } from './pages/inventory-create.ts';
 import { renderInventoryEdit, handleInventoryEditSubmit } from './pages/inventory-edit.ts';
@@ -37,7 +38,7 @@ async function route(path: string, search: string) {
       const id = params.get('id');
       if (!id) { html = '<div class="error-box">Missing id parameter</div>'; } else { html = await renderEdit(id); }
     } else if (path === '/inventory') {
-      html = await renderInventoryList(params);
+      html = await renderInventoryDashboard();
     } else if (path === '/inventory/items') {
       html = await renderInventoryList(params);
     } else if (path === '/inventory/create') {
