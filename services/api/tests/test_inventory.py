@@ -1,7 +1,7 @@
 """
-Tests for TrackFlow Inventory Manager — INV-T18.
-Covers items, lots, stock calculation, and cosmetics creation.
-INV-001–018, INV-025–033, INV-041–046.
+Tests for TrackFlow Inventory Manager.
+INV-T18: items, lots, stock calculation, cosmetics creation.
+INV-T19: movements, rejections, warehouse isolation, seeds.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from database_inventory import get_inventory_connection, init_inventory_db
 from inventory_core import get_stock, get_items_with_stock
 from main import app
+from seed_inventory import run_inventory_seed
 
 
 # ──────────────────────── Fixtures ────────────────────────
@@ -634,3 +635,395 @@ class TestHealth:
         resp = client.get("/health")
         assert resp.status_code == 200
         assert resp.json() == {"status": "ok"}
+
+
+# ══════════════════════════ INV-T19: Movements, Rejections, Seeds ══════════════════════════
+
+
+# ──────────────────────── INV-019–024: Movement fields ────────────────────────
+
+
+class TestMovementFields:
+    """INV-019–024: Movement field validation."""
+
+    def test_movement_references_item(self, client):
+        """INV-019: Movement references item_id."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0},
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["item_id"] == item["id"]
+
+    def test_movement_lot_id_nullable(self, client):
+        """INV-020: lot_id is present and can be null."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["lot_id"] is None
+
+    def test_movement_type_validation(self, client):
+        """INV-021: movement_type must be inbound, outbound, or adjustment."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "invalid_type", "quantity": 10.0},
+        )
+        assert resp.status_code == 422
+
+    def test_movement_has_quantity(self, client):
+        """INV-022: quantity is part of movement data."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 42.5},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["quantity"] == 42.5
+
+    def test_movement_has_created_at(self, client):
+        """INV-024: created_at is auto-generated."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0},
+        )
+        assert resp.status_code == 201
+        assert "created_at" in resp.json()
+        assert len(resp.json()["created_at"]) > 0
+
+    def test_movement_with_lot(self, client):
+        """Movement with a valid lot_id works for non-cosmetics items."""
+        item = client.post("/api/inventory/items", json=_create_item_payload(
+            category="fashion",
+        )).json()
+        lot = client.post(
+            f"/api/inventory/items/{item['id']}/lots",
+            json={"lot_code": "MOV-LOT-1", "expiry_date": "2027-06-30", "received_at": "2026-10-01"},
+        ).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 20.0, "lot_id": lot["id"]},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["lot_id"] == lot["id"]
+
+
+# ──────────────────────── INV-023: Adjustment reason ────────────────────────
+
+
+class TestAdjustmentReason:
+    """INV-023: Adjustment movements require a reason."""
+
+    def test_adjustment_without_reason_rejected(self, client):
+        """INV-023: Adjustment with no reason → 422."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 50.0},
+        )
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "adjustment", "quantity": 5.0},
+        )
+        assert resp.status_code == 422
+        assert "reason" in resp.json()["detail"].lower()
+
+    def test_adjustment_with_empty_reason_rejected(self, client):
+        """Adjustment with empty string reason → 422."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 50.0},
+        )
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "adjustment", "quantity": 5.0, "reason": "  "},
+        )
+        assert resp.status_code == 422
+
+    def test_adjustment_with_reason_accepted(self, client):
+        """Adjustment with non-empty reason → 201."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 50.0},
+        )
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "adjustment", "quantity": 5.0, "reason": "damaged_return"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["reason"] == "damaged_return"
+
+
+# ──────────────────────── INV-034–039: Movement rejections ────────────────────────
+
+
+class TestMovementRejections:
+    """INV-034–039: Movement rejection scenarios."""
+
+    def test_outbound_below_zero_rejected(self, client):
+        """INV-034: Outbound leaving stock < 0 → 422."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0},
+        )
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "outbound", "quantity": 20.0},
+        )
+        assert resp.status_code == 422
+        assert "stock" in resp.json()["detail"].lower()
+
+    def test_outbound_nonexistent_item_rejected(self, client):
+        """INV-035: Outbound on nonexistent item → 422."""
+        resp = client.post(
+            "/api/inventory/items/00000000-0000-0000-0000-000000000000/movements",
+            json={"movement_type": "outbound", "quantity": 5.0},
+        )
+        assert resp.status_code == 422
+        assert "not found" in resp.json()["detail"].lower()
+
+    def test_adjustment_nonexistent_item_rejected(self, client):
+        """INV-036: Adjustment on nonexistent item → 422."""
+        resp = client.post(
+            "/api/inventory/items/00000000-0000-0000-0000-000000000000/movements",
+            json={"movement_type": "adjustment", "quantity": 5.0, "reason": "test"},
+        )
+        assert resp.status_code == 422
+        assert "not found" in resp.json()["detail"].lower()
+
+    def test_inbound_nonexistent_item_rejected(self, client):
+        """Inbound on nonexistent item → 422."""
+        resp = client.post(
+            "/api/inventory/items/00000000-0000-0000-0000-000000000000/movements",
+            json={"movement_type": "inbound", "quantity": 5.0},
+        )
+        assert resp.status_code == 422
+
+    def test_nonexistent_lot_id_rejected(self, client):
+        """INV-037: lot_id that doesn't exist → 422."""
+        item = client.post("/api/inventory/items", json=_create_item_payload()).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0, "lot_id": "00000000-0000-0000-0000-000000000000"},
+        )
+        assert resp.status_code == 422
+        assert "lot" in resp.json()["detail"].lower()
+
+    def test_wrong_lot_item_rejected(self, client):
+        """INV-038: Lot belonging to a different item → 422."""
+        item1 = client.post("/api/inventory/items", json=_create_item_payload(sku="WRONG-1")).json()
+        item2 = client.post("/api/inventory/items", json=_create_item_payload(sku="WRONG-2")).json()
+
+        lot = client.post(
+            f"/api/inventory/items/{item1['id']}/lots",
+            json={"lot_code": "WRONG-LOT", "expiry_date": "2027-06-30", "received_at": "2026-10-01"},
+        ).json()
+
+        resp = client.post(
+            f"/api/inventory/items/{item2['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0, "lot_id": lot["id"]},
+        )
+        assert resp.status_code == 422
+        assert "lot" in resp.json()["detail"].lower()
+
+    def test_cosmetics_without_lot_id_rejected(self, client):
+        """INV-039: Cosmetics movement without lot_id → 422."""
+        item = client.post("/api/inventory/items", json=_create_item_payload(
+            category="cosmetics",
+            initial_lot={"lot_code": "COS-REJ-1", "expiry_date": "2027-12-31", "received_at": "2026-10-01"},
+        )).json()
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0},
+        )
+        assert resp.status_code == 422
+        assert "lot" in resp.json()["detail"].lower()
+
+    def test_cosmetics_with_lot_id_accepted(self, client):
+        """Cosmetics movement WITH lot_id → 201."""
+        item = client.post("/api/inventory/items", json=_create_item_payload(
+            category="cosmetics",
+            initial_lot={"lot_code": "COS-OK-1", "expiry_date": "2027-12-31", "received_at": "2026-10-01"},
+        )).json()
+        lots = client.get(f"/api/inventory/items/{item['id']}/lots").json()
+        lot_id = lots[0]["id"]
+        resp = client.post(
+            f"/api/inventory/items/{item['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 10.0, "lot_id": lot_id},
+        )
+        assert resp.status_code == 201
+
+
+# ──────────────────────── INV-040: Warehouse isolation ────────────────────────
+
+
+class TestWarehouseIsolation:
+    """INV-040: Stock is calculated per warehouse; never combined."""
+
+    def test_stock_not_combined_across_warehouses(self, client):
+        """INV-040: Stock in LA never compensates stock in ZG."""
+        # Create same SKU in both warehouses
+        la = client.post("/api/inventory/items", json=_create_item_payload(
+            warehouse="los_angeles", sku="ISO-001", reorder_point=0.0
+        )).json()
+        zg = client.post("/api/inventory/items", json=_create_item_payload(
+            warehouse="zaragoza", sku="ISO-001", reorder_point=0.0
+        )).json()
+
+        # Give LA lots of stock, ZG none
+        client.post(
+            f"/api/inventory/items/{la['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 100.0},
+        )
+
+        la_detail = client.get(f"/api/inventory/items/{la['id']}").json()
+        zg_detail = client.get(f"/api/inventory/items/{zg['id']}").json()
+
+        assert la_detail["stock"] == 100.0
+        assert zg_detail["stock"] == 0.0
+
+    def test_outbound_blocked_per_warehouse(self, client):
+        """INV-040: Outbound in ZG blocked even if LA has stock."""
+        la = client.post("/api/inventory/items", json=_create_item_payload(
+            warehouse="los_angeles", sku="ISO-002", reorder_point=0.0
+        )).json()
+        zg = client.post("/api/inventory/items", json=_create_item_payload(
+            warehouse="zaragoza", sku="ISO-002", reorder_point=0.0
+        )).json()
+
+        # Give LA stock but not ZG
+        client.post(
+            f"/api/inventory/items/{la['id']}/movements",
+            json={"movement_type": "inbound", "quantity": 100.0},
+        )
+
+        # Try outbound from ZG (which has 0 stock) — must fail
+        resp = client.post(
+            f"/api/inventory/items/{zg['id']}/movements",
+            json={"movement_type": "outbound", "quantity": 5.0},
+        )
+        assert resp.status_code == 422
+
+
+# ──────────────────────── INV-047–055: Seed verification ────────────────────────
+
+
+class TestSeedVerification:
+    """INV-047–055: Seed data completeness verification."""
+
+    @pytest.fixture(autouse=True)
+    def seed_db(self):
+        """Run the seed before each test in this class."""
+        run_inventory_seed()
+
+    def test_seed_items_count(self, client):
+        """INV-047: At least 15 items in seed."""
+        resp = client.get("/api/inventory/items")
+        assert resp.status_code == 200
+        items = resp.json()
+        assert len(items) >= 15
+
+    def test_seed_both_warehouses(self, client):
+        """INV-048: Seed has items in both los_angeles and zaragoza."""
+        resp = client.get("/api/inventory/items")
+        items = resp.json()
+        warehouses = {i["warehouse"] for i in items}
+        assert "los_angeles" in warehouses
+        assert "zaragoza" in warehouses
+
+    def test_seed_multiple_clients(self, client):
+        """INV-049: Seed has at least 3 distinct client_name values."""
+        resp = client.get("/api/inventory/items")
+        items = resp.json()
+        clients = {i["client_name"] for i in items}
+        assert len(clients) >= 3
+
+    def test_seed_all_categories(self, client):
+        """INV-050: Seed covers fashion, electronics, and cosmetics."""
+        resp = client.get("/api/inventory/items")
+        items = resp.json()
+        categories = {i["category"] for i in items}
+        assert "fashion" in categories
+        assert "electronics" in categories
+        assert "cosmetics" in categories
+
+    def test_seed_cosmetics_with_lots(self, client):
+        """INV-051: At least 3 cosmetics items, each with at least one lot."""
+        resp = client.get("/api/inventory/items")
+        items = resp.json()
+        cosmetics = [i for i in items if i["category"] == "cosmetics"]
+        assert len(cosmetics) >= 3
+
+        for cos in cosmetics:
+            detail = client.get(f"/api/inventory/items/{cos['id']}").json()
+            assert len(detail["lots"]) >= 1, f"Cosmetics item {cos['sku']} has no lots"
+
+    def test_seed_expired_lot(self, client):
+        """INV-052: At least one lot with expiry_date before today."""
+        import datetime
+        today = datetime.date.today().isoformat()
+
+        resp = client.get("/api/inventory/lots/expired")
+        assert resp.status_code == 200
+        expired = resp.json()
+        assert len(expired) >= 1
+        for lot in expired:
+            assert lot["expiry_date"] < today
+
+    def test_seed_low_stock_items(self, client):
+        """INV-053: At least 2 items with stock <= reorder_point."""
+        resp = client.get("/api/inventory/low-stock")
+        assert resp.status_code == 200
+        data = resp.json()
+        low_stock_items = data.get("los_angeles", []) + data.get("zaragoza", [])
+        assert len(low_stock_items) >= 2
+
+    def test_seed_movement_types(self, client):
+        """INV-054: Seed includes inbound, outbound, and adjustment movements."""
+        resp = client.get("/api/inventory/items")
+        items = resp.json()
+
+        all_movement_types = set()
+        for item in items:
+            movs = client.get(f"/api/inventory/items/{item['id']}/movements").json()
+            for m in movs:
+                all_movement_types.add(m["movement_type"])
+
+        assert "inbound" in all_movement_types
+        assert "outbound" in all_movement_types
+        assert "adjustment" in all_movement_types
+
+    def test_seed_return_restock_adjustment(self, client):
+        """INV-055: At least one adjustment with reason=return_restock."""
+        resp = client.get("/api/inventory/items")
+        items = resp.json()
+
+        found_return_restock = False
+        for item in items:
+            movs = client.get(f"/api/inventory/items/{item['id']}/movements").json()
+            for m in movs:
+                if m["movement_type"] == "adjustment" and m.get("reason") == "return_restock":
+                    found_return_restock = True
+                    break
+            if found_return_restock:
+                break
+
+        assert found_return_restock, "No adjustment with reason=return_restock found in seed"
+
+    def test_seed_idempotency(self):
+        """INV-T09: Running seed twice does not duplicate data."""
+        run_inventory_seed()  # Already run by fixture; run again
+        conn = get_inventory_connection()
+        items_count = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+        conn.close()
+        # Count should remain the same (17 items from seed)
+        assert items_count == 17
