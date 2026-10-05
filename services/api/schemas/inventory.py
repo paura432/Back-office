@@ -133,6 +133,13 @@ class MovementCreate(BaseModel):
     reason: Optional[str] = None
 
 
+class LotCreate(BaseModel):
+    """Payload for creating a new lot for an existing item."""
+    lot_code: str = Field(..., min_length=1)
+    expiry_date: str = Field(..., min_length=1)
+    received_at: str = Field(..., min_length=1)
+
+
 # ──────────────────────── Helpers ────────────────────────
 
 

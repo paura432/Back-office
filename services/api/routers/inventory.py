@@ -12,6 +12,7 @@ from schemas.inventory import (
     ItemResponse,
     ItemUpdate,
     ItemWithStockResponse,
+    LotCreate,
     LotResponse,
     StockMovementResponse,
     generate_id,
@@ -303,3 +304,56 @@ def delete_item(item_id: str, db=Depends(get_db)):
     db.commit()
 
     return {"deleted": True, "id": item_id}
+
+
+# ──────────────────────── Lot endpoints (INV-T06) ────────────────────────
+
+
+@router.post("/items/{item_id}/lots", response_model=LotResponse, status_code=201)
+def create_lot(item_id: str, payload: LotCreate, db=Depends(get_db)):
+    """Create a new lot for an existing item.
+
+    - Validates that the item exists (INV-018).
+    - If item does not exist → 422.
+    """
+    item = db.execute("SELECT id FROM items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        raise HTTPException(status_code=422, detail=f"Item not found: {item_id}")
+
+    lot_id = generate_id()
+    db.execute(
+        """
+        INSERT INTO lots (id, item_id, lot_code, expiry_date, received_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (lot_id, item_id, payload.lot_code, payload.expiry_date, payload.received_at),
+    )
+    db.commit()
+
+    row = db.execute("SELECT * FROM lots WHERE id = ?", (lot_id,)).fetchone()
+    return _row_to_lot_response(dict(row))
+
+
+@router.get("/items/{item_id}/lots", response_model=list[LotResponse])
+def list_lots(item_id: str, db=Depends(get_db)):
+    """List all lots for a given item (INV-T06)."""
+    row = db.execute("SELECT id FROM items WHERE id = ?", (item_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    rows = db.execute(
+        "SELECT * FROM lots WHERE item_id = ? ORDER BY received_at DESC",
+        (item_id,),
+    ).fetchall()
+    return [_row_to_lot_response(dict(r)) for r in rows]
+
+
+@router.get("/lots/expired", response_model=list[LotResponse])
+def list_expired_lots(db=Depends(get_db)):
+    """List all lots with expiry_date before the current time (INV-T06)."""
+    now = utc_now()
+    rows = db.execute(
+        "SELECT * FROM lots WHERE expiry_date < ? ORDER BY expiry_date ASC",
+        (now,),
+    ).fetchall()
+    return [_row_to_lot_response(dict(r)) for r in rows]
