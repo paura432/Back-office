@@ -14,6 +14,7 @@ from schemas.inventory import (
     ItemWithStockResponse,
     LotCreate,
     LotResponse,
+    LowStockResponse,
     MovementCreate,
     StockMovementResponse,
     generate_id,
@@ -472,3 +473,31 @@ def list_movements(item_id: str, db=Depends(get_db)):
         (item_id,),
     ).fetchall()
     return [_row_to_movement_response(dict(r)) for r in rows]
+
+
+# ──────────────────────── Low-stock endpoint (INV-T08) ────────────────────────
+
+
+@router.get("/low-stock", response_model=LowStockResponse)
+def get_low_stock(db=Depends(get_db)):
+    """Return items with stock <= reorder_point, grouped by warehouse (INV-041)."""
+    items = get_items_with_stock(db)
+    la: list[dict] = []
+    zg: list[dict] = []
+
+    for item in items:
+        if item["is_low_stock"]:
+            entry = {
+                "warehouse": item["warehouse"],
+                "client_name": item["client_name"],
+                "sku": item["sku"],
+                "name": item["name"],
+                "stock": item["stock"],
+                "reorder_point": item["reorder_point"],
+            }
+            if item["warehouse"] == "los_angeles":
+                la.append(entry)
+            else:
+                zg.append(entry)
+
+    return {"los_angeles": la, "zaragoza": zg}
