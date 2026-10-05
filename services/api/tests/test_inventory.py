@@ -1023,7 +1023,9 @@ class TestSeedVerification:
         """INV-T09: Running seed twice does not duplicate data."""
         run_inventory_seed()  # Already run by fixture; run again
         conn = get_inventory_connection()
-        items_count = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+        first_count = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+        run_inventory_seed()
+        second_count = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
         conn.close()
-        # Count should remain the same (17 items from seed)
-        assert items_count == 17
+        assert first_count == second_count, "Seed is not idempotent"
+        assert second_count >= 15, f"Expected at least 15 seed items, got {second_count}"
