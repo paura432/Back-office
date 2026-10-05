@@ -123,18 +123,34 @@ def create_item(payload: ItemCreate, db=Depends(get_db)):
     - Validates that warehouse, category, unit_of_measure are from the closed catalog.
     - Rejects duplicate (client_name, sku, warehouse).
     - Never accepts or stores stock directly (INV-042).
-    - For cosmetics, use INV-T05 (not implemented here).
+    - For cosmetics (INV-016): initial_lot is required; the item and lot are
+      created in the same transaction (INV-T05).
+    - For fashion/electronics (INV-017): initial_lot is optional and ignored.
     """
     now = utc_now()
     item_id = generate_id()
 
-    # Validate warehouse is from catalog (via Pydantic enum, but explicit check)
+    # Validate catalogue enums
     if payload.warehouse.value not in ("los_angeles", "zaragoza"):
         raise HTTPException(status_code=422, detail=f"Invalid warehouse: {payload.warehouse.value}")
     if payload.category.value not in ("fashion", "electronics", "cosmetics"):
         raise HTTPException(status_code=422, detail=f"Invalid category: {payload.category.value}")
     if payload.unit_of_measure.value not in ("unit", "box", "kg"):
         raise HTTPException(status_code=422, detail=f"Invalid unit_of_measure: {payload.unit_of_measure.value}")
+
+    # Cosmetics: initial_lot is mandatory (INV-016)
+    if payload.category == CategoryEnum.cosmetics:
+        if payload.initial_lot is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Cosmetics items require an initial_lot with lot_code, expiry_date, and received_at",
+            )
+        # Validate initial_lot fields are present and non-empty
+        if not payload.initial_lot.lot_code or not payload.initial_lot.expiry_date or not payload.initial_lot.received_at:
+            raise HTTPException(
+                status_code=422,
+                detail="initial_lot must include non-empty lot_code, expiry_date, and received_at",
+            )
 
     # Check duplicate (client_name, sku, warehouse)
     existing = db.execute(
@@ -148,6 +164,7 @@ def create_item(payload: ItemCreate, db=Depends(get_db)):
                    f"warehouse='{payload.warehouse.value}' already exists",
         )
 
+    # Create item (and lot for cosmetics) in one transaction
     db.execute(
         """
         INSERT INTO items (id, warehouse, client_name, sku, name, category,
@@ -167,6 +184,24 @@ def create_item(payload: ItemCreate, db=Depends(get_db)):
             now,
         ),
     )
+
+    # If cosmetics with initial_lot, create the lot in the same transaction
+    if payload.category == CategoryEnum.cosmetics and payload.initial_lot is not None:
+        lot_id = generate_id()
+        db.execute(
+            """
+            INSERT INTO lots (id, item_id, lot_code, expiry_date, received_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                lot_id,
+                item_id,
+                payload.initial_lot.lot_code,
+                payload.initial_lot.expiry_date,
+                payload.initial_lot.received_at,
+            ),
+        )
+
     db.commit()
 
     row = db.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
