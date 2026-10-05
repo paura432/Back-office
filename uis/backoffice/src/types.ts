@@ -140,3 +140,128 @@ export interface StatusTransitionPayload {
   status: IncidentStatus;
   author: string;
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Inventory domain types
+// Mirrors packages/shared/types/inventory.ts (same constraint as Incident)
+// ═══════════════════════════════════════════════════════════════════════
+
+export const WAREHOUSES = [
+  'los_angeles',
+  'zaragoza',
+] as const;
+export type Warehouse = (typeof WAREHOUSES)[number];
+
+export const CATEGORIES = [
+  'fashion',
+  'electronics',
+  'cosmetics',
+] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+export const UNITS_OF_MEASURE = [
+  'unit',
+  'box',
+  'kg',
+] as const;
+export type UnitOfMeasure = (typeof UNITS_OF_MEASURE)[number];
+
+export const MOVEMENT_TYPES = [
+  'inbound',
+  'outbound',
+  'adjustment',
+] as const;
+export type MovementType = (typeof MOVEMENT_TYPES)[number];
+
+// ──────────────────────── Domain interfaces ────────────────────────
+
+export interface Item {
+  id: string;
+  warehouse: Warehouse;
+  client_name: string;
+  sku: string;
+  name: string;
+  category: Category;
+  unit_of_measure: UnitOfMeasure;
+  reorder_point: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Lot {
+  id: string;
+  item_id: string;
+  lot_code: string;
+  expiry_date: string;
+  received_at: string;
+}
+
+export interface StockMovement {
+  id: string;
+  item_id: string;
+  lot_id: string | null;
+  movement_type: MovementType;
+  quantity: number;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface ItemWithStock {
+  id: string;
+  warehouse: Warehouse;
+  client_name: string;
+  sku: string;
+  name: string;
+  category: Category;
+  unit_of_measure: UnitOfMeasure;
+  reorder_point: number;
+  created_at: string;
+  updated_at: string;
+  stock: number;
+  is_low_stock: boolean;
+}
+
+export interface InitialLotPayload {
+  lot_code: string;
+  expiry_date: string;
+  received_at: string;
+}
+
+export interface ItemCreatePayload {
+  warehouse: Warehouse;
+  client_name: string;
+  sku: string;
+  name: string;
+  category: Category;
+  unit_of_measure: UnitOfMeasure;
+  reorder_point: number;
+  initial_lot?: InitialLotPayload;
+}
+
+export interface ItemUpdatePayload {
+  warehouse?: Warehouse;
+  client_name?: string;
+  sku?: string;
+  name?: string;
+  category?: Category;
+  unit_of_measure?: UnitOfMeasure;
+  reorder_point?: number;
+}
+
+export interface MovementCreatePayload {
+  lot_id?: string | null;
+  movement_type: MovementType;
+  quantity: number;
+  reason?: string | null;
+}
+
+// ──────────────────────── Inventory presentation types ────────────────────────
+
+export interface LowStockAlert {
+  warehouse: Warehouse;
+  client_name: string;
+  sku: string;
+  name: string;
+  stock: number;
+  reorder_point: number;
+}

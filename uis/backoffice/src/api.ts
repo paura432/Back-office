@@ -13,6 +13,15 @@ import type {
   IncidentStatus,
   Severity,
   ResponsibleArea,
+  Item,
+  ItemWithStock,
+  ItemCreatePayload,
+  ItemUpdatePayload,
+  Lot,
+  StockMovement,
+  MovementCreatePayload,
+  LowStockAlert,
+  Warehouse,
 } from './types.ts';
 
 const BASE = '/api';
@@ -60,7 +69,7 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
-// ──────────────────────── Public API ────────────────────────
+// ──────────────────────── Public API: Incidents ────────────────────────
 
 export function listIncidents(params?: {
   status?: IncidentStatus;
@@ -88,4 +97,52 @@ export function transitionStatus(id: string, payload: StatusTransitionPayload): 
 
 export function getOpenBySeverity(): Promise<OpenBySeverityResponse> {
   return request<OpenBySeverityResponse>('GET', '/incidents/open-by-severity');
+}
+
+// ──────────────────────── Public API: Inventory ────────────────────────
+
+export function listItems(warehouse?: Warehouse): Promise<ItemWithStock[]> {
+  const params: Record<string, string> = {};
+  if (warehouse) params['warehouse'] = warehouse;
+  return request<ItemWithStock[]>('GET', '/inventory/items', undefined, params);
+}
+
+export function getItem(id: string): Promise<ItemWithStock & { lots: Lot[]; movements: StockMovement[] }> {
+  return request('GET', `/inventory/items/${id}`);
+}
+
+export function createItem(payload: ItemCreatePayload): Promise<Item> {
+  return request<Item>('POST', '/inventory/items', payload);
+}
+
+export function updateItem(id: string, payload: ItemUpdatePayload): Promise<Item> {
+  return request<Item>('PUT', `/inventory/items/${id}`, payload);
+}
+
+export function deleteItem(id: string): Promise<void> {
+  return request<void>('DELETE', `/inventory/items/${id}`);
+}
+
+export function createLot(itemId: string, payload: { lot_code: string; expiry_date: string; received_at: string }): Promise<Lot> {
+  return request<Lot>('POST', `/inventory/items/${itemId}/lots`, payload);
+}
+
+export function listLots(itemId: string): Promise<Lot[]> {
+  return request<Lot[]>('GET', `/inventory/items/${itemId}/lots`);
+}
+
+export function getExpiredLots(): Promise<Lot[]> {
+  return request<Lot[]>('GET', '/inventory/lots/expired');
+}
+
+export function createMovement(itemId: string, payload: MovementCreatePayload): Promise<StockMovement> {
+  return request<StockMovement>('POST', `/inventory/items/${itemId}/movements`, payload);
+}
+
+export function listMovements(itemId: string): Promise<StockMovement[]> {
+  return request<StockMovement[]>('GET', `/inventory/items/${itemId}/movements`);
+}
+
+export function getLowStock(): Promise<Record<string, LowStockAlert[]>> {
+  return request<Record<string, LowStockAlert[]>>('GET', '/inventory/low-stock');
 }
