@@ -14,6 +14,7 @@ from schemas.inventory import (
     ItemWithStockResponse,
     LotCreate,
     LotResponse,
+    MovementCreate,
     StockMovementResponse,
     generate_id,
     utc_now,
@@ -357,3 +358,117 @@ def list_expired_lots(db=Depends(get_db)):
         (now,),
     ).fetchall()
     return [_row_to_lot_response(dict(r)) for r in rows]
+
+
+# ──────────────────────── Movement endpoints (INV-T07) ────────────────────────
+
+
+@router.post("/items/{item_id}/movements", response_model=StockMovementResponse, status_code=201)
+def create_movement(item_id: str, payload: MovementCreate, db=Depends(get_db)):
+    """Register a stock movement with full transactional validation (INV-T07).
+
+    Validations (plan.md §4):
+    1. item exists (INV-035, INV-036)
+    2. lot_id exists & belongs to item if non-null (INV-037, INV-038)
+    3. outbound does not leave stock < 0 (INV-034)
+    4. cosmetics requires lot_id (INV-039)
+    5. adjustment requires reason (INV-023)
+
+    Uses BEGIN IMMEDIATE to prevent race conditions on outbound (plan.md §4 — Concurrencia).
+    """
+    # Open explicit transaction with IMMEDIATE lock
+    db.execute("BEGIN IMMEDIATE")
+
+    try:
+        # 1. Verify item exists
+        item = db.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+        if not item:
+            raise HTTPException(status_code=422, detail=f"Item not found: {item_id}")
+
+        item_dict = dict(item)
+
+        # 2. Validate lot_id if non-null
+        if payload.lot_id is not None:
+            lot = db.execute(
+                "SELECT * FROM lots WHERE id = ?", (payload.lot_id,)
+            ).fetchone()
+            if not lot:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Lot not found: {payload.lot_id} (INV-037)",
+                )
+            if lot["item_id"] != item_id:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Lot belongs to a different item (INV-038)",
+                )
+
+        # 3. Cosmetics requires lot_id (INV-039)
+        if item_dict["category"] == "cosmetics" and payload.lot_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Cosmetics items require a lot_id for movements (INV-039)",
+            )
+
+        # 4. Adjustment requires reason (INV-023)
+        if payload.movement_type == "adjustment" and (not payload.reason or not payload.reason.strip()):
+            raise HTTPException(
+                status_code=422,
+                detail="Adjustment movements require a non-empty reason (INV-023)",
+            )
+
+        # 5. Outbound: check stock does not go below zero (INV-034)
+        if payload.movement_type == "outbound":
+            current_stock = get_stock(db, item_id)
+            if current_stock - payload.quantity < 0:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Outbound of {payload.quantity} would leave stock at "
+                           f"{current_stock - payload.quantity} (below zero) (INV-034)",
+                )
+
+        # All validations passed — insert movement
+        movement_id = generate_id()
+        now = utc_now()
+        db.execute(
+            """
+            INSERT INTO stock_movements (id, item_id, lot_id, movement_type, quantity, reason, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                movement_id,
+                item_id,
+                payload.lot_id,
+                payload.movement_type,
+                payload.quantity,
+                payload.reason,
+                now,
+            ),
+        )
+        db.commit()
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
+
+    row = db.execute(
+        "SELECT * FROM stock_movements WHERE id = ?", (movement_id,)
+    ).fetchone()
+    return _row_to_movement_response(dict(row))
+
+
+@router.get("/items/{item_id}/movements", response_model=list[StockMovementResponse])
+def list_movements(item_id: str, db=Depends(get_db)):
+    """List all movements for an item (INV-T07)."""
+    row = db.execute("SELECT id FROM items WHERE id = ?", (item_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    rows = db.execute(
+        "SELECT * FROM stock_movements WHERE item_id = ? ORDER BY created_at DESC",
+        (item_id,),
+    ).fetchall()
+    return [_row_to_movement_response(dict(r)) for r in rows]
