@@ -8,6 +8,12 @@ import { renderList } from './pages/list.ts';
 import { renderCreate, handleCreateSubmit } from './pages/create.ts';
 import { renderDetail, handleTransitionClick } from './pages/detail.ts';
 import { renderEdit, handleEditSubmit } from './pages/edit.ts';
+import { renderInventoryList } from './pages/inventory-list.ts';
+import { renderInventoryCreate, handleInventoryCreateSubmit } from './pages/inventory-create.ts';
+import { renderInventoryEdit, handleInventoryEditSubmit } from './pages/inventory-edit.ts';
+import { renderInventoryDetail, handleInventoryDeleteClick } from './pages/inventory-detail.ts';
+import { renderInventoryLowStock } from './pages/inventory-low-stock.ts';
+import { handleMovementSubmit } from './pages/inventory-movement.ts';
 
 // ──────────────────────── Router ────────────────────────
 
@@ -30,6 +36,20 @@ async function route(path: string, search: string) {
     } else if (path === '/edit') {
       const id = params.get('id');
       if (!id) { html = '<div class="error-box">Missing id parameter</div>'; } else { html = await renderEdit(id); }
+    } else if (path === '/inventory') {
+      html = await renderInventoryList(params);
+    } else if (path === '/inventory/items') {
+      html = await renderInventoryList(params);
+    } else if (path === '/inventory/create') {
+      html = renderInventoryCreate();
+    } else if (path === '/inventory/detail') {
+      const id = params.get('id');
+      if (!id) { html = '<div class="error-box">Missing id parameter</div>'; } else { html = await renderInventoryDetail(id); }
+    } else if (path === '/inventory/edit') {
+      const id = params.get('id');
+      if (!id) { html = '<div class="error-box">Missing id parameter</div>'; } else { html = await renderInventoryEdit(id); }
+    } else if (path === '/inventory/low-stock') {
+      html = await renderInventoryLowStock();
     } else {
       html = '<div class="error-box">Page not found</div>';
     }
@@ -58,7 +78,7 @@ function attachEventListeners() {
     });
   }
 
-  // Navigation forms (filter submit)
+  // Navigation forms (filter submit) — incidents
   for (const f of document.querySelectorAll('form[data-nav-form]')) {
     f.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -69,6 +89,20 @@ function attachEventListeners() {
         if (v) params.set(k, v as string);
       }
       navigate(`/list?${params.toString()}`);
+    });
+  }
+
+  // Navigation forms (filter submit) — inventory
+  for (const f of document.querySelectorAll('form[data-nav-form-inventory]')) {
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const form = f as HTMLFormElement;
+      const fd = new FormData(form);
+      const params = new URLSearchParams();
+      for (const [k, v] of fd.entries()) {
+        if (v) params.set(k, v as string);
+      }
+      navigate(`/inventory/items?${params.toString()}`);
     });
   }
 
@@ -87,6 +121,29 @@ function attachEventListeners() {
   // Transition buttons
   for (const btn of document.querySelectorAll('[data-action="transition"]')) {
     btn.addEventListener('click', ((e: MouseEvent) => handleTransitionClick(e)) as EventListener);
+  }
+
+  // Inventory create form
+  const invCreateForm: HTMLElement | null = document.querySelector('form[data-form="inventory-create"]');
+  if (invCreateForm) {
+    invCreateForm.addEventListener('submit', ((e: SubmitEvent) => handleInventoryCreateSubmit(e)) as unknown as EventListener);
+  }
+
+  // Inventory edit form
+  const invEditForm: HTMLElement | null = document.querySelector('form[data-form="inventory-edit"]');
+  if (invEditForm) {
+    invEditForm.addEventListener('submit', ((e: SubmitEvent) => handleInventoryEditSubmit(e)) as unknown as EventListener);
+  }
+
+  // Inventory delete buttons
+  for (const btn of document.querySelectorAll('[data-action="inventory-delete"]')) {
+    btn.addEventListener('click', ((e: MouseEvent) => handleInventoryDeleteClick(e)) as EventListener);
+  }
+
+  // Inventory movement form
+  const movementForm: HTMLElement | null = document.querySelector('form[data-form="movement"]');
+  if (movementForm) {
+    movementForm.addEventListener('submit', ((e: SubmitEvent) => handleMovementSubmit(e)) as unknown as EventListener);
   }
 }
 

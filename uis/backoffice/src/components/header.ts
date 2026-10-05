@@ -7,6 +7,8 @@ export function renderNav(currentPath: string): string {
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/list', label: 'Incidents' },
     { path: '/create', label: 'New Incident' },
+    { path: '/inventory/items', label: 'Inventory' },
+    { path: '/inventory/low-stock', label: 'Low Stock' },
   ];
   const items = links.map((l) => {
     const active = currentPath.startsWith(l.path) ? ' active' : '';
