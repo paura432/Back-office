@@ -4,7 +4,7 @@
 
 - Repositorio `paura432/Back-office`, rama `feature/agent-memory-bank`, creada desde `main` actualizado.
 - Working tree limpio al comenzar.
-- Repositorio en fase de plantilla/estructura: sin `uis/website`, `uis/backoffice` ni backend implementados. El paquete compartido existente contiene solo tipos de ejemplo.
+- Repositorio en fase de plantilla/estructura; no había website, backoffice ni backend implementados.
 
 ## Infraestructura creada
 
@@ -13,14 +13,16 @@
 - Regla de estructura del repositorio en `/.agents/rules/trackflow-repository-structure.md`.
 - Skill de revisión pre-commit en `/.agents/skills/pre-commit-review/SKILL.md`.
 
-## Aplicación pendiente
+## Aplicaciones implementadas
 
-No se ha implementado website público, backoffice, backend, agente de producto ni dependencia nueva. Esta fase se limita a infraestructura AI-ready solicitada.
+- **Website público** en `uis/website/`: Vite + TypeScript vanilla y CSS, con portada corporativa, servicios, operación internacional de Los Ángeles y Zaragoza, y llamada a la acción. Contenido público derivado de `CONTEXT.md`; no se muestran personas, información operativa interna ni métricas inventadas.
+- Website: `npm install` correcto; `npm run build` correcto; smoke test HTTP de `/` respondió 200 y cargó el HTML y módulo de interfaz esperados.
+- **Backoffice:** pendiente.
+- **Backend:** no implementado ni incluido en el alcance de esta fase.
 
 ## Próximos pasos concretos
 
-1. Revisar y aprobar el alcance funcional de la siguiente tarea contra `CONTEXT.md`.
-2. Antes de crear cada componente, consultar este Memory Bank, `/.agents/rules/` y el README de la carpeta destino.
-3. Elegir arquitectura y stack solo cuando el alcance y una decisión explícita del proyecto lo requieran; registrar decisiones globales con autorización.
-4. Implementar únicamente el componente solicitado en su ruta del monorepo, con README y verificaciones aplicables.
-5. Usar `/.agents/skills/pre-commit-review/SKILL.md` antes de cada commit y actualizar este archivo al cambiar el estado de implementación o arquitectura.
+1. Ejecutar `/.agents/skills/pre-commit-review/SKILL.md` con el cambio y la verificación del website; si da PASS, crear el commit solicitado.
+2. Crear el backoffice independiente en `uis/backoffice/` sin backend, instalar/build/verificar la ruta `/`.
+3. Actualizar este estado y ejecutar de nuevo la skill pre-commit antes del commit del backoffice.
+4. Ejecutar los builds finales de ambas interfaces y publicar la rama solicitada.
