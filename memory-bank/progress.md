@@ -22,7 +22,11 @@
 - Backoffice: `npm install` y `npm run build` correctos; smoke test HTTP de `/` respondió 200 y el módulo muestra las áreas/localizaciones previstas. Revisión pre-commit PASS; commit `341dca7`.
 - **Backend:** no implementado ni incluido en el alcance de esta fase.
 
-## Próximos pasos concretos
+## Entrega del hito AI-ready
 
-1. Ejecutar los builds finales de ambas interfaces, comprobar `git status --short` y `git log --oneline -3`.
-2. Publicar la rama `feature/agent-memory-bank` en `origin`; no abrir PR ni implementar backend en esta fase.
+- Infraestructura de agentes terminada: Memory Bank de negocio y técnico, protocolo `AGENTS.md`, regla de estructura de alcance repository-wide y skill reutilizable de revisión pre-commit.
+- Website corporativo terminado en `uis/website/`, basado en el contexto documentado de TrackFlow.
+- Backoffice de operaciones terminado en `uis/backoffice/`, con contenido de contexto y sin backend ni datos operativos en vivo.
+- Builds finales de website y backoffice: **PASS** (`npm run build` en cada aplicación, tras `npm install`).
+- Capturas reales: **SCREENSHOTS_PENDING**; Playwright/Chromium no pudo ejecutarse por faltar la biblioteca del sistema `libatk-1.0.so.0`. Para obtenerlas manualmente, abrir website en `http://localhost:5173/` y backoffice en `http://localhost:5174/` desde un navegador con interfaz y guardar los PNGs en `docs/screenshots/` con los nombres de entrega.
+- Siguiente paso: completar las capturas y, cuando ambas estén disponibles, abrir la PR de `feature/agent-memory-bank` a `main` para revisión. No hacer merge sin autorización.
