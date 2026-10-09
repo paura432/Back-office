@@ -49,13 +49,75 @@ You are building **one company** across many milestones and projects. Each top-l
 
 ---
 
-## Current status of the template
+## TrackFlow Development Stack
 
-> 💡 This repository currently provides a **base folder structure and documentation skeleton** only. It does not include runnable apps or global scripts yet.
->
-> - `CONTEXT.md` is a placeholder and must be replaced with your assigned company context.
-> - There is no root `AGENTS.md` yet.
-> - Shared package metadata exists in `packages/shared/package.json` (`@repo/shared-types`), but no workspace runner is configured at root.
+The repository now includes two Vite/TypeScript frontends and a minimal FastAPI
+service. Read `AGENTS.md` before making changes. `CONTEXT.md` contains the company
+briefing, not a placeholder. The folder guide below describes the original template.
+
+Requires Docker Engine and Docker Compose. From the repository root:
+
+```sh
+docker run --rm hello-world
+docker compose config
+docker compose build
+docker compose up -d --wait
+docker compose ps
+```
+
+No manual configuration is required. Optional port overrides are in `.env.example`.
+The local `.env` is ignored by Git and must never contain versioned credentials.
+Defaults publish only on `127.0.0.1`:
+
+| Endpoint | URL | Container |
+| --- | --- | --- |
+| Website | http://localhost:3000 | `ui` |
+| Backoffice | http://localhost:3001 | `ui` |
+| Health | http://localhost:8000/health | `api` |
+| Browser API proxy | `/api/health` on either frontend | `ui` to `api` |
+
+In Codespaces, open the forwarded ports 3000 and 3001. Keep their visibility private.
+Browser requests must use relative `/api/...` URLs, not Docker DNS names. The Vite
+servers proxy them to `http://api:8000`, removing the `/api` prefix. Outside Docker
+the proxy defaults to the local API at port 8000. No business data is connected yet.
+
+Sources are bind-mounted. Each frontend has a separate named `node_modules` volume;
+`npm ci` runs at build and startup using its existing lockfile. The Node supervisor
+starts both Vite processes, propagates shutdown signals to their process groups and
+stops the other frontend if one exits. Compose enables an init process for reaping.
+Python uses `uv.lock`, uv 0.6.17 and a container-only virtual environment at `/opt/venv`;
+`uv sync --frozen --no-dev` runs at build and startup. Uvicorn uses `--reload`.
+Polling is enabled for bind-mount change detection. Dependency changes require a
+matching lock update and `docker compose up --build -d --wait`; source edits do not.
+
+```sh
+curl -f http://localhost:3000/
+curl -f http://localhost:3001/
+curl -f http://localhost:8000/health
+curl -f http://localhost:3000/api/health
+curl -f http://localhost:3001/api/health
+docker compose logs --tail 100
+docker compose down
+```
+
+`down` stops containers and removes the network while retaining dependency volumes.
+Use `docker compose down -v` only when intentionally discarding those volumes.
+This is a development environment, not a production deployment: there is no
+authentication, database, TLS termination or implementation of business endpoints.
+
+### Codespaces Bootstrap
+
+The devcontainer Dockerfile removes only the broken Yarn APT source before installing
+Docker-in-Docker, without weakening GPG checks. `post-create.sh` keeps its Corepack
+and Python tooling bootstrap, synchronizes a valid root Python project if present,
+otherwise tries `services/api`, and skips Python sync when neither project is valid.
+Existing locks are synchronized with `--frozen`. There is no artificial root `pyproject.toml`.
+
+### Next.js Gap
+
+**OPEN GAP:** the assignment mentions Next.js, but the actual website and backoffice
+use Vite. This phase preserves Vite and does not claim full assignment compliance.
+A migration or an explicit acceptance of Vite remains to be decided separately.
 
 ---
 

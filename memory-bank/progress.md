@@ -32,3 +32,44 @@
 - Backoffice: **COMPLETED**; build verificado en esta fase con `npm run build`: **PASS**.
 - Capturas de entrega: **READY** — `docs/screenshots/trackflow-website.png` y `docs/screenshots/trackflow-backoffice.png` (PNG reales de 1920 × 1032).
 - Hito: **READY FOR PR** desde `feature/agent-memory-bank` hacia `main`. No hacer merge sin autorización.
+
+## Fase 2 Docker #infra-40 (2026-10-09)
+
+Estado independiente del hito anterior: trabajo en `feature/infra-40-containerization`
+de `paura432/Back-office`. Rama/remoto confirmados; working tree limpio al comenzar.
+No se modifica main, no se crea PR y no se hace merge.
+
+- Bootstrap corregido para omitir `uv sync` sin proyecto valido y usar `services/api` cuando procede. Siete escenarios probados: ausencia, TOML invalido, nombre vacio, proyecto API, fallback, prioridad de raiz y lock congelado. Sincronizacion real de la API con `--frozen`: PASS.
+- API minima implementada: FastAPI `/health` con `{"status":"ok"}`, pyproject y lock con transitivas/hashes. No hay endpoints de negocio.
+- Dockerfiles y dockerignore de `uis` y `services`; Compose con un `ui` para dos Vite y un `api` con Uvicorn reload. Fuentes montadas, dependencias instaladas automaticamente y `node_modules` aislados por aplicacion.
+- `.env` local sin secretos e ignorado; `.env.example` con puertos. Defaults verificados sin archivo local; puertos solo loopback. Proxy `/api` probado en ambos frontends; DNS `api` probado desde `ui`.
+
+### Verificacion real
+
+| Comprobacion | Resultado |
+| --- | --- |
+| `docker run --rm hello-world` | PASS |
+| `docker compose config` y defaults sin `.env` | PASS |
+| `docker compose build` | PASS, ambas imagenes |
+| `docker compose up -d`, healthchecks y `docker compose ps` | PASS, ambos healthy |
+| Website 3000 y backoffice 3001 | HTTP 200 |
+| API 8000 `/health` | HTTP 200, payload exacto |
+| `/api/health` por ambos Vite | HTTP 200, payload exacto |
+| DNS y HTTP interno `api:8000` desde `ui` | PASS |
+| Recarga Vite | PASS, eventos WebSocket HMR y CSS modificado en ambos |
+| Recarga Uvicorn | PASS, cambio de payload detectado sin recrear contenedor |
+| `npm run build` de ambos frontends dentro de `ui` | PASS |
+| Logs sin errores criticos antes de fallo controlado | PASS |
+| Fallo controlado de un Vite | PASS, supervisor detiene `ui` con salida no cero 143 |
+| Apagado normal SIGTERM | PASS, `ui` y `api` salen con codigo 0 |
+| `docker compose down` | PASS, sin contenedores del stack ni red restantes |
+
+Los cambios temporales de HMR se retiraron; los estilos originales y el payload
+final de `/health` estan restaurados. Los volumenes de dependencias se conservan
+deliberadamente tras `down`.
+
+### Pendientes y alcance
+
+- **GAP Next.js: OPEN.** El enunciado exige/menciona Next.js; la implementacion real usa Vite. Se requiere decidir migracion o aceptar Vite por separado. No hay cumplimiento total mientras ese GAP siga abierto.
+- Backend funcional de negocio, autenticacion, persistencia y despliegue productivo no forman parte de esta fase.
+- Documentacion tecnica actualizada con comandos, networking, bootstrap y limites. Commit y publicacion se verifican en el historial de la rama; no se crea PR ni se hace merge.
