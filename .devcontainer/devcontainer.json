@@ -1,6 +1,6 @@
 {
   "name": "ai-engineering-monorepo",
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/sshd:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:4": {}
