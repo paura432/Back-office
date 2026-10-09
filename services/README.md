@@ -19,4 +19,4 @@ From the repository root, `docker compose up --build -d --wait` builds this fold
 Dockerfile and starts the `api` container on loopback port 8000 with Uvicorn reload.
 The service uses Python 3.12.10, uv 0.6.17 and frozen dependencies from `api/uv.lock`.
 Sources are bind-mounted at `/app`; dependencies are installed outside the mount.
-Other containers use `api:8000`; browsers use the Vite frontend's `/api` proxy.
+Other containers use `api:8000`; browsers use the Next.js frontend's `/api` rewrite.

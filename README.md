@@ -51,7 +51,7 @@ You are building **one company** across many milestones and projects. Each top-l
 
 ## TrackFlow Development Stack
 
-The repository now includes two Vite/TypeScript frontends and a minimal FastAPI
+The repository includes two Next.js 16.4.0/TypeScript App Router frontends and a minimal FastAPI
 service. Read `AGENTS.md` before making changes. `CONTEXT.md` contains the company
 briefing, not a placeholder. The folder guide below describes the original template.
 
@@ -77,17 +77,19 @@ Defaults publish only on `127.0.0.1`:
 | Browser API proxy | `/api/health` on either frontend | `ui` to `api` |
 
 In Codespaces, open the forwarded ports 3000 and 3001. Keep their visibility private.
-Browser requests must use relative `/api/...` URLs, not Docker DNS names. The Vite
-servers proxy them to `http://api:8000`, removing the `/api` prefix. Outside Docker
+Browser requests must use relative `/api/...` URLs, not Docker DNS names. Next.js
+rewrites proxy them to `http://api:8000`, removing the `/api` prefix. Outside Docker
 the proxy defaults to the local API at port 8000. No business data is connected yet.
 
-Sources are bind-mounted. Each frontend has a separate named `node_modules` volume;
+Sources are bind-mounted. Each frontend has separate named `node_modules` and `.next` volumes;
 `npm ci` runs at build and startup using its existing lockfile. The Node supervisor
-starts both Vite processes, propagates shutdown signals to their process groups and
+starts both Next.js development processes, propagates shutdown signals to their process groups and
 stops the other frontend if one exits. Compose enables an init process for reaping.
 Python uses `uv.lock`, uv 0.6.17 and a container-only virtual environment at `/opt/venv`;
 `uv sync --frozen --no-dev` runs at build and startup. Uvicorn uses `--reload`.
-Polling is enabled for bind-mount change detection. Dependency changes require a
+Webpack polling is enabled for bind-mount change detection. Automatic source updates
+were verified in open browsers; some changes may reload the document, so transient
+React state is not guaranteed to survive every update. Dependency changes require a
 matching lock update and `docker compose up --build -d --wait`; source edits do not.
 
 ```sh
@@ -113,11 +115,28 @@ and Python tooling bootstrap, synchronizes a valid root Python project if presen
 otherwise tries `services/api`, and skips Python sync when neither project is valid.
 Existing locks are synchronized with `--frozen`. There is no artificial root `pyproject.toml`.
 
-### Next.js Gap
+### Next.js Migration and Evidence
 
-**OPEN GAP:** the assignment mentions Next.js, but the actual website and backoffice
-use Vite. This phase preserves Vite and does not claim full assignment compliance.
-A migration or an explicit acceptance of Vite remains to be decided separately.
+Both frontends now use Next.js 16.4.0, React 19.3.0 and TypeScript App Router.
+Original CSS, content, anchors, responsive design and the mobile menu are preserved.
+Vite entry points and configuration are removed. The Next.js GAP is resolved;
+business API features and production deployment remain outside this milestone.
+
+Build output is `.next`, not `dist`. Run `npm ci` and `npm run build` inside each
+frontend directory. Development origins explicitly allow localhost, loopback and
+Codespaces; the server-only API target is never a browser URL.
+
+Five original screenshots supplied by the user were extracted without modification
+from `trackflow_infra40_evidencias.zip`. PNG decoding/CRC and byte equality with the
+archive were checked. They complement, rather than replace, the executed checks:
+
+- [Docker build](docs/screenshots/infra-40-build.png)
+- [Compose and HTTP checks](docs/screenshots/infra-40-compose.png)
+- [Website](docs/screenshots/infra-40-website.png)
+- [Backoffice](docs/screenshots/infra-40-backoffice.png)
+- [FastAPI health in Swagger](docs/screenshots/infra-40-fastapi.png)
+
+See [docs/README.md](docs/README.md) for dimensions and evidence scope.
 
 ---
 

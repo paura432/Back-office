@@ -22,5 +22,5 @@ locked dependencies automatically, mounts this directory and runs Uvicorn with
 `--reload`. The virtual environment is outside the bind mount at `/opt/venv`.
 
 The service is available internally at `http://api:8000/health` and locally at
-`http://localhost:8000/health`. Browser clients use `/api/health` on either Vite
-frontend; the Vite server proxies to the API and strips `/api`.
+`http://localhost:8000/health`. Browser clients use `/api/health` on either Next.js
+frontend; Next.js rewrites proxy to the API and strip `/api`.

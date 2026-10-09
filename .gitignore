@@ -1,6 +1,12 @@
 .env
+.env.*
+!.env.example
 **/node_modules/
 **/dist/
 **/.venv/
 **/__pycache__/
 **/*.pyc
+**/.next/
+**/*.tsbuildinfo
+uis/*/next-env.d.ts
+trackflow_infra40_evidencias.zip

@@ -16,19 +16,23 @@ Organize `uis/` by **different concerns** — each subfolder covers a distinct a
 
 ## Container Development
 
-Both existing applications use Vite and TypeScript. From the repository root,
+Both applications use Next.js 16.4.0, React 19.3.0 and TypeScript App Router. From the repository root,
 `docker compose up --build -d --wait` starts a single `ui` container: website on
 port 3000 and backoffice on port 3001. Run `docker compose down` to stop the stack.
 
 `Dockerfile` uses Node 22.14.0. `dev.mjs` installs each lockfile with `npm ci`,
-supervises both Vite processes and shuts down their process groups on signals or
+supervises both Next.js processes and shuts down their process groups on signals or
 when either process exits. Sources are bind-mounted; named volumes isolate each
-application's `node_modules` from the host. Vite HMR uses polling inside Docker.
+application's `node_modules` and `.next` cache from the host. Next.js uses webpack
+polling inside Docker. Automatic updates may reload the document; transient state
+is not guaranteed to survive every update.
 
-Use relative `/api/...` requests in browser code. Both Vite servers proxy to the
+Use relative `/api/...` requests in browser code. Both Next.js servers rewrite to the
 internal `api:8000` service; that hostname is never a browser API URL. Local
 non-container development defaults to `127.0.0.1:8000`; `API_PROXY_TARGET` is a
-server-only override. Codespaces domains are allowed via the Compose environment.
+server-only override. Localhost, loopback and Codespaces origins are explicitly
+allowed in each `next.config.ts`.
 
-**Next.js GAP pending decision:** the assignment names Next.js, but these applications
-remain Vite. There is no migration or claim of total compliance in this phase.
+**Next.js GAP resolved:** the original content, CSS and navigation are preserved
+in App Router. No business features or production deployment were added.
+See the user-supplied original evidence in [../docs/README.md](../docs/README.md).

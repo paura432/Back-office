@@ -1,4 +1,4 @@
-# Proyecto de Compañía - Ingeniería de IA — Plantilla para estudiantes
+# TrackFlow — Monorepo de desarrollo
 
 [![4Geeks Academy](https://img.shields.io/badge/4Geeks-Academy-blue)](https://4geeksacademy.com)
 [![AI Engineering](https://img.shields.io/badge/track-AI%20Engineering-green)](https://4geeksacademy.com/es/programas-de-carrera/ingenieria-ia)
@@ -11,19 +11,19 @@ _These instructions are also available in [English](./README.md)._
 
 ## Propósito
 
-Este repositorio es la **plantilla de inicio** para los proyectos transversales. Trabajarás con escenarios de empresas reales (Brasaland, TrackFlow, Nexova) construyendo entregables que se corresponden con los hitos del curso (Web, Programación, Backend, Telemetría, RAG, Agentes, Workflows, Tiempo real).
+Este repositorio contiene el website público y el backoffice de TrackFlow, una API mínima de salud y un entorno Docker reproducible de desarrollo, sobre la plantilla de Ingeniería de IA. Las interfaces conservan contenido y diseño del contexto; no presentan datos operativos en vivo.
 
-- Crea una plantilla a partir de este repositorio.
-- Reemplaza el `CONTEXT.md` placeholder por el contexto de tu empresa asignada.
+- Lee `AGENTS.md`, Memory Bank y los README locales antes de modificar código.
+- Consulta `CONTEXT.md`, que ya contiene el briefing de TrackFlow y no es un placeholder.
 - Usa `skills/` y los `README.md` por carpeta como guía de trabajo.
 
 ---
 
 ## Cómo empezar
 
-1. **Usa este repositorio como plantilla** y crea tu propio repo de proyecto.
-2. **Clona** tu repositorio (o ábrelo en Codespaces).
-3. **Reemplaza** `CONTEXT.md` con el contexto completo de tu empresa asignada.
+1. **Clona** `paura432/Back-office` o ábrelo en Codespaces.
+2. **Lee** `AGENTS.md` y Memory Bank.
+3. **Consulta** el `CONTEXT.md` existente y conserva sus hechos y discrepancias.
 4. **Lee esta guía de carpetas** y abre el `README.md` de la carpeta en la que estés trabajando.
 5. **Empieza a implementar** en la carpeta correcta — no tires todo en la raíz.
 6. **Documenta** lo que añadas: cada app, servicio, agente o pipeline nuevo lleva subcarpeta + README.
@@ -49,13 +49,70 @@ Estás construyendo **una sola empresa** a lo largo de muchos hitos y proyectos.
 
 ---
 
-## Estado actual de la plantilla
+## Estado actual de TrackFlow
 
-> 💡 Actualmente el repositorio ofrece solo una **estructura base de carpetas y documentación**. Todavía no incluye aplicaciones ejecutables ni scripts globales en la raíz.
->
-> - `CONTEXT.md` es un placeholder y debe sustituirse por el contexto de la empresa asignada.
-> - No existe todavía un `AGENTS.md` en la raíz.
-> - Existe metadata del paquete compartido en `packages/shared/package.json` (`@repo/shared-types`), pero aún no hay runner de workspace en raíz.
+- Website y backoffice: Next.js 16.4.0 estable, React 19.3.0, TypeScript y App Router. CSS, contenido, navegación, menú móvil y responsive conservados sin rediseño.
+- API FastAPI: `GET /health` devuelve `{"status":"ok"}`. No hay lógica de negocio, autenticación, persistencia ni telemetría conectada.
+- Docker Compose: un contenedor `ui` supervisa los dos Next.js y un contenedor `api` ejecuta Uvicorn con `--reload`.
+- `AGENTS.md` y Memory Bank existen. El paquete compartido sigue en `packages/shared`, sin runner global de workspace.
+- **GAP Next.js resuelto:** se retiraron Vite y sus entry points. Esto no implica que todas las necesidades de negocio estén implementadas.
+
+## Desarrollo Docker
+
+Desde la raíz, con Docker Engine y Compose disponibles:
+
+```sh
+docker compose config
+docker compose build
+docker compose up -d --wait
+docker compose ps
+```
+
+Website: http://localhost:3000; backoffice: http://localhost:3001; API:
+http://localhost:8000/health. En Codespaces usa los puertos reenviados con visibilidad privada.
+Los defaults funcionan sin configuración manual; los puertos solo se publican en
+`127.0.0.1`. `.env.example` documenta opciones y no contiene secretos; `.env` y sus
+variantes locales se excluyen de Git.
+
+El navegador solicita URLs relativas `/api/...`. Los rewrites de Next.js usan
+`API_PROXY_TARGET=http://api:8000` solo en el servidor y retiran `/api`; no se
+expone DNS Docker al cliente. Fuera de Compose el destino es `127.0.0.1:8000`.
+Solo se permiten orígenes de desarrollo localhost, loopback y Codespaces.
+
+Las fuentes usan bind mounts. Cada frontend tiene volúmenes independientes de
+`node_modules` y `.next`; `npm ci` instala dependencias desde sus locks. Webpack
+usa polling. Los cambios llegan automáticamente al navegador, aunque algunos
+recargan el documento y no garantizan conservar todo el estado React transitorio.
+FastAPI mantiene dependencias congeladas en `/opt/venv`, fuera del montaje.
+
+Cada interfaz ofrece `npm ci`, `npm run dev`, `npm run build` y `npm start` desde
+su directorio. El build genera `.next`, no `dist`. Para detener el stack:
+
+```sh
+docker compose logs --tail 100
+docker compose down
+```
+
+`down` elimina contenedores y red conservando los volúmenes. Cambios de dependencias
+requieren actualizar locks y reconstruir. El entorno no es un despliegue productivo.
+El devcontainer conserva el hotfix APT de Yarn sin desactivar GPG; el bootstrap
+Python solo sincroniza proyectos válidos y usa `--frozen` si existe un lock.
+
+## Evidencias infra-40
+
+Cinco capturas originales aportadas por el usuario, extraídas conservando
+`docs/screenshots/`, sin modificación ni regeneración. Se validaron CRC,
+decodificación PNG, dimensiones y bytes idénticos a los del ZIP:
+
+- [Build Docker](docs/screenshots/infra-40-build.png)
+- [Compose y comprobaciones HTTP](docs/screenshots/infra-40-compose.png)
+- [Website](docs/screenshots/infra-40-website.png)
+- [Backoffice](docs/screenshots/infra-40-backoffice.png)
+- [FastAPI: /health en Swagger](docs/screenshots/infra-40-fastapi.png)
+
+Las capturas complementan las pruebas ejecutadas; no sustituyen builds ni tests.
+La guía de carpetas que sigue procede de la plantilla original; para el estado
+ejecutable actual se aplican esta sección y los README locales.
 
 ---
 

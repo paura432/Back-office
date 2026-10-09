@@ -33,7 +33,7 @@
 - Capturas de entrega: **READY** — `docs/screenshots/trackflow-website.png` y `docs/screenshots/trackflow-backoffice.png` (PNG reales de 1920 × 1032).
 - Hito: **READY FOR PR** desde `feature/agent-memory-bank` hacia `main`. No hacer merge sin autorización.
 
-## Fase 2 Docker #infra-40 (2026-10-09)
+## Fase 2 Docker #infra-40 (historico, 2026-10-09)
 
 Estado independiente del hito anterior: trabajo en `feature/infra-40-containerization`
 de `paura432/Back-office`. Rama/remoto confirmados; working tree limpio al comenzar.
@@ -73,3 +73,16 @@ deliberadamente tras `down`.
 - **GAP Next.js: OPEN.** El enunciado exige/menciona Next.js; la implementacion real usa Vite. Se requiere decidir migracion o aceptar Vite por separado. No hay cumplimiento total mientras ese GAP siga abierto.
 - Backend funcional de negocio, autenticacion, persistencia y despliegue productivo no forman parte de esta fase.
 - Documentacion tecnica actualizada con comandos, networking, bootstrap y limites. Commit y publicacion se verifican en el historial de la rama; no se crea PR ni se hace merge.
+
+## Cierre Next.js y evidencias #infra-40 (2026-10-09)
+
+- Rama `feature/infra-40-containerization`, HEAD inicial `b12f289`; migracion local existente preservada. Website/backoffice pasan a Next.js 16.4.0, React 19.3.0 y TypeScript App Router sin redisenar.
+- Se corrigio el bloqueo de HMR desde loopback mediante origenes localhost/127.0.0.1/Codespaces. Contenido, CSS, menu movil y responsive conservados.
+- Pruebas ejecutadas: hello-world, config/build/up con espera/ps; HTTP 200 en ambas interfaces, API y dos rewrites; DNS interno; builds Next.js de ambas apps: PASS.
+- Comparacion Playwright de seis pantallas 1440/390/320 px: 0.0000% de diferencia de pixeles, texto/enlaces/secciones iguales, interacciones y ausencia de errores JavaScript: PASS.
+- Recarga automatica verificada con cambios temporales de paginas y payload API, sin reiniciar contenedores. Probes retirados. No se afirma conservacion universal de estado React: algunos cambios recargan el documento.
+- Cinco PNG del usuario extraidos de `trackflow_infra40_evidencias.zip` manteniendo `docs/screenshots/`, sin regenerar ni modificar capturas. ZIP/PNG CRC, decodificacion, dimensiones, SHA-256 y bytes contra ZIP: PASS. No se sobrescriben capturas previas.
+- Capturas build/compose/fastapi: 1920 x 1032; website/backoffice: 1920 x 1140. Indice y alcance real en `docs/README.md`, enlazado desde README ingles y espanol.
+- Builds y Compose repetidos tras incorporar evidencias: PASS. GAP Next.js **RESUELTO**. API de negocio, auth, persistencia y produccion permanecen fuera del alcance.
+- Cierre real: cinco endpoints HTTP 200, logs sin errores criticos, terminacion supervisada de un Next.js con salida `ui` no cero, rearranque healthy y SIGTERM normal con salida 0 en `ui`/`api`: PASS. `docker compose down` elimina contenedores y red; los volumenes se conservan.
+- Revision y publicacion finales consultables en el historial de la rama. No crear PR ni hacer merge.

@@ -57,7 +57,7 @@ try {
   }
   if (!stopping) {
     for (const [frontend, port] of [['website', '3000'], ['backoffice', '3001']]) {
-      launch(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '0.0.0.0', '--port', port, '--strictPort'], `/app/${frontend}`);
+      launch(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--webpack', '--hostname', '0.0.0.0', '--port', port], `/app/${frontend}`);
     }
   }
 } catch (error) {

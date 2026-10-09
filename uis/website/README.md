@@ -6,9 +6,9 @@ A public-facing corporate website introducing TrackFlow’s e-commerce logistics
 
 ## Stack
 
-- Vite
-- TypeScript (vanilla DOM; no UI framework)
-- Plain CSS; no external UI dependencies
+- Next.js 16.4.0 with TypeScript and App Router
+- React 19.3.0; the mobile navigation uses React state
+- Existing global CSS and content preserved without redesign
 
 Google Fonts are loaded as an optional font resource; the site has local system fallbacks.
 
@@ -17,11 +17,14 @@ Google Fonts are loaded as an optional font resource; the site has local system 
 From this directory:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite (the root route `/`).
+Open http://localhost:3000 (the root route `/`). Development uses webpack with
+polling for bind mounts. `next.config.ts` rewrites relative `/api/...` requests
+to the server-only `API_PROXY_TARGET`, defaulting locally to port 8000. Compose
+sets the target to `http://api:8000`; browsers never use that Docker hostname.
 
 ## Production build
 
@@ -29,4 +32,8 @@ Open the local URL printed by Vite (the root route `/`).
 npm run build
 ```
 
-The static output is written to `dist/`.
+Next.js output is written to `.next/`. Use `npm start` to run the build locally.
+From the repository root, `docker compose up --build -d --wait` starts both
+frontends in one supervised `ui` container. Dependencies and `.next` caches are
+isolated in named volumes; sources are bind-mounted. `docker compose down` stops
+the development stack.

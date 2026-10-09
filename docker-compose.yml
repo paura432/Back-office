@@ -25,8 +25,7 @@ services:
     init: true
     environment:
       API_PROXY_TARGET: http://api:8000
-      CHOKIDAR_USEPOLLING: "true"
-      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: .app.github.dev
+      WATCHPACK_POLLING: "true"
     ports:
       - "127.0.0.1:${WEBSITE_PORT:-3000}:3000"
       - "127.0.0.1:${BACKOFFICE_PORT:-3001}:3001"
@@ -34,17 +33,21 @@ services:
       - ./uis:/app
       - website_node_modules:/app/website/node_modules
       - backoffice_node_modules:/app/backoffice/node_modules
+      - website_next:/app/website/.next
+      - backoffice_next:/app/backoffice/.next
     depends_on:
       api:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "--input-type=module", "-e", "for (const port of [3000, 3001]) { const response = await fetch('http://127.0.0.1:' + port); if (!response.ok) process.exit(1); }"]
       interval: 5s
-      timeout: 3s
+      timeout: 10s
       retries: 12
-      start_period: 30s
+      start_period: 60s
     stop_grace_period: 15s
 
 volumes:
   website_node_modules:
   backoffice_node_modules:
+  website_next:
+  backoffice_next:
