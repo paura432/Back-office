@@ -1,0 +1,53 @@
+name: trackflow-dev
+
+services:
+  api:
+    build:
+      context: ./services
+    init: true
+    environment:
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    volumes:
+      - ./services/api:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 15s
+
+  ui:
+    build:
+      context: ./uis
+    init: true
+    environment:
+      API_PROXY_TARGET: http://api:8000
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "127.0.0.1:${WEBSITE_PORT:-3000}:3000"
+      - "127.0.0.1:${BACKOFFICE_PORT:-3001}:3001"
+    volumes:
+      - ./uis:/app
+      - website_node_modules:/app/website/node_modules
+      - backoffice_node_modules:/app/backoffice/node_modules
+      - website_next:/app/website/.next
+      - backoffice_next:/app/backoffice/.next
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "--input-type=module", "-e", "for (const port of [3000, 3001]) { const response = await fetch('http://127.0.0.1:' + port); if (!response.ok) process.exit(1); }"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
+    stop_grace_period: 15s
+
+volumes:
+  website_node_modules:
+  backoffice_node_modules:
+  website_next:
+  backoffice_next:
