@@ -86,3 +86,11 @@ deliberadamente tras `down`.
 - Builds y Compose repetidos tras incorporar evidencias: PASS. GAP Next.js **RESUELTO**. API de negocio, auth, persistencia y produccion permanecen fuera del alcance.
 - Cierre real: cinco endpoints HTTP 200, logs sin errores criticos, terminacion supervisada de un Next.js con salida `ui` no cero, rearranque healthy y SIGTERM normal con salida 0 en `ui`/`api`: PASS. `docker compose down` elimina contenedores y red; los volumenes se conservan.
 - Revision y publicacion finales consultables en el historial de la rama. No crear PR ni hacer merge.
+
+## Auditoria de rendimiento frontend (2026-10-14)
+
+- Rama `feature/frontend-performance-audit`, creada desde `origin/main` actualizado (`9d0561b`); working tree limpio antes del ejercicio.
+- Fase 1: ambos frontends compilaron para produccion con Next.js 16.4.0 dentro de la imagen Docker existente. Se iniciaron con `next start`; HTTP 200 en website y backoffice. Lighthouse 12.8.2 / Chromium Headless 141.0.7390.37: 3 informes JSON/HTML por escenario (website/backoffice, desktop/mobile), 12 runs, resultados en `audit/before/`; capturas de filmstrip y viewport guardadas. Navegador, emulacion, versiones, resultados y mediana registrados. No se modifico codigo de aplicaciones antes de la linea base.
+- Medianas Lighthouse iniciales (Performance/A11y/Best Practices/SEO): website desktop 99/95/96/100, website mobile 92/95/93/100; backoffice desktop 100/95/96/100, backoffice mobile 94/95/93/100. Medianas LCP/CLS/TBT/TTFB y cada ejecucion en `audit/before/summary.json` y reports.
+- Smoke Playwright: ambos roots HTTP 200. Website no excede 412 px; backoffice mide 417 px de scroll width a 412 px. Lighthouse observa `/favicon.ico` 404. El baseline medido tiene TBT no cero solo en mobile; TBT no equivale a INP.
+- Fases 2-6 pendientes al registrar esta nota. No hay optimizaciones ni mejoras finales declaradas.
