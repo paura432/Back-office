@@ -98,4 +98,6 @@ deliberadamente tras `down`.
 ## Retirada de `@import` de fuentes (2026-10-16)
 
 - En `feature/frontend-performance-audit` se eliminó el `@import` duplicado de Google Fonts en `uis/website/src/styles.css` y `uis/backoffice/src/styles.css`. Los enlaces de `app/layout.tsx` siguen siendo el único origen de esas familias.
-- No hay remedición de peticiones, render ni CLS. No se declara mejora de rendimiento. La evidencia de `audit/before/` no se alteró.
+- Remedición con la misma metodología Lighthouse, sin otros cambios de aplicación: las peticiones de CSS de fuentes y de woff2 no bajaron; las medianas de CLS no cambiaron. No hay mejora demostrada. Evidencia en `audit/after-fonts/`. `audit/before/` no se alteró.
+- El menú del website pasó a `uis/website/app/site-header.tsx`. La página vuelve a ser Server Component. Build de producción y prueba de apertura/cierre/teclado: PASS. Capturas desktop y móvil idénticas al baseline. Lighthouse posterior no muestra mejora reclamable.
+- En backoffice, a 412 px desbordaba `article.team-card` (borde derecho 416.5 px, `scrollWidth` 417). Se redujo solo su padding horizontal a 6 px bajo 460 px. Tras el cambio, `scrollWidth` es 412 y el texto no se recorta. La captura móvil difiere un 2.98 % por ese padding. Performance móvil mediana 93 frente a 94; no se declara mejora.

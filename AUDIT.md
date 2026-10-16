@@ -47,9 +47,29 @@ All 12 run-level scores and metrics are in `audit/before/summary.json`, with ori
 
 ## Phase 3 verification log
 
-The redundant Google Fonts `@import` was removed from `uis/website/src/styles.css` and `uis/backoffice/src/styles.css`. Each `app/layout.tsx` still owns the matching stylesheet link (`Manrope`/`DM Mono` on the website; `DM Sans`/`DM Mono` on the backoffice). No other application source was changed.
+### Font `@import` removal
 
-Resource requests, rendering and CLS have not been compared after this removal. Do not treat it as a measured performance or CLS improvement. Baseline evidence in `audit/before/` is unchanged.
+Cause: each app declared the same Google Fonts stylesheet in `app/layout.tsx` and again with CSS `@import`. The baseline network log already showed one `fonts.googleapis.com` CSS request plus the woff2 files; Next had inlined the `@import` into the app CSS bundle, so the duplication was in source, not a second font CSS request.
+
+Change: removed the `@import` from both `src/styles.css` files in `07dc18f`. Layout links remain the font owners. `audit/before/` was not modified.
+
+Measured result, same Lighthouse 12.8.2 / Chrome 141 method, three fresh runs, source `07dc18f` only: font CSS requests stayed at 1 and woff2 counts stayed at 3 (website) and 2 (backoffice). Stylesheet count stayed at 2. CLS medians were unchanged (website desktop 0.053153, website mobile 0.050702, backoffice desktop 0.015558, backoffice mobile 0.022816). Layout-shift selectors were unchanged. Performance medians: website desktop 99→99, website mobile 92→93, backoffice desktop 100→100, backoffice mobile 94→93. LCP medians moved by tens of milliseconds and stayed inside run variance. This is not a demonstrated performance, rendering or CLS improvement. Evidence: `audit/after-fonts/`.
+
+### Website navigation boundary
+
+Cause: `uis/website/app/page.tsx` was a Client Component only because the mobile menu used `useState`. Static sections were in that same client module.
+
+Change: menu state, `aria-expanded`, the toggle and nav close-on-click moved to `uis/website/app/site-header.tsx`. The page is a Server Component again. Markup, classes, copy and links are unchanged.
+
+Measured result: production build in `trackflow-dev-ui` succeeded. Playwright confirmed desktop nav visible and toggle hidden; at 412 px the toggle opens by keyboard, sets `aria-expanded="true"` and `main-nav--open`, and a nav link closes the menu and sets `#services`. Desktop and mobile screenshots matched the baseline pixel for pixel. Lighthouse medians after this split (and the already-removed font import): website desktop Performance 99, LCP 645.060, CLS 0.053153, TBT 0; website mobile Performance 92 (runs 98/86/92), LCP 2643.309, CLS 0.050702, TBT 118. No score or LCP improvement is claimed. Evidence: `audit/after/`.
+
+### Backoffice 412 px overflow
+
+Cause: at a 412 px viewport, `article.team-card` was the element past the viewport. Its right edge was 416.5 px and `scrollWidth` was 417. The grid cell was 312 px wide; the card's min-content was about 333.5 px, so it overflowed the cell and 4.5 px past the viewport. Child text was not clipped.
+: font remeasurement in `audit/after-fonts/`; navigation split and overflow fix remeasured in `audit/after/`. No Performance improvement is claimed. `audit/before/` was not modified
+Change: only inside `@media(max-width:460px)`, horizontal padding of `.team-card` went from 10 px to 6 px. `min-width: 0` was tried and rejected because it clipped visible team text.
+
+Measured result: `scrollWidth` is 412 and no `.team-info p` is clipped. Desktop screenshot is identical to baseline. The mobile screenshot differs by 30,899 of 1,038,240 pixels (2.98%) because the cards are 8 px narrower in total horizontal padding; content remains readable. Backoffice Lighthouse medians: desktop Performance 100, LCP 688.388, CLS 0.015558; mobile Performance 93 (runs 94/93/93), LCP 2602.723, CLS 0.022812, TBT 56.05. Do not claim a Performance gain; the mobile median is 1 point below baseline and within run variance. Evidence: `audit/after/`.
 
 ## Skills and security
 
@@ -62,4 +82,4 @@ Reviewed repository `skills/README.md`; no local `core-web-vitals`, `performance
 - `audit/before/summary.json`: run-level results and medians.
 - Phase 1 baseline: committed and pushed as `a2eb603` on `feature/frontend-performance-audit`.
 - Phase 2 diagnosis: findings and proposed corrections documented here.
-- Phase 3 so far: only the duplicate CSS font `@import` was removed. No post-change Lighthouse run, refactor or final improvement has been performed or claimed. The exact 23-task exercise checklist was not provided and is absent from repository files; do not fabricate it. Request/locate its authoritative source before asserting task-by-task completion.
+- Phase 3 font check: `@import` removal remeasured in `audit/after-fonts/`; no request or CLS improvement. Navigation split and backoffice overflow are not in that measurement. The exact 23-task exercise checklist was not provided and is absent from repository files; do not fabricate it.
