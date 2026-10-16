@@ -94,3 +94,8 @@ deliberadamente tras `down`.
 - Medianas Lighthouse iniciales (Performance/A11y/Best Practices/SEO): website desktop 99/95/96/100, website mobile 92/95/93/100; backoffice desktop 100/95/96/100, backoffice mobile 94/95/93/100. Medianas LCP/CLS/TBT/TTFB y cada ejecucion en `audit/before/summary.json` y reports.
 - Smoke Playwright: ambos roots HTTP 200. Website no excede 412 px; backoffice mide 417 px de scroll width a 412 px. Lighthouse observa `/favicon.ico` 404. El baseline medido tiene TBT no cero solo en mobile; TBT no equivale a INP.
 - Fases 2-6 pendientes al registrar esta nota. No hay optimizaciones ni mejoras finales declaradas.
+
+## Retirada de `@import` de fuentes (2026-10-16)
+
+- En `feature/frontend-performance-audit` se eliminó el `@import` duplicado de Google Fonts en `uis/website/src/styles.css` y `uis/backoffice/src/styles.css`. Los enlaces de `app/layout.tsx` siguen siendo el único origen de esas familias.
+- No hay remedición de peticiones, render ni CLS. No se declara mejora de rendimiento. La evidencia de `audit/before/` no se alteró.

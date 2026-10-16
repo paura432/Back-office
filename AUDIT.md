@@ -45,6 +45,12 @@ All 12 run-level scores and metrics are in `audit/before/summary.json`, with ori
 4. Investigate the favicon request; add an asset only if an approved brand asset is available. Do not invent branding. This is not a performance optimization.
 5. Phase 4 requires extracting one genuine reusable component or hook grounded in verified duplication. Do not force a common component across dissimilar website and dashboard cards; the exact extraction is not yet selected.
 
+## Phase 3 verification log
+
+The redundant Google Fonts `@import` was removed from `uis/website/src/styles.css` and `uis/backoffice/src/styles.css`. Each `app/layout.tsx` still owns the matching stylesheet link (`Manrope`/`DM Mono` on the website; `DM Sans`/`DM Mono` on the backoffice). No other application source was changed.
+
+Resource requests, rendering and CLS have not been compared after this removal. Do not treat it as a measured performance or CLS improvement. Baseline evidence in `audit/before/` is unchanged.
+
 ## Skills and security
 
 Reviewed repository `skills/README.md`; no local `core-web-vitals`, `performance`, or `web-perf` skill was found. No unverified third-party skill was installed or executed. Lighthouse was used as an audit tool, not misrepresented as one of those skills. Any proposed external skill must have its source, publisher, contents, permissions and commands reviewed before execution.
@@ -55,5 +61,5 @@ Reviewed repository `skills/README.md`; no local `core-web-vitals`, `performance
 - `audit/before/{website,backoffice}-{desktop,mobile}.png`: actual Playwright viewport screenshots.
 - `audit/before/summary.json`: run-level results and medians.
 - Phase 1 baseline: committed and pushed as `a2eb603` on `feature/frontend-performance-audit`.
-- Phase 2 diagnosis: findings and proposed corrections documented here; **not yet committed**.
-- No performance fix, refactor, post-change measurement or final improvement has yet been performed or claimed.
+- Phase 2 diagnosis: findings and proposed corrections documented here.
+- Phase 3 so far: only the duplicate CSS font `@import` was removed. No post-change Lighthouse run, refactor or final improvement has been performed or claimed. The exact 23-task exercise checklist was not provided and is absent from repository files; do not fabricate it. Request/locate its authoritative source before asserting task-by-task completion.
