@@ -1,6 +1,4 @@
-'use client';
-
-import { useState } from 'react';
+import { SiteHeader } from './site-header';
 
 type Service = { number: string; title: string; copy: string; icon: string };
 
@@ -18,15 +16,9 @@ function ServiceCard({ number, title, copy, icon }: Service) {
 }
 
 export default function Website() {
-  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div id="app">
-      <header className="site-header">
-        <a className="brand" href="#top" aria-label="TrackFlow home"><span className="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>trackflow<span className="brand-period">.</span></span></a>
-        <nav className={`main-nav${menuOpen ? ' main-nav--open' : ''}`} aria-label="Main navigation" onClick={() => setMenuOpen(false)}><a href="#services">What we do</a><a href="#network">Our network</a><a href="#about">About us</a></nav>
-        <a className="button button--dark header-cta" href="#contact">Let’s talk {arrow}</a>
-        <button className="menu-toggle" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><span></span><span></span></button>
-      </header>
+      <SiteHeader />
       <main id="top">
         <section className="hero section-wrap">
           <div className="hero-copy"><p className="eyebrow"><span className="eyebrow-dot"></span> LOGISTICS, IN MOTION</p><h1>Your next order<br />is already <em>moving.</em></h1><p className="hero-lede">The people and logistics behind your e-commerce promise. We store, prepare and deliver—so your brand can keep growing.</p><div className="hero-actions"><a className="button button--lime" href="#contact">Build your flow {arrow}</a><a className="quiet-link" href="#services">See what we do <span aria-hidden="true">↓</span></a></div><div className="hero-note"><span className="note-line"></span><span>One logistics partner.<br />From first shelf to front door.</span></div></div>
