@@ -10,7 +10,7 @@ An internal, frontend-only operations dashboard for TrackFlow. It provides a str
 - React 19.3.0; existing content, anchors and global CSS preserved
 - No redesign or live business data added
 
-Google Fonts are loaded as an optional font resource; the interface has local system fallbacks.
+DM Sans and DM Mono are self-hosted with `next/font` and `font-display: swap`. System fallbacks remain in CSS.
 
 ## Run locally
 

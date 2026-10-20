@@ -1,3 +1,5 @@
+import { DecorativeArrow } from './decorative-arrow';
+
 type Team = { icon: string; title: string; detail: string; status: string; tone: 'green' | 'amber' | 'blue' };
 
 const teams: Team[] = [
@@ -16,11 +18,11 @@ const priorities = [
 ];
 
 function TeamCard({ icon, title, detail, status, tone }: Team) {
-  return <article className="team-card"><div className={`team-icon team-icon--${tone}`} aria-hidden="true">{icon}</div><div className="team-info"><h3>{title}</h3><p>{detail}</p></div><span className={`status-pill status-pill--${tone}`}><i></i>{status}</span><span className="card-chevron" aria-hidden="true">↗</span></article>;
+  return <article className="team-card"><div className={`team-icon team-icon--${tone}`} aria-hidden="true">{icon}</div><div className="team-info"><h3>{title}</h3><p>{detail}</p></div><span className={`status-pill status-pill--${tone}`}><i></i>{status}</span><DecorativeArrow className="card-chevron" /></article>;
 }
 
 function PriorityRow({ id, title, detail, area }: (typeof priorities)[number]) {
-  return <article className="priority-row"><span className="priority-id">{id}</span><div className="priority-copy"><h3>{title}</h3><p>{detail}</p></div><span className="priority-area">{area}</span><span className="priority-arrow" aria-hidden="true">↗</span></article>;
+  return <article className="priority-row"><span className="priority-id">{id}</span><div className="priority-copy"><h3>{title}</h3><p>{detail}</p></div><span className="priority-area">{area}</span><DecorativeArrow className="priority-arrow" /></article>;
 }
 
 export default function Backoffice() {

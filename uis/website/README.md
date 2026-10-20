@@ -10,7 +10,7 @@ A public-facing corporate website introducing TrackFlow’s e-commerce logistics
 - React 19.3.0; the mobile navigation uses React state
 - Existing global CSS and content preserved without redesign
 
-Google Fonts are loaded as an optional font resource; the site has local system fallbacks.
+Manrope and DM Mono are self-hosted with `next/font` and `font-display: swap`. System fallbacks remain in CSS.
 
 ## Run locally
 
