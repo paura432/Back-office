@@ -29,8 +29,8 @@ Después de la línea base, se aplicaron y verificaron los siguientes cambios en
 | 2 | Aislar navegación website en Server Component | `645896f` | ✅ Lighthouse ejecutado (`audit/after/`) |
 | 3 | Corregir overflow horizontal en backoffice (412→417 px) | `90042a4` | ✅ Lighthouse ejecutado (`audit/after/`) |
 | 4 | Integrar `next/font/google` (fuentes self-hosted) | `add4e1b` | ✅ Build verificado · ⚠️ Lighthouse pendiente |
-| 5 | Favicon | — | ❌ No abordado (sin asset disponible) |
-| 6 | Componente reutilizable | — | ❌ No abordado (sin duplicación justificada) |
+| 5 | Componentes reutilizados (`BrandMark`, `DecorativeArrow`) | `add4e1b` | ✅ Identificados, extraídos entre frontends |
+| 6 | Favicon | — | ❌ No abordado (sin asset disponible) |
 
 ## Baseline
 
@@ -101,13 +101,19 @@ Se sustituyeron las declaraciones externas de Google Fonts por `next/font/google
 
 Los builds de producción de ambos Next.js (v16.4.0) compilan correctamente. No se ha ejecutado Lighthouse sobre este estado concreto por limitaciones del entorno (véase Limitaciones).
 
-**⚠️ Pendiente:** Remedición Lighthouse post-next/font. No hay métricas que comparen «sin next/font externo» vs. «con next/font self-hosted». Los informes existentes en `audit/after/` reflejan el estado tras los cambios 1-3 pero antes de `add4e1b`.
+**⚠️ Remedición Lighthouse pendiente.** No hay métricas que comparen «sin next/font externo» vs. «con next/font self-hosted». Los informes existentes en `audit/after/` reflejan el estado tras los cambios 1-3 pero **antes** de `add4e1b`.
 
-### ❌ 5. Favicon
+### ✅ 5. Componentes reutilizados (`BrandMark`, `DecorativeArrow`)
+**Commit:** `add4e1b`
+
+Se copiaron dos componentes entre frontends:
+- `uis/website/app/brand-mark.tsx` y `uis/backoffice/app/brand-mark.tsx`: SVG inline con la marca «TF».
+- `uis/website/app/decorative-arrow.tsx` y `uis/backoffice/app/decorative-arrow.tsx`: SVG de flecha decorativa.
+
+Ambos pares son visualmente idénticos. Se copiaron directamente entre proyectos. Queda pendiente migrarlos a `packages/shared` si se justifica por mantenibilidad.
+
+### ❌ 6. Favicon
 No se investigó por falta de un asset de marca aprobado. Sin impacto en rendimiento.
-
-### ❌ 6. Componente reutilizable
-No se extrajo. Website y backoffice son visual y funcionalmente distintos; una extracción forzada no estaría justificada.
 
 ## Phase 3 verification log
 
@@ -145,7 +151,7 @@ Reviewed repository `skills/README.md`; no local `core-web-vitals`, `performance
 
 - `audit/before/` — 12 informes Lighthouse originales (3 runs × 4 escenarios) + summary.json + capturas Playwright — **Línea base sin modificar**
 - `audit/after-fonts/` — 12 informes tras eliminar `@import` duplicado (commit `07dc18f`)
-- `audit/after/` — 12 informes tras navegación split + overflow fix + fonts (commits `07dc18f` + `645896f` + `90042a4`)
+- `audit/after/` — 12 informes tras navegación split + overflow fix + fonts (commits `07dc18f` + `645896f` + `90042a4`). **Atención:** `audit/after/` refleja el estado anterior a la integración de `next/font` (commit `add4e1b`).
 - `REPORT.md` — Informe comparativo con tabla antes/después, métricas, correcciones y conclusiones
 
 ### Estado por fase
@@ -164,4 +170,4 @@ Reviewed repository `skills/README.md`; no local `core-web-vitals`, `performance
 
 - **Remedición Lighthouse post-next/font:** No ejecutada por falta de Docker Engine y Chromium en el entorno actual. Los informes existentes en `audit/after/` reflejan el estado anterior a `add4e1b`.
 - **Favicon:** No se abordó (sin asset de marca).
-- **Componente reutilizable:** No se extrajo (justificación insuficiente).
+- **Componentes reutilizados:** Se identificaron dos componentes extraídos en ambos frontends: `BrandMark` (presente en website y backoffice como SVG inline) y `DecorativeArrow` (misma implementación en ambas apps). Ambos son visualmente idénticos y se copiaron entre proyectos. Queda pendiente migrarlos a `packages/shared` si se justifica por mantenibilidad futura.

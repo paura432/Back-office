@@ -84,31 +84,40 @@ Ninguna corrección produjo una mejora cuantificable más allá de la varianza d
 
 ## Reutilización de componentes
 
-No se extrajeron componentes compartidos entre website y backoffice. Ambos usan `next/font/google` con sus propias configuraciones de fuente (`DM_Sans`/`Manrope`), y los estilos CSS son independientes. No se identificó duplicación que justificara una extracción forzada.
+Se identificaron dos pares de componentes copiados entre website y backoffice:
+
+| Componente | Website | Backoffice | Descripción |
+|---|---|---|---|
+| `BrandMark` | `uis/website/app/brand-mark.tsx` | `uis/backoffice/app/brand-mark.tsx` | SVG inline con la marca «TF» |
+| `DecorativeArrow` | `uis/website/app/decorative-arrow.tsx` | `uis/backoffice/app/decorative-arrow.tsx` | SVG de flecha decorativa |
+
+Ambos pares son visualmente idénticos. Quedan pendientes de migrar a `packages/shared` si se justifica por mantenibilidad futura.
+
+No se forzaron extracciones adicionales donde no existía duplicación real.
 
 ---
 
-## Capturas de Lighthouse (resultado final)
+## Capturas de viewport (resultado final de correcciones 1-3)
 
-Las siguientes capturas corresponden a los informes Lighthouse tras todas las correcciones (`audit/after/`).
+Las siguientes capturas corresponden a las vistas de Playwright tras las correcciones de navegación y overflow (`audit/after/`). **No** son capturas de Lighthouse. No se generaron capturas tras `add4e1b` (next/font).
 
-| App / Viewport | Captura |
+| App / Viewport | Captura Playwright |
 |---|---|
 | Website desktop | `audit/after/website-desktop.png` |
 | Website mobile | `audit/after/website-mobile.png` |
 | Backoffice desktop | `audit/after/backoffice-desktop.png` |
 | Backoffice mobile | `audit/after/backoffice-mobile.png` |
 
-> **Nota:** Las capturas se generaron mediante Playwright; no se pudieron regenerar en esta sesión porque el entorno no dispone de Docker, Chromium ni los componentes necesarios para ejecutar Lighthouse de nuevo. Los informes HTML/JSON originales de Lighthouse se conservan íntegros en `audit/after/` y `audit/after-fonts/`.
+> **Nota:** Las capturas se generaron mediante Playwright, no mediante Lighthouse. No fue posible regenerarlas en esta sesión porque el entorno no dispone de Docker Engine ni Chromium. Los informes HTML/JSON originales de Lighthouse se conservan íntegros en `audit/after/` y `audit/after-fonts/`. `audit/after/` refleja el estado anterior a `add4e1b` (next/font), por lo que no incluye la medición con fuentes self-hosted.
 
 ---
 
 ## Limitaciones documentadas
 
-1. **Entorno sin Docker ni navegador:** Esta sesión no dispone de Docker Engine ni de Chromium/Chrome, por lo que no fue posible re-ejecutar Lighthouse para obtener una remedición adicional tras el último commit (`add4e1b` con `next/font`). Los informes existentes en `audit/after/` reflejan el estado posterior a las correcciones de fuentes, navegación y overflow, pero anteriores a la integración de `next/font` self-hosted.
+1. **Entorno sin Docker ni navegador:** Esta sesión no dispone de Docker Engine ni de Chromium/Chrome, por lo que no fue posible re-ejecutar Lighthouse para obtener una remedición adicional tras el último commit (`add4e1b` con `next/font`). Los informes existentes en `audit/after/` reflejan el estado posterior a las correcciones de fuentes, navegación y overflow, pero **anteriores** a la integración de `next/font` self-hosted.
 2. **next/font pendiente de remedición:** El último commit (`add4e1b`) añadió `next/font/google` con fuentes self-hosted. Aunque el build compila correctamente (verificado), no se ejecutó Lighthouse sobre ese estado concreto. No se dispone de métricas que comparen «sin next/font» vs. «con next/font».
 3. **Métricas de laboratorio:** Todos los valores LCP, CLS, TBT y TTFB son de laboratorio, no de campo (RUM). No deben extrapolarse como datos de usuario real.
-4. **Sin backend:** Las aplicaciones son estáticas. No hay datos dinámicos, APIs ni carga diferida que pudieran afectar el rendimiento en producción real.
+4. **Sin backend dinámico:** Las aplicaciones son mayoritariamente estáticas. No hay carga diferida de datos ni lógica asíncrona que pudiera afectar el rendimiento en producción real.
 
 ---
 
