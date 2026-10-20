@@ -86,6 +86,7 @@ deliberadamente tras `down`.
 - Builds y Compose repetidos tras incorporar evidencias: PASS. GAP Next.js **RESUELTO**. API de negocio, auth, persistencia y produccion permanecen fuera del alcance.
 - Cierre real: cinco endpoints HTTP 200, logs sin errores criticos, terminacion supervisada de un Next.js con salida `ui` no cero, rearranque healthy y SIGTERM normal con salida 0 en `ui`/`api`: PASS. `docker compose down` elimina contenedores y red; los volumenes se conservan.
 - Revision y publicacion finales consultables en el historial de la rama. No crear PR ni hacer merge.
+<<<<<<< HEAD
 
 ## Auditoria de rendimiento frontend (2026-10-14)
 
@@ -112,3 +113,5 @@ deliberadamente tras `down`.
 - **next/font pendiente de remedición:** Documentado como limitación. Los builds compilan correctamente.
 - **git diff --check:** PASS (sin errores de whitespace).
 - **git status:** `AUDIT.md` modificado, `REPORT.md` nuevo, `memory-bank/progress.md` actualizado.
+=======
+>>>>>>> origin/main
