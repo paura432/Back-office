@@ -1,0 +1,213 @@
+{
+  "method": "Lighthouse 12.8.2, Chrome 141.0.7390.37, 3 fresh runs. Website reports include the navigation Client Component split. Backoffice reports include the 460px team-card horizontal padding change. Font @import removal is already in both. audit/before was not modified.",
+  "scenarios": {
+    "website-desktop": {
+      "runs": [
+        {
+          "perf": 99,
+          "a11y": 95,
+          "bp": 96,
+          "seo": 100,
+          "lcp": 638.325,
+          "cls": 0.053153,
+          "tbt": 0,
+          "ttfb": 6.973,
+          "fontCss": 1,
+          "woff": 3
+        },
+        {
+          "perf": 99,
+          "a11y": 95,
+          "bp": 96,
+          "seo": 100,
+          "lcp": 645.06,
+          "cls": 0.054441,
+          "tbt": 0,
+          "ttfb": 8.26,
+          "fontCss": 1,
+          "woff": 3
+        },
+        {
+          "perf": 99,
+          "a11y": 95,
+          "bp": 96,
+          "seo": 100,
+          "lcp": 652.518,
+          "cls": 0.053153,
+          "tbt": 0,
+          "ttfb": 11.987,
+          "fontCss": 1,
+          "woff": 3
+        }
+      ],
+      "median": {
+        "perf": 99,
+        "a11y": 95,
+        "bp": 96,
+        "seo": 100,
+        "lcp": 645.06,
+        "cls": 0.053153,
+        "tbt": 0,
+        "ttfb": 8.26,
+        "fontCss": 1,
+        "woff": 3
+      }
+    },
+    "website-mobile": {
+      "runs": [
+        {
+          "perf": 98,
+          "a11y": 95,
+          "bp": 93,
+          "seo": 100,
+          "lcp": 2011.029,
+          "cls": 0.050702,
+          "tbt": 102,
+          "ttfb": 7.612,
+          "fontCss": 1,
+          "woff": 3
+        },
+        {
+          "perf": 86,
+          "a11y": 95,
+          "bp": 93,
+          "seo": 100,
+          "lcp": 2859.708,
+          "cls": 0.050702,
+          "tbt": 284,
+          "ttfb": 14.234,
+          "fontCss": 1,
+          "woff": 3
+        },
+        {
+          "perf": 92,
+          "a11y": 95,
+          "bp": 93,
+          "seo": 100,
+          "lcp": 2643.309,
+          "cls": 0.050702,
+          "tbt": 118,
+          "ttfb": 8.616,
+          "fontCss": 1,
+          "woff": 3
+        }
+      ],
+      "median": {
+        "perf": 92,
+        "a11y": 95,
+        "bp": 93,
+        "seo": 100,
+        "lcp": 2643.309,
+        "cls": 0.050702,
+        "tbt": 118,
+        "ttfb": 8.616,
+        "fontCss": 1,
+        "woff": 3
+      }
+    },
+    "backoffice-desktop": {
+      "runs": [
+        {
+          "perf": 100,
+          "a11y": 95,
+          "bp": 96,
+          "seo": 100,
+          "lcp": 694.767,
+          "cls": 0.015558,
+          "tbt": 0,
+          "ttfb": 6.082,
+          "fontCss": 1,
+          "woff": 2
+        },
+        {
+          "perf": 100,
+          "a11y": 95,
+          "bp": 96,
+          "seo": 100,
+          "lcp": 683.038,
+          "cls": 0.015558,
+          "tbt": 0,
+          "ttfb": 8.821,
+          "fontCss": 1,
+          "woff": 2
+        },
+        {
+          "perf": 100,
+          "a11y": 95,
+          "bp": 96,
+          "seo": 100,
+          "lcp": 688.388,
+          "cls": 0.015558,
+          "tbt": 0,
+          "ttfb": 5.879,
+          "fontCss": 1,
+          "woff": 2
+        }
+      ],
+      "median": {
+        "perf": 100,
+        "a11y": 95,
+        "bp": 96,
+        "seo": 100,
+        "lcp": 688.388,
+        "cls": 0.015558,
+        "tbt": 0,
+        "ttfb": 6.082,
+        "fontCss": 1,
+        "woff": 2
+      }
+    },
+    "backoffice-mobile": {
+      "runs": [
+        {
+          "perf": 94,
+          "a11y": 95,
+          "bp": 93,
+          "seo": 100,
+          "lcp": 2585.381,
+          "cls": 0.022812,
+          "tbt": 0,
+          "ttfb": 6.846,
+          "fontCss": 1,
+          "woff": 2
+        },
+        {
+          "perf": 93,
+          "a11y": 95,
+          "bp": 93,
+          "seo": 100,
+          "lcp": 2615.561,
+          "cls": 0.022812,
+          "tbt": 56.39,
+          "ttfb": 6.749,
+          "fontCss": 1,
+          "woff": 2
+        },
+        {
+          "perf": 93,
+          "a11y": 95,
+          "bp": 93,
+          "seo": 100,
+          "lcp": 2602.723,
+          "cls": 0.022812,
+          "tbt": 56.05,
+          "ttfb": 5.545,
+          "fontCss": 1,
+          "woff": 2
+        }
+      ],
+      "median": {
+        "perf": 93,
+        "a11y": 95,
+        "bp": 93,
+        "seo": 100,
+        "lcp": 2602.723,
+        "cls": 0.022812,
+        "tbt": 56.05,
+        "ttfb": 6.749,
+        "fontCss": 1,
+        "woff": 2
+      }
+    }
+  }
+}
