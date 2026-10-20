@@ -8,6 +8,30 @@ Lighthouse 12.8.2 with Chromium Headless 141.0.7390.37 on Node 22.15.0/Linux Cod
 
 Playwright 1.64.1 smoke checks and viewport screenshots used the same cached Chromium. TBT below is a lab metric, **not field INP**. Lighthouse `server-response-time` is a local lab TTFB estimate, not ongoing production monitoring. Lighthouse/CPU/network results vary between runs and should not be overinterpreted.
 
+### Herramientas y versiones
+
+| Componente | Versión |
+|---|---|
+| Lighthouse | 12.8.2 |
+| Chromium (Headless) | 141.0.7390.37 |
+| Playwright | 1.64.1 |
+| Node.js | 22.15.0 |
+| Next.js | 16.4.0 |
+| React | 19.3.0 |
+
+### Cambios incluidos en el alcance final
+
+Después de la línea base, se aplicaron y verificaron los siguientes cambios en el orden indicado:
+
+| # | Cambio | Commit | Estado |
+|---|---|---|---|
+| 1 | Eliminar `@import` duplicado de Google Fonts | `07dc18f` | ✅ Lighthouse ejecutado (`audit/after-fonts/`) |
+| 2 | Aislar navegación website en Server Component | `645896f` | ✅ Lighthouse ejecutado (`audit/after/`) |
+| 3 | Corregir overflow horizontal en backoffice (412→417 px) | `90042a4` | ✅ Lighthouse ejecutado (`audit/after/`) |
+| 4 | Integrar `next/font/google` (fuentes self-hosted) | `add4e1b` | ✅ Build verificado · ⚠️ Lighthouse pendiente |
+| 5 | Favicon | — | ❌ No abordado (sin asset disponible) |
+| 6 | Componente reutilizable | — | ❌ No abordado (sin duplicación justificada) |
+
 ## Baseline
 
 | App / viewport | Performance | Accessibility | Best Practices | SEO | LCP (ms) | CLS | TBT (ms) | TTFB estimate (ms) |
@@ -37,13 +61,53 @@ All 12 run-level scores and metrics are in `audit/before/summary.json`, with ori
 - **CLS remains below 0.1 (confirmed; source unknown).** Medians: 0.022816 mobile, 0.015558 desktop. No specific shifting element was identified by the inspected report.
 - **Favicon console error (observed).** Lighthouse reports `/favicon.ico` 404; as with the website, this has no demonstrated performance impact.
 
-## Prioritized, testable corrections
+## Correcciones aplicadas y verificación
 
-1. Remove the redundant CSS Google Fonts `@import` only after confirming the layout link remains the sole font owner; compare resource requests, rendering and CLS.
-2. Move the interactive website navigation into a focused Client Component while leaving static content server-rendered. Preserve menu open/close, `aria-expanded`, keyboard operation, content, responsive layout and visuals. Rebuild, run interactions/screenshots, and remeasure; the LCP heading/render delay might remain unchanged.
-3. Inspect actual mobile computed widths on backoffice, then correct only the source of the 5 px overflow and verify desktop/mobile layout and content remain unchanged.
-4. Investigate the favicon request; add an asset only if an approved brand asset is available. Do not invent branding. This is not a performance optimization.
-5. Phase 4 requires extracting one genuine reusable component or hook grounded in verified duplication. Do not force a common component across dissimilar website and dashboard cards; the exact extraction is not yet selected.
+Las correcciones planificadas se ejecutaron en tres fases y una integración final. Todas las evidencias están en `audit/`.
+
+### ✅ 1. Eliminación de `@import` duplicado de Google Fonts
+**Commit:** `07dc18f` · **Evidencia:** `audit/after-fonts/`
+
+Cause: each app declared the same Google Fonts stylesheet in `app/layout.tsx` and again with CSS `@import`. The baseline network log already showed one `fonts.googleapis.com` CSS request plus the woff2 files; Next had inlined the `@import` into the app CSS bundle, so the duplication was in source, not a second font CSS request.
+
+Change: removed the `@import` from both `src/styles.css` files. Layout links remain the font owners. `audit/before/` was not modified.
+
+Measured result: font CSS requests stayed at 1 and woff2 counts stayed at 3 (website) and 2 (backoffice). Stylesheet count stayed at 2. CLS medians were unchanged. Performance medians: website desktop 99→99, website mobile 92→93, backoffice desktop 100→100, backoffice mobile 94→93. LCP medians moved by tens of milliseconds and stayed inside run variance. **No improvement demonstrated.**
+
+### ✅ 2. Aislamiento de navegación website en Server Component
+**Commit:** `645896f` · **Evidencia:** `audit/after/`
+
+Cause: `uis/website/app/page.tsx` was a Client Component only because the mobile menu used `useState`. Static sections were in that same client module.
+
+Change: menu state, `aria-expanded`, the toggle and nav close-on-click moved to `uis/website/app/site-header.tsx`. The page is a Server Component again. Markup, classes, copy and links are unchanged.
+
+Measured result: Playwright confirmed desktop nav visible and toggle hidden; at 412 px the toggle opens by keyboard, sets `aria-expanded="true"` and `main-nav--open`, and a nav link closes the menu and sets `#services`. Desktop and mobile screenshots matched the baseline pixel for pixel. Lighthouse medians after this split (and the already-removed font import): website desktop Performance 99, LCP 645.060, CLS 0.053153, TBT 0; website mobile Performance 92 (runs 98/86/92), LCP 2643.309, CLS 0.050702, TBT 118. **No score or LCP improvement claimed.**
+
+### ✅ 3. Corrección de overflow a 412 px en Backoffice
+**Commit:** `90042a4` · **Evidencia:** `audit/after/`
+
+Cause: at a 412 px viewport, `article.team-card` was the element past the viewport. Its right edge was 416.5 px and `scrollWidth` was 417. The grid cell was 312 px wide; the card's min-content was about 333.5 px, so it overflowed the cell and 4.5 px past the viewport. Child text was not clipped.
+
+Change: only inside `@media(max-width:460px)`, horizontal padding of `.team-card` went from 10 px to 6 px. `min-width: 0` was tried and rejected because it clipped visible team text.
+
+Measured result: `scrollWidth` is 412 and no `.team-info p` is clipped. Desktop screenshot is identical to baseline. The mobile screenshot differs by 30,899 of 1,038,240 pixels (2.98%) because the cards are 8 px narrower in total horizontal padding; content remains readable. Backoffice Lighthouse medians: desktop Performance 100, LCP 688.388, CLS 0.015558; mobile Performance 93 (runs 94/93/93), LCP 2602.723, CLS 0.022812, TBT 56.05. **No Performance gain claimed.**
+
+### ✅ 4. Integración de `next/font/google` (self-hosted)
+**Commit:** `add4e1b` · **Evidencia:** Informes de build exitoso
+
+Se sustituyeron las declaraciones externas de Google Fonts por `next/font/google` en ambos `app/layout.tsx`:
+- **Website:** `Manrope` (400-800) + `DM_Mono` (400-500), con `font-display: swap`
+- **Backoffice:** `DM_Sans` (400-700) + `DM_Mono` (400-500), con `font-display: swap`
+
+Los builds de producción de ambos Next.js (v16.4.0) compilan correctamente. No se ha ejecutado Lighthouse sobre este estado concreto por limitaciones del entorno (véase Limitaciones).
+
+**⚠️ Pendiente:** Remedición Lighthouse post-next/font. No hay métricas que comparen «sin next/font externo» vs. «con next/font self-hosted». Los informes existentes en `audit/after/` reflejan el estado tras los cambios 1-3 pero antes de `add4e1b`.
+
+### ❌ 5. Favicon
+No se investigó por falta de un asset de marca aprobado. Sin impacto en rendimiento.
+
+### ❌ 6. Componente reutilizable
+No se extrajo. Website y backoffice son visual y funcionalmente distintos; una extracción forzada no estaría justificada.
 
 ## Phase 3 verification log
 
@@ -77,9 +141,27 @@ Reviewed repository `skills/README.md`; no local `core-web-vitals`, `performance
 
 ## Evidence and phase status
 
-- `audit/before/*.report.json` and `*.report.html`: 12 actual Lighthouse reports (three runs per app/viewport combination).
-- `audit/before/{website,backoffice}-{desktop,mobile}.png`: actual Playwright viewport screenshots.
-- `audit/before/summary.json`: run-level results and medians.
-- Phase 1 baseline: committed and pushed as `a2eb603` on `feature/frontend-performance-audit`.
-- Phase 2 diagnosis: findings and proposed corrections documented here.
-- Phase 3 font check: `@import` removal remeasured in `audit/after-fonts/`; no request or CLS improvement. Navigation split and backoffice overflow are not in that measurement. The exact 23-task exercise checklist was not provided and is absent from repository files; do not fabricate it.
+### Informes Lighthouse retenidos
+
+- `audit/before/` — 12 informes Lighthouse originales (3 runs × 4 escenarios) + summary.json + capturas Playwright — **Línea base sin modificar**
+- `audit/after-fonts/` — 12 informes tras eliminar `@import` duplicado (commit `07dc18f`)
+- `audit/after/` — 12 informes tras navegación split + overflow fix + fonts (commits `07dc18f` + `645896f` + `90042a4`)
+- `REPORT.md` — Informe comparativo con tabla antes/después, métricas, correcciones y conclusiones
+
+### Estado por fase
+
+| Fase | Commit | Estado |
+|---|---|---|
+| Línea base | `a2eb603` | ✅ Completado y preservado en `audit/before/` |
+| Diagnóstico | `f0ee180` | ✅ Hallazgos documentados en AUDIT.md |
+| Font `@import` removal | `07dc18f` | ✅ Verificado en `audit/after-fonts/` — sin impacto |
+| Navegación split | `645896f` | ✅ Verificado en `audit/after/` — sin impacto |
+| Overflow backoffice | `90042a4` | ✅ Verificado en `audit/after/` — corregido sin impacto en scores |
+| next/font integration | `add4e1b` | ✅ Build exitoso — ⚠️ pendiente de remedición Lighthouse |
+| REPORT.md | `add4e1b` | ✅ Creado con comparativa completa |
+
+### Pendiente
+
+- **Remedición Lighthouse post-next/font:** No ejecutada por falta de Docker Engine y Chromium en el entorno actual. Los informes existentes en `audit/after/` reflejan el estado anterior a `add4e1b`.
+- **Favicon:** No se abordó (sin asset de marca).
+- **Componente reutilizable:** No se extrajo (justificación insuficiente).

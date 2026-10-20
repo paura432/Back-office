@@ -101,3 +101,14 @@ deliberadamente tras `down`.
 - Remedición con la misma metodología Lighthouse, sin otros cambios de aplicación: las peticiones de CSS de fuentes y de woff2 no bajaron; las medianas de CLS no cambiaron. No hay mejora demostrada. Evidencia en `audit/after-fonts/`. `audit/before/` no se alteró.
 - El menú del website pasó a `uis/website/app/site-header.tsx`. La página vuelve a ser Server Component. Build de producción y prueba de apertura/cierre/teclado: PASS. Capturas desktop y móvil idénticas al baseline. Lighthouse posterior no muestra mejora reclamable.
 - En backoffice, a 412 px desbordaba `article.team-card` (borde derecho 416.5 px, `scrollWidth` 417). Se redujo solo su padding horizontal a 6 px bajo 460 px. Tras el cambio, `scrollWidth` es 412 y el texto no se recorta. La captura móvil difiere un 2.98 % por ese padding. Performance móvil mediana 93 frente a 94; no se declara mejora.
+
+## Cierre final auditoría rendimiento (2026-10-20)
+
+- Rama `feature/frontend-performance-audit`, HEAD `add4e1bc2052b7c0c8edef37f917f5b86965e128`.
+- **Builds verificados:** Backoffice (Next.js 16.4.0) y website compilan correctamente con `next/font/google` (DM_Sans, DM_Mono, Manrope) y `font-display: swap`. TypeScript y compilación: PASS.
+- **Lighthouse:** No se pudieron re-ejecutar por falta de Docker Engine y Chromium en el entorno. Los informes existentes en `audit/after/` reflejan el estado tras las correcciones de fuentes, navegación y overflow (commits `07dc18f` + `645896f` + `90042a4`), pero anteriores a `add4e1b`. `audit/before/` se conserva intacto.
+- **REPORT.md:** Creado con comparativa antes/después, LCP, CLS, TBT, puntuaciones, correcciones aplicadas, reutilización y conclusiones. No se inventan mejoras.
+- **AUDIT.md:** Actualizado: tabla de alcance final, correcciones aplicadas con estado ✅/⚠️/❌, evidencia por fase y pendientes documentados.
+- **next/font pendiente de remedición:** Documentado como limitación. Los builds compilan correctamente.
+- **git diff --check:** PASS (sin errores de whitespace).
+- **git status:** `AUDIT.md` modificado, `REPORT.md` nuevo, `memory-bank/progress.md` actualizado.
