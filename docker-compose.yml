@@ -1,16 +1,43 @@
 name: trackflow-dev
 
 services:
+  db:
+    image: postgres:16-alpine
+    init: true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trackflow}
+      POSTGRES_USER: ${POSTGRES_USER:-trackflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trackflow_dev}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 15s
+    networks:
+      - trackflow-net
+
   api:
     build:
       context: ./services
     init: true
     environment:
       WATCHFILES_FORCE_POLLING: "true"
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: ${POSTGRES_DB:-trackflow}
+      DATABASE_USER: ${POSTGRES_USER:-trackflow}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-trackflow_dev}
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     volumes:
       - ./services/api:/app
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
       interval: 5s
@@ -18,6 +45,8 @@ services:
       retries: 12
       start_period: 10s
     stop_grace_period: 15s
+    networks:
+      - trackflow-net
 
   ui:
     build:
@@ -45,9 +74,16 @@ services:
       retries: 12
       start_period: 60s
     stop_grace_period: 15s
+    networks:
+      - trackflow-net
 
 volumes:
+  postgres_data:
   website_node_modules:
   backoffice_node_modules:
   website_next:
   backoffice_next:
+
+networks:
+  trackflow-net:
+    driver: bridge

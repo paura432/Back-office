@@ -1,5 +1,7 @@
 type Team = { icon: string; title: string; detail: string; status: string; tone: 'green' | 'amber' | 'blue' };
 
+import BackendStatus from './backend-status';
+
 const teams: Team[] = [
   { icon: '▤', title: 'Warehouse Operations', detail: 'Inventory visibility · Los Angeles + Zaragoza', status: 'NEEDS UNIFIED STOCK', tone: 'amber' },
   { icon: '⇢', title: 'Last Mile / Carriers', detail: '8 carrier partners across both markets', status: 'MANUAL TRACKING', tone: 'blue' },
@@ -34,7 +36,7 @@ export default function Backoffice() {
           <div className="sidebar-bottom"><div className="sidebar-label">LOCATIONS</div><div className="location-link"><span className="location-dot location-dot--la"></span>Los Angeles<span className="location-code">US</span></div><div className="location-link"><span className="location-dot location-dot--zg"></span>Zaragoza<span className="location-code">ES</span></div><div className="sidebar-profile"><span className="profile-avatar">TF</span><span><b>TrackFlow Team</b><small>Internal workspace</small></span><span className="profile-menu">···</span></div></div>
         </aside>
         <main className="main-panel" id="home">
-          <header className="topbar"><div className="breadcrumb"><span>TrackFlow</span><i>/</i><b>Dashboard</b></div><div className="topbar-actions"><span className="context-badge"><i></i>CONTEXT OVERVIEW</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot"></span></button><span className="top-avatar">TF</span></div></header>
+          <header className="topbar"><div className="breadcrumb"><span>TrackFlow</span><i>/</i><b>Dashboard</b></div><div className="topbar-actions"><BackendStatus /><span className="context-badge"><i></i>CONTEXT OVERVIEW</span><button className="icon-button" aria-label="Notifications">♧<span className="notification-dot"></span></button><span className="top-avatar">TF</span></div></header>
           <div className="dashboard-content">
             <section className="welcome-row"><div><p className="date-line"><span className="date-square">◷</span> OPERATIONS OVERVIEW <span className="date-divider">/</span> UNITED STATES + SPAIN</p><h1>Operations Backoffice</h1><p className="welcome-copy">A shared view of the teams and operational priorities shaping TrackFlow.</p></div><div className="welcome-meta"><span className="meta-label">OPERATING LOCATIONS</span><div className="meta-locations"><span><i className="location-dot location-dot--la"></i>Los Angeles</span><span><i className="location-dot location-dot--zg"></i>Zaragoza</span></div></div></section>
             <section className="notice-banner"><span className="notice-icon">i</span><p><b>Operational context, not live telemetry.</b> This dashboard summarizes needs documented in the company brief. No live warehouse or carrier data is connected.</p><span className="notice-ref">SOURCE: CONTEXT.MD</span></section>
