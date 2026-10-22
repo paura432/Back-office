@@ -1,334 +1,200 @@
-# Auditoría de Serialización del Backend — TrackFlow API
+# Auditoría de serialización del backend — TrackFlow
 
-> **Proyecto:** Serialization Audit & Implementation  
-> **Fecha:** 2026-10-16  
-> **Rama:** `feature/serialization-audit`  
-> **Estado:** COMPLETED
+**Fase:** 1 de 4Geeks · **Corte de auditoría:** 2026-10-22 · **Rama:** `feature/serialization-audit`
 
----
+**Inventario:** 35 operaciones HTTP registradas: 31 rutas de aplicación (✅ 15 · ⚠️ 16 · ❌ 0) y cuatro rutas de documentación integradas (❌ 4 por no tener `response_model` Pydantic de aplicación; no son endpoints de datos ni se consideran exposición crítica de datos).
 
-## Resumen ejecutivo
+## Alcance y criterio
 
-Se auditaron la totalidad de los endpoints HTTP registrados en el backend FastAPI de TrackFlow. El servicio existente contenía **1 endpoint** (`GET /health`) sin `response_model` explícito ni schema Pydantic. El backend no implementaba autenticación, persistencia ni endpoints de negocio; todos los routers se crearon como parte de esta intervención.
+Se revisó el backend FastAPI en `services/api/main.py` y cada router/schema de `services/api/app/`, el frontend de `uis/website/` y `uis/backoffice/`, y los tests actuales. No se modificó aquí el comportamiento API ni la base de datos. Los routers de negocio, incluidos los de auth, son código presente en esta rama, pero responden `501 Not Implemented`; la única respuesta de éxito implementada es `GET /health`. Por ello **no hay payloads exitosos observables** para los contratos de negocio: sus campos de salida son los que el `response_model` declararía si el endpoint retornara datos, no prueba de que esos payloads existan.
 
-**Resultado:** 31 endpoints auditados, 31 endpoints con contrato de serialización explícito implementado, 0 endpoints sin serialización.
+**Definiciones de estado:** ✅ esquema explícito adecuado para el comportamiento observable; ⚠️ esquema explícito parcial, excesivo o con riesgo de contrato/validación; ❌ sin modelo explícito o respuesta real exponiendo datos no acotados. El riesgo de endpoint crítico se reporta en hallazgos, separadamente de un `❌` por ausencia de `response_model`: las cuatro rutas de documentación no sirven payloads de negocio. Se clasifica el código presente en esta rama, no como si fuese la implementación histórica previa a los routers.
 
----
+`main.py` incluye nueve routers (incluido health). Los decoradores de estos routers declaran **31 operaciones HTTP de aplicación**. FastAPI añade además cuatro rutas de documentación por defecto, que también se incluyen debajo para que el inventario refleje la superficie registrada completa: **35 operaciones en total**. No hay `response_model` ausente en los 31 decoradores de aplicación; las cuatro rutas de infraestructura no declaran uno. El runtime no pudo importarse en el entorno de auditoría porque no está instalado `fastapi` en el Python activo (véase Verificación). En el código no hay `StreamingResponse`, `FileResponse`, endpoint de descarga ni respuesta intencional sin cuerpo. No se encontraron respuestas 204/304 declaradas. Los errores de negocio usan `HTTPException(501, {"detail":"Not implemented"})` y no la forma del `response_model`.
 
-## Inventario completo de endpoints
+**Alcance de clasificación:** las 31 rutas de aplicación reciben ✅/⚠️/❌. Las cuatro rutas FastAPI integradas también aparecen individualmente en el inventario, marcadas ❌ en el sentido mecánico de carecer de un modelo de respuesta de aplicación (son respuestas framework HTML/OpenAPI y no requieren schema de negocio). No se les atribuye fuga de ORM, credenciales o datos de clientes. Por tanto, para priorizar implementación de la API, la distribución relevante es **15 correctas, 16 parciales y cero críticas de serialización de respuestas de aplicación**. La prioridad P0 de auth/autorización es un riesgo funcional/de seguridad crítico independiente de la fuga serializadora, que hoy no está demostrada.
 
-### Health (`/health`)
+**Criterio para entrada/validación:** los modelos de request citados en la tabla son las restricciones Pydantic presentes en código. No se presupone que campos extra se rechacen: las clases no declaran `extra="forbid"`, de modo que con el comportamiento Pydantic predeterminado (ignorar extra) un cliente puede enviar campos adicionales sin que pasen a la función, pero tampoco recibe rechazo explícito. No se ha ejecutado el runtime aquí para verificar esa interacción HTTP; añadir test de contrato antes de decidir si endurecerla.
 
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/health` | `HealthResponse` | ✅ Explícito | ✅ |
+## Inventario exhaustivo
 
-**Consumidor:** Frontends (Next.js rewrite `/api/health`), Docker healthchecks.  
-**Payload objetivo:** `{"status": "ok"}`  
-**Campos:** `status: str`
+Los esquemas reales de salida y entrada se consultaron en los ficheros `services/api/app/schemas/*.py`. “Necesita” se refiere a los campos del contrato que requiere el propósito explícito de la ruta; el frontend actual no consume ninguna de estas rutas. “Propuesta” es una recomendación documental, no una modificación de contrato o un requisito inventado. “No observable” indica que la ruta siempre lanza 501 y no retorna un objeto de éxito.
 
----
+| # | Método y ruta | Propósito y entrada actual | `response_model` declarado → salida real actual | Consumidor UI y campos necesarios | Campos excluidos / recomendación de contrato | Estado y evidencia |
+|---:|---|---|---|---|---|---|
+| 1 | `GET /health` | Liveness. Sin entrada. Status declarado 200. | `HealthResponse` → `{"status":"ok"}` (real). | Proxy Next.js / Docker y docs hablan de health; `status`. Sin llamada desde páginas. | Excluir detalles internos de runtime, host, entorno y credenciales. Mantener `HealthResponse{status}`. | ✅. `routers/health.py:8-11`; `schemas/health.py`. |
+| 2 | `POST /auth/register` | Registro. Body `RegisterRequest{email,password,full_name}`. Status declarado 201. | `MessageResponse` → no observable: 501. | Sin consumidor UI detectado. Para confirmar registro basta `message` genérico. | Nunca retornar password, hash/salt, token, estado secreto ni datos internos. Propuesta: respuesta genérica sin revelar si un email ya existe; éxito real pendiente. | ⚠️. `routers/auth.py:15-19`; `schemas/auth.py:RegisterRequest,MessageResponse`. |
+| 3 | `POST /auth/login` | Inicio de sesión. Body `LoginRequest{email,password}`. Status declarado 200. | `TokenResponse` → no observable: 501. | Sin consumidor UI; cuando haya login, cliente autenticado requerirá `access_token`, `token_type`, `expires_in`. | Contraseña y hash nunca en salida/logs. Token solo aquí; requiere auth real antes de confiar en contrato. | ⚠️. `routers/auth.py:22-25`; `schemas/auth.py:LoginRequest,TokenResponse`. |
+| 4 | `GET /auth/me` | Perfil de usuario autenticado. Sin entrada explícita. Status declarado 200. | `UserProfileResponse` → no observable: 501. | Sin consumidor UI. Perfil mínimo declarado: `id,email,full_name,is_active`. | Excluir password/hash/salt, token y claims internos. Ruta no implementa autenticación/autorización; protección es requisito antes de exposición. | ⚠️. `routers/auth.py:28-31`; `schemas/auth.py:UserProfileResponse`. |
+| 5 | `POST /auth/password-recovery` | Solicitar recuperación. Body `PasswordRecoveryRequest{email}`. Status declarado 200. | `MessageResponse` → no observable: 501. | Sin consumidor UI; necesita mensaje genérico de confirmación. | No retornar ni confirmar existencia del email; nunca emitir token de recuperación. Token de reset de entrada no debe quedar expuesto en logs. | ⚠️. `routers/auth.py:34-37`; `schemas/auth.py:PasswordRecoveryRequest,MessageResponse`. |
+| 6 | `POST /auth/password-reset` | Cambiar contraseña con token. Body `PasswordResetRequest{token,new_password}`. Status declarado 200. | `MessageResponse` → no observable: 501. | Sin consumidor UI; necesita confirmación genérica. | Excluir token, nueva contraseña y hashes de salida. Token/password deben ser secretos de entrada. | ⚠️. `routers/auth.py:40-43`; `schemas/auth.py:PasswordResetRequest,MessageResponse`. |
+| 7 | `GET /inventory/items` | Lista inventario. Sin entrada. | `list[InventoryItemSummary]` → no observable: 501. | Sin consumidor UI. Esquema de lista: `sku,name,warehouse,quantity,low_stock_threshold`. | No hay ORM ni payload excesivo observable; revisión futura debe excluir metadatos/logística internos no usados. | ✅. `routers/inventory.py:8-11`; `schemas/inventory.py:InventoryItemSummary`. |
+| 8 | `GET /inventory/items/{sku}` | Detalle SKU. Path `sku:str`. | `InventoryItemDetail` → no observable: 501. | Sin consumidor UI. `sku,name,description,warehouse,quantity,low_stock_threshold,last_updated`. | Mantener metadatos internos de persistencia fuera; no observables. | ✅. `routers/inventory.py:14-17`; `schemas/inventory.py:InventoryItemDetail`. |
+| 9 | `GET /inventory/alerts` | Alertas bajo umbral. Sin entrada. | `list[InventoryAlert]` → no observable: 501. | Sin consumidor UI. `sku,name,warehouse,current_quantity,threshold`. | Excluir metadatos internos/relaciones no necesarias; no se observa ORM. | ✅. `routers/inventory.py:20-23`; `schemas/inventory.py:InventoryAlert`. |
+| 10 | `GET /orders/` | Lista pedidos. Sin entrada. | `list[OrderSummary]` → no observable: 501. | Sin consumidor UI. `id,client_name,status,item_count,created_at`. | No incluir dirección ni líneas completas en lista. Sin payload real que confirmar. | ✅. `routers/orders.py:12-16`; `schemas/orders.py:OrderSummary`. |
+| 11 | `GET /orders/{order_id}` | Detalle pedido. Path `order_id:int`. | `OrderDetail` → no observable: 501. | Sin consumidor UI. `id,client_id,client_name,items[{sku,name,quantity}],status,shipping_address,notes,created_at,updated_at`. | Direcciones/notas son datos de detalle potencialmente sensibles; restringir acceso y no añadir relación ORM completa. Propuesta mantiene el detalle ya declarado, mínimo aún por validar con consumidor. | ⚠️. `routers/orders.py:19-22`; `schemas/orders.py:OrderDetail`. |
+| 12 | `POST /orders/` | Crear pedido. Body `OrderCreateRequest{client_id,items[{sku,quantity}],shipping_address,notes?}`. Status declarado 201. | `OrderDetail` → no observable: 501. | Sin consumidor UI. Respuesta declarada es detalle anterior. | Entrada tiene modelo separado de la salida (no declara `id,status,created_at,updated_at,client_name`); `notes`/dirección se devuelven solo en schema de detalle. Los campos extra no están configurados para rechazo estricto. | ✅. `routers/orders.py:25-28`; `schemas/orders.py:OrderCreateRequest,OrderDetail`. |
+| 13 | `PATCH /orders/{order_id}/status` | Cambiar estado. Path `order_id:int`; body `OrderStatusUpdate{status:str}`. | `OrderDetail` → no observable: 501. | Sin consumidor UI; estado actualizado (y detalle si el cliente lo necesita) no comprobado. | `status` acepta cualquier cadena no vacía hasta 50 caracteres; restricciones de transición/enum y otros campos no están definidas. Confirmar estados con producto antes de endurecer. | ⚠️. `routers/orders.py:31-34`; `schemas/orders.py:OrderStatusUpdate`. |
+| 14 | `GET /shipments/` | Lista envíos. Sin entrada. | `list[ShipmentSummary]` → no observable: 501. | Sin consumidor UI. `id,tracking_number,carrier,recipient,status,estimated_delivery`. | Evitar dirección completa, eventos e información de transportista no necesaria en listado. Destinatario/seguimiento necesitan política de acceso cuando se implemente. | ⚠️. `routers/shipments.py:12-17`; `schemas/shipments.py:ShipmentSummary`. |
+| 15 | `GET /shipments/{shipment_id}` | Detalle de envío. Path `shipment_id:int`. | `ShipmentDetail` → no observable: 501. | Sin consumidor UI. Detalle declarado: `id,tracking_number,carrier,carrier_tracking_url,recipient,destination,weight_kg,status,estimated_delivery,events[{timestamp,location,status,description}]`. | Dirección/destino, peso, URL externa e historial son payload sensible/relación anidada a justificar. La UI no da requisitos para ello. | ⚠️. `routers/shipments.py:20-23`; `schemas/shipments.py:ShipmentDetail,TrackingEvent`. |
+| 16 | `GET /shipments/tracking/{tracking_number}` | Tracking por número. Path `tracking_number:str`. | `ShipmentDetail` → no observable: 501. | Sin consumidor UI; el contexto de negocio desea tracking público, pero no fija campos UI. | No exponer automáticamente `recipient`, destino completo, peso ni eventos internos del proveedor. Propuesta mínima: `tracking_number,carrier,status,estimated_delivery,events` con ubicación/descripción publicable definida por negocio. Auth y privacidad pendientes de decisión; no aplicar como contrato ahora. | ⚠️. `routers/shipments.py:26-29`; `schemas/shipments.py:ShipmentDetail`. |
+| 17 | `POST /shipments/carrier-recommendation` | Recomendar carrier. `CarrierRecommendationRequest{destination,weight_kg,urgency}`. | `list[CarrierRecommendation]` → no observable: 501. | Sin consumidor UI; salida declarada `carrier,estimated_cost,estimated_days,confidence_score`. | No se incluyen campos internos en schema; `destination` es libre, validar política de datos con implementación. | ✅. `routers/shipments.py:32-35`; `schemas/shipments.py:CarrierRecommendationRequest,CarrierRecommendation`. |
+| 18 | `GET /returns/` | Lista devoluciones. Sin entrada. | `list[ReturnRequestSummary]` → no observable: 501. | Sin consumidor UI. `id,order_id,sku,status,created_at`. | No incluir motivo/notas de inspección en lista. | ✅. `routers/returns.py:12-16`; `schemas/returns.py:ReturnRequestSummary`. |
+| 19 | `GET /returns/{return_id}` | Detalle devolución. Path `return_id:int`. | `ReturnRequestDetail` → no observable: 501. | Sin consumidor UI. `id,order_id,sku,product_name,quantity,reason,status,inspection_notes,created_at,updated_at`. | Motivo y observaciones pueden contener texto libre; autorizaciones y redacción no definidas. No se ve entidad ORM/relación. | ⚠️. `routers/returns.py:19-23`; `schemas/returns.py:ReturnRequestDetail`. |
+| 20 | `POST /returns/` | Crear devolución. Body `ReturnRequestInput{order_id,sku,quantity,reason}`. Status declarado 201. | `ReturnRequestDetail` → no observable: 501. | Sin consumidor UI. Detalle declarado en respuesta. | Entrada separada del schema de detalle (no declara `id,status,inspection_notes,created_at`); campos extra no se configuran para rechazo estricto. Validar autorización de pedido/SKU al implementar. | ✅. `routers/returns.py:26-29`; `schemas/returns.py:ReturnRequestInput,ReturnRequestDetail`. |
+| 21 | `POST /returns/{return_id}/approve` | Aprobar/rechazar. Path `return_id:int`; `ReturnApproval{approved,notes?}`. | `ReturnRequestDetail` → no observable: 501. | Sin consumidor UI; quizá necesita estado resultante, contrato no confirmado. | Estado está correctamente fuera de body; la autorización del actor y transición de estado no están implementadas. Nota libre potencialmente sensible. | ⚠️. `routers/returns.py:32-35`; `schemas/returns.py:ReturnApproval`. |
+| 22 | `POST /returns/{return_id}/inspect` | Registrar inspección. Path `return_id:int`; `ReturnInspectionResult{condition,notes?}`. | `ReturnRequestDetail` → no observable: 501. | Sin consumidor UI; contrato declarado refleja detalle actualizado. | `condition` enum limitado; `notes` libre. No se admiten ID/orden/estado por body. | ✅. `routers/returns.py:38-41`; `schemas/returns.py:ReturnInspectionResult`. |
+| 23 | `GET /customers/` | Lista clientes. Sin entrada. | `list[CustomerSummary]` → no observable: 501. | Sin consumidor UI. `id,company_name,contact_email,country,is_active`. | Contacto/email es PII empresarial, limitar acceso; no debe incorporar direcciones/notas. | ⚠️. `routers/customers.py:8-11`; `schemas/customers.py:CustomerSummary`. |
+| 24 | `GET /customers/{customer_id}` | Detalle cliente. Path `customer_id:int`. | `CustomerDetail` → no observable: 501. | Sin consumidor UI. `id,company_name,contact_name,contact_email,contact_phone,country,address,is_active,notes`. | Teléfono, dirección y notas libres son datos personales/operativos potenciales; detalle debe ser autorizado y minimizarse por necesidad confirmada. | ⚠️. `routers/customers.py:14-17`; `schemas/customers.py:CustomerDetail`. |
+| 25 | `GET /customers/{customer_id}/health` | Score de salud/riesgo. Path `customer_id:int`. | `CustomerHealthScore` → no observable: 501. | Sin consumidor UI. `customer_id,company_name,health_score,risk_level,contract_end_date`. | Excluir datos de cálculo y relaciones subyacentes; limitar riesgo comercial a usuarios autorizados. | ✅. `routers/customers.py:20-23`; `schemas/customers.py:CustomerHealthScore`. |
+| 26 | `GET /dashboard/executive` | KPIs ejecutivos. Sin entrada. | `ExecutiveDashboard` → no observable: 501. | Sin consumidor UI. Seis KPIs: `total_shipments,on_time_rate,operational_cost,return_rate,active_customers,customer_satisfaction`, cada uno `{label,value,unit,previous_value,trend}`. | No incluir datos por persona/cliente ni registros fuente sin necesidad. Acceso ejecutivo no está implementado. | ✅. `routers/dashboard.py:8-11`; `schemas/dashboard.py:ExecutiveDashboard,DashboardKPI`. |
+| 27 | `GET /dashboard/weekly-report` | Informe semanal. Sin entrada. | `WeeklyReport` → no observable: 501. | Sin consumidor UI. `week,generated_at,summary,highlights,metrics`. | `metrics:dict[str,float]` permite cualquier clave y no expresa unidades ni vocabulario; acordar métricas y cerrar tipo antes de producción. | ⚠️. `routers/dashboard.py:14-17`; `schemas/dashboard.py:WeeklyReport`. |
+| 28 | `GET /users/` | Lista usuarios. Sin entrada. | `list[UserSummary]` → no observable: 501. | Sin consumidor UI. `id,email,full_name,role,is_active`. | Emails/nombres son información personal; restringir listado. Excluir credenciales/hash/salt/tokens. | ⚠️. `routers/users.py:8-11`; `schemas/users.py:UserSummary`. |
+| 29 | `GET /users/{user_id}` | Detalle usuario. Path `user_id:int`. | `UserDetail` → no observable: 501. | Sin consumidor UI. `id,email,full_name,role,is_active,created_at`. | Excluye password, pero requiere autorización y no incluye hashes/tokens. | ✅. `routers/users.py:14-17`; `schemas/users.py:UserDetail`. |
+| 30 | `POST /users/` | Crear usuario. Body `UserCreate{email,password,full_name,role}`. Status declarado 201. | `UserDetail` → no observable: 501. | Sin consumidor UI. Salida `UserDetail`. | Entrada incluye `password` deliberadamente; no retornarlo ni persistirlo en claro. Validación de rol restringe a admin/operator/viewer. No hay autenticación admin. Los campos extra no están configurados para rechazo estricto. | ✅*. `routers/users.py:20-23`; `schemas/users.py:UserCreate,UserDetail`. |
+| 31 | `PATCH /users/{user_id}` | Actualizar usuario. Path `user_id:int`; `UserUpdate{full_name?,role?,is_active?}`. | `UserDetail` → no observable: 501. | Sin consumidor UI. Salida `UserDetail`. | Lista de entrada excluye email, password, id y `created_at`, evitando modificación masiva de estos campos. Restringe rol por patrón. Autoría/autorización no implementada. | ✅*. `routers/users.py:26-29`; `schemas/users.py:UserUpdate,UserDetail`. |
 
-### Auth (`/auth/*`) — Prioridad alta: seguridad
+`✅*` significa que la frontera del schema evita credenciales/campos protegidos pero no implica que la ruta sea segura: autenticación/autorización falta y la operación es 501.
 
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| POST | `/auth/register` | `MessageResponse` | ✅ Explícito | ✅ |
-| POST | `/auth/login` | `TokenResponse` | ✅ Explícito | ✅ |
-| GET | `/auth/me` | `UserProfileResponse` | ✅ Explícito | ✅ |
-| POST | `/auth/password-recovery` | `MessageResponse` | ✅ Explícito | ✅ |
-| POST | `/auth/password-reset` | `MessageResponse` | ✅ Explícito | ✅ |
+### Rutas implícitas de documentación FastAPI
 
-**Hallazgos de seguridad:**
+Estas cuatro operaciones las crea FastAPI porque `FastAPI()` en `main.py` usa las rutas de documentación predeterminadas. No son routers de negocio personalizados.
 
-- Ningún endpoint expone contraseñas, hashes, tokens internos ni secretos.
-- `RegisterRequest` y `PasswordResetRequest` validan fortaleza de contraseña (mayúscula, minúscula, dígito, mín. 8 caracteres).
-- `TokenResponse` solo devuelve `access_token`, `token_type`, `expires_in`.
-- `UserProfileResponse` explícitamente excluye `password`, `password_hash`, `salt`, `reset_token`.
-- `PasswordRecoveryRequest` solo acepta `email`; no devuelve datos del usuario.
-- Todos los schemas de entrada usan `EmailStr` de Pydantic para validación de email.
+| Método y ruta | Propósito/entrada | `response_model` → salida actual | Campos necesarios/excluidos y recomendación | Estado/evidencia |
+|---|---|---|---|---|
+| `GET /openapi.json` | Esquema OpenAPI generado. Sin entrada. | Ninguno explícito → documento JSON OpenAPI generado desde la app; no se ejecutó runtime en esta auditoría. | Contiene contratos y rutas documentadas, no datos de usuario. Revisar disponibilidad externa del documento en el despliegue; no personalizar modelo JSON. | ❌ Ruta autogenerada sin `response_model`; `services/api/main.py:5` (constructor sin deshabilitar OpenAPI). |
+| `GET /docs` | Swagger UI. Sin entrada. | Ninguno explícito → HTML de Swagger UI generado. | Interfaz de documentación; no requiere campos de negocio. Controlar exposición en despliegue según el entorno. | ❌ Ruta autogenerada sin `response_model`; `services/api/main.py:5`. |
+| `GET /docs/oauth2-redirect` | Callback de Swagger OAuth. Sin entrada de body. | Ninguno explícito → HTML/JavaScript generado; esta ruta no implica que haya auth de negocio implementada. | No es implementación de autenticación TrackFlow; no hay consumidor UI de aplicación. | ❌ Ruta autogenerada sin `response_model`; `services/api/main.py:5`. |
+| `GET /redoc` | ReDoc. Sin entrada. | Ninguno explícito → HTML de ReDoc generado. | Interfaz de documentación; no requiere campos de negocio. Controlar exposición en despliegue según el entorno. | ❌ Ruta autogenerada sin `response_model`; `services/api/main.py:5`. |
 
----
+## Consumidores UI y salida real
 
-### Inventory (`/inventory/*`)
+- `uis/website/app/` y `uis/backoffice/app/`: no se encontraron llamadas `fetch`, `axios` ni referencias `/api/` en páginas/componentes de la aplicación. Los `next.config.ts` definen proxy `/api/:path*` y los README describen `/api/health`, pero esa configuración/documentación no es una llamada UI ni consumidor de las rutas de negocio. En consecuencia, no se pueden afirmar campos requeridos por un consumidor existente para ninguno de los 31 endpoints.
+- La salida real de todos los endpoints de negocio es error HTTP 501 JSON `{ "detail": "Not implemented" }`, generado por `HTTPException`; no pasa por el `response_model`. Los tests `tests/test_endpoints.py` afirman esto para operaciones de negocio.
+- `GET /health` es la única ruta con respuesta exitosa observada. No hay ORM ni persistencia implementados, por tanto no hay evidencia de serialización ORM o relaciones reales que estén fugándose. Relaciones anidadas de items/events se limitan mediante schemas, pero hoy solo son contratos declarados.
 
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/inventory/items` | `list[InventoryItemSummary]` | ✅ Explícito | ✅ |
-| GET | `/inventory/items/{sku}` | `InventoryItemDetail` | ✅ Explícito | ✅ |
-| GET | `/inventory/alerts` | `list[InventoryAlert]` | ✅ Explícito | ✅ |
+## Hallazgos priorizados y riesgos
 
-**Payloads objetivo:**
-- **Listado:** solo `sku`, `name`, `warehouse`, `quantity`, `low_stock_threshold` — sin descripciones largas ni metadatos internos.
-- **Detalle:** añade `description`, `last_updated`.
-- **Alertas:** `sku`, `name`, `warehouse`, `current_quantity`, `threshold`.
+1. **Crítico: el nombre de las rutas auth no significa autenticación.** `GET /auth/me`, recuperación/reset y registro/login no tienen dependencia auth ni implementación (responden 501); `/users` y demás rutas tampoco tienen autorización. No publicar funcionalidad hasta implementar y probar control de acceso. No existe filtración actual de contraseñas/hashes/tokens en responses de éxito, dado que esas respuestas no existen.
+2. **Alto: hay rutas de negocio declaradas, pero no funcionalidades implementadas.** Los routers y sus modelos existen, pero las funciones levantan 501. Tratar los schemas como contratos/payloads de éxito ya operativos sería incorrecto.
+3. **Alto: campos de contacto/destino y texto libre.** Customer detail (`phone,address,notes`), shipment tracking (`recipient,destination,events.location/description`), order detail (`shipping_address,notes`) y return detail (`reason,inspection_notes`) podrían exponer información más allá de la UI; requiere decisión de autorización/minimización antes de implementación.
+4. **Medio: entradas con flexibilidad no cerrada.** `OrderStatusUpdate.status` es cadena arbitraria de hasta 50 caracteres; `WeeklyReport.metrics` permite cualquier métrica. La definición correcta depende de valores/consumidores aún no documentados; no inventar enums.
+5. **Medio: validación inconsistente de seguridad de credenciales.** `RegisterRequest` y `PasswordResetRequest` comprueban mayúscula/minúscula/dígito; `UserCreate.password` solo longitud 8–128. Unificar política si se acuerda; password sigue siendo únicamente entrada.
+6. **Riesgo de enumeración a confirmar:** `MessageResponse` permite una respuesta genérica para registro/recuperación, pero no hay handler implementado para demostrar mensajes indiferenciados.
+7. **Sin hallazgo demostrado de serialización ORM, secretos o streaming.** No hay ORM, modelos de datos, handler con objetos crudos, `StreamingResponse`, descargas ni relaciones runtime presentes.
+8. **Documentación operativa desactualizada respecto a la superficie declarada:** `services/api/README.md` y `services/README.md` describen únicamente `GET /health` y dicen que no hay rutas de negocio/auth. En código sí hay 31 rutas declaradas, aunque las de negocio responden 501. Actualizar esos README en una tarea documental separada para distinguir superficie declarada de funcionalidad disponible; no se cambian como parte de este entregable.
+9. **Registro/login/recovery/reset sin protección efectiva hoy:** las funciones no hacen trabajo excepto devolver 501 y no hay un sistema auth implementado. En el stub no se observó reflexión de entrada en el cuerpo de error FastAPI, pero los tests existentes solo verifican status, no prueban redacción de entradas secretas del response ni logs; debe conservarse como test futuro.
 
----
+## Plan de implementación priorizado (fuera de esta fase documental)
 
-### Orders (`/orders/*`)
+1. **P0 — Confirmar superficie efectiva y autorización.** Mantener 501 en negocio mientras no haya dependencias/persistencia; implementar autenticación y autorización por rol para `auth/me`, usuarios, clientes, pedidos, envíos, devoluciones y dashboard antes de retornar datos. Pruebas: endpoint devuelve 401 sin identidad, 403 para rol no autorizado, casos autorizados, auth de rutas públicas explícitamente verificada.
+2. **P0 — Contratos de credenciales.** Probar redacción en responses y errores de `password`, `password_hash`, `salt`, tokens y secretos; verificar UserCreate nunca almacena password sin hash cuando exista persistencia. Revisar registro/login/recovery/reset, casos inválidos y que respuesta recuperación no revela existencia de cuenta.
+3. **P1 — Cerrar esquemas de entrada restringidos.** Confirmar dominio de estados de pedido y matriz de transiciones; tests para valores válidos/invalidos y rechazo de campos extra/protegidos (`id`, `client_id`, `role`/password no editables, etc.). Confirmar política de password común. No cambiar ahora hasta acordar reglas.
+4. **P1 — Minimizar payloads y roles de consumidores.** Obtener requisitos del UI autorizado y documentar campos por pantalla; tests de serialización con fixtures para confirmar campos necesarios/excluidos, sobre todo dirección, datos de contacto, notas y tracking. Mantener listados compactos y detalles limitados por rol.
+5. **P1 — Respuesta real vs schema.** Al implementar funciones, añadir pruebas HTTP exitosas por ruta que inspeccionen status, JSON y que no aparezcan campos extra; no limitarse a probar instanciación Pydantic aislada. Probar contratos OpenAPI/métodos/status code y errores.
+6. **P2 — Robustecer escala y tipos.** Acordar paginación para listas y catálogos de métricas para informe; pruebas límites y esquema. Implementar tests de serialización ORM únicamente cuando se incorpore ORM, comprobando que relaciones no solicitadas/secretas no se serializan.
+7. **Streaming/sin cuerpo.** No hay caso actual que requiera plan de streaming. Si se agrega descarga, SSE o streaming futuro, documentar como excepción explícita, tipo de medio/cabeceras, límites, autenticación, cancelación y pruebas por chunks. Para 204, añadir contrato/prueba de body vacío y excluirlo de schemas JSON.
 
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/orders/` | `list[OrderSummary]` | ✅ Explícito | ✅ |
-| GET | `/orders/{order_id}` | `OrderDetail` | ✅ Explícito | ✅ |
-| POST | `/orders/` | `OrderDetail` (201) | ✅ Explícito | ✅ |
-| PATCH | `/orders/{order_id}/status` | `OrderDetail` | ✅ Explícito | ✅ |
+## Verificación de cobertura
 
-**Payloads objetivo:**
-- **Listado:** `id`, `client_name`, `status`, `item_count`, `created_at` — sin items ni direcciones completas.
-- **Detalle:** todos los campos del pedido con items expandidos.
-- **Entrada:** solo `client_id`, `items` (con `sku`, `quantity`), `shipping_address`, `notes`.
-
----
-
-### Shipments (`/shipments/*`)
-
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/shipments/` | `list[ShipmentSummary]` | ✅ Explícito | ✅ |
-| GET | `/shipments/{shipment_id}` | `ShipmentDetail` | ✅ Explícito | ✅ |
-| GET | `/shipments/tracking/{tracking_number}` | `ShipmentDetail` | ✅ Explícito | ✅ |
-| POST | `/shipments/carrier-recommendation` | `list[CarrierRecommendation]` | ✅ Explícito | ✅ |
-
-**Payloads objetivo:**
-- **Listado:** `id`, `tracking_number`, `carrier`, `recipient`, `status`, `estimated_delivery`.
-- **Detalle:** añade `carrier_tracking_url`, `destination`, `weight_kg`, `events[]`.
-- **Recomendación:** `carrier`, `estimated_cost`, `estimated_days`, `confidence_score`.
-
----
-
-### Returns (`/returns/*`)
-
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/returns/` | `list[ReturnRequestSummary]` | ✅ Explícito | ✅ |
-| GET | `/returns/{return_id}` | `ReturnRequestDetail` | ✅ Explícito | ✅ |
-| POST | `/returns/` | `ReturnRequestDetail` (201) | ✅ Explícito | ✅ |
-| POST | `/returns/{return_id}/approve` | `ReturnRequestDetail` | ✅ Explícito | ✅ |
-| POST | `/returns/{return_id}/inspect` | `ReturnRequestDetail` | ✅ Explícito | ✅ |
-
-**Payloads objetivo:**
-- **Listado:** `id`, `order_id`, `sku`, `status`, `created_at`.
-- **Detalle:** añade `product_name`, `quantity`, `reason`, `inspection_notes`, `updated_at`.
-- **Entrada:** solo `order_id`, `sku`, `quantity`, `reason`.
-- **Aprobación:** `approved: bool`, `notes`.
-- **Inspección:** `condition` (enum), `notes`.
+- `main.py` registra: `health`, `auth`, `inventory`, `orders`, `shipments`, `returns`, `customers`, `dashboard`, `users`; FastAPI añade `/openapi.json`, `/docs`, `/docs/oauth2-redirect`, `/redoc` con la configuración predeterminada.
+- Conteo manual de decoradores `@router` en esos 9 módulos: **31** (1 health + 5 auth + 3 inventory + 4 orders + 4 shipments + 5 returns + 3 customers + 2 dashboard + 4 users). Más 4 rutas integradas de documentación, total **35 operaciones HTTP registradas** según configuración fuente.
+- Todas las 31 operaciones de aplicación tienen `response_model` explícito; las cuatro rutas integradas de documentación no definen modelos Pydantic explícitos.
+- Se inspeccionaron páginas/components de ambos frontends y no se hallaron consumidores HTTP de aplicación. Proxy `/api` y documentación health se señalan por separado, sin atribuirlos como llamadas.
+- Contraste runtime pendiente: el Python activo no tiene `fastapi` (`ModuleNotFoundError` al importar `main`) y no está instalado `uv` (`uv: command not found`). Por tanto la verificación de 31 rutas de app está respaldada por `include_router` + declaraciones estáticas, no por runtime. No se afirma una ejecución de tests en esta auditoría.
+- La clasificación total es ✅ 15 + ⚠️ 16 de aplicación y ❌ 4 rutas de documentación integradas (total 35). Las 4 ❌ no son respuestas de negocio ni exposición de modelos/datos; son rutas automáticas sin `response_model`.
+- No se identificaron rutas custom de middleware/mount/websocket, streaming ni respuestas sin cuerpo.
 
 ---
 
-### Customers (`/customers/*`)
+Auditoría estrictamente documental. No se modificó la API, los contratos ni la base de datos.
 
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/customers/` | `list[CustomerSummary]` | ✅ Explícito | ✅ |
-| GET | `/customers/{customer_id}` | `CustomerDetail` | ✅ Explícito | ✅ |
-| GET | `/customers/{customer_id}/health` | `CustomerHealthScore` | ✅ Explícito | ✅ |
+## Catálogo exacto de schemas y validaciones observadas
 
-**Payloads objetivo:**
-- **Listado:** `id`, `company_name`, `contact_email`, `country`, `is_active`.
-- **Detalle:** añade `contact_name`, `contact_phone`, `address`, `notes`.
-- **Salud:** `customer_id`, `company_name`, `health_score`, `risk_level`, `contract_end_date`.
+Este catálogo fija los campos que existen hoy en las clases Pydantic para que los campos del inventario no dependan de inferencias. `—` significa que el endpoint no tiene body/query definido en la firma actual. Los límites indicados son los expresamente escritos en los schemas; no se ha inferido ninguna regla de negocio.
 
----
+### Requests
 
-### Users (`/users/*`)
+| Schema / endpoints | Campos de entrada y validaciones presentes |
+|---|---|
+| `RegisterRequest` — `POST /auth/register` | `email: EmailStr`; `password: str` longitud 8–128 y exige al menos mayúscula, minúscula y dígito; `full_name: str` longitud 1–200. |
+| `LoginRequest` — `POST /auth/login` | `email: EmailStr`; `password: str` longitud mínima 1, sin máximo explícito ni regla de complejidad. |
+| `PasswordRecoveryRequest` — `POST /auth/password-recovery` | `email: EmailStr`. |
+| `PasswordResetRequest` — `POST /auth/password-reset` | `token: str` mínimo 1; `new_password: str` longitud 8–128 y exige mayúscula, minúscula y dígito. |
+| `OrderCreateRequest` — `POST /orders/` | `client_id: int`; `items: list[OrderItemInput]` con al menos un elemento; cada elemento `sku: str`, `quantity: int >= 1`; `shipping_address: str` longitud 1–500; `notes: str | None` opcional. |
+| `OrderStatusUpdate` — `PATCH /orders/{order_id}/status` | `status: str` longitud 1–50; no enum de estados ni transición. |
+| `CarrierRecommendationRequest` — `POST /shipments/carrier-recommendation` | `destination: str` longitud 1–200; `weight_kg: float > 0`; `urgency: str`, default `normal`, patrón `low|normal|high`. |
+| `ReturnRequestInput` — `POST /returns/` | `order_id: int`; `sku: str`; `quantity: int >= 1`; `reason: str` longitud 1–1000. |
+| `ReturnApproval` — `POST /returns/{return_id}/approve` | `approved: bool`; `notes: str | None` opcional, sin límite de longitud explícito. |
+| `ReturnInspectionResult` — `POST /returns/{return_id}/inspect` | `condition: str` patrón `mint|good|fair|damaged|destroyed`; `notes: str | None` opcional, sin límite explícito. |
+| `UserCreate` — `POST /users/` | `email: EmailStr`; `password: str` longitud 8–128, sin reglas de complejidad explícitas; `full_name: str` longitud 1–200; `role: str` default `operator`, patrón `admin|operator|viewer`. |
+| `UserUpdate` — `PATCH /users/{user_id}` | `full_name: str | None` opcional, si presente longitud 1–200; `role: str | None` opcional con patrón `admin|operator|viewer`; `is_active: bool | None` opcional. |
+| Todas las rutas de lectura, `GET /health`, o rutas sin body declaradas | No hay parámetros query en las firmas inspeccionadas. Path params tipados: `sku: str`, `order_id: int`, `shipment_id: int`, `tracking_number: str`, `return_id: int`, `customer_id: int`, `user_id: int` según cada ruta. |
 
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/users/` | `list[UserSummary]` | ✅ Explícito | ✅ |
-| GET | `/users/{user_id}` | `UserDetail` | ✅ Explícito | ✅ |
-| POST | `/users/` | `UserDetail` (201) | ✅ Explícito | ✅ |
-| PATCH | `/users/{user_id}` | `UserDetail` | ✅ Explícito | ✅ |
+Los modelos heredan de `BaseModel` y no configuran `extra="forbid"`: no se ha declarado rechazo estricto de campos extra. La validación exacta de entradas HTTP debe ser cubierta en tests (Pydantic unitario no basta). Path params `int` tienen conversión/validación de tipo FastAPI, pero no se declara límite `gt=0`. No hay límites de paginación en firmas de las rutas de lista.
 
-**Payloads objetivo:**
-- **Listado:** `id`, `email`, `full_name`, `role`, `is_active`.
-- **Detalle:** añade `created_at`.
-- **Entrada (creación):** `email`, `password`, `full_name`, `role`.
-- **Entrada (actualización):** solo `full_name`, `role`, `is_active`.
+### Responses Pydantic declaradas
 
----
+| Schema / endpoint(s) | Campos de salida definidos en el código |
+|---|---|
+| `HealthResponse` — `GET /health` | `status: str`, default `ok`. |
+| `MessageResponse` — registro, recuperación y reset | `message: str`. |
+| `TokenResponse` — login | `access_token: str`; `token_type: str`, default `bearer`; `expires_in: int`, default `3600`. |
+| `UserProfileResponse` — `/auth/me` | `id: int`, `email: str`, `full_name: str`, `is_active: bool`. |
+| `InventoryItemSummary` — lista inventario | `sku`, `name`, `warehouse: str`; `quantity: int >= 0`; `low_stock_threshold: int | None`. |
+| `InventoryItemDetail` — detalle inventario | Campos de resumen más `description: str` default vacío y `last_updated: datetime | None`. |
+| `InventoryAlert` — alertas | `sku`, `name`, `warehouse: str`; `current_quantity: int >= 0`; `threshold: int >= 0`. |
+| `OrderSummary` — lista pedidos | `id: int`, `client_name: str`, `status: str`, `item_count: int >= 0`, `created_at: datetime`. |
+| `OrderDetail` — detalle y respuesta declarada de mutaciones de pedidos | `id`, `client_id: int`; `client_name`, `status`, `shipping_address: str`; `items: list[OrderItemSummary]` con `{sku: str, name: str, quantity: int >= 1}`; `notes: str | None`; `created_at: datetime`; `updated_at: datetime | None`. |
+| `ShipmentSummary` — lista envíos | `id: int`, `tracking_number`, `carrier`, `recipient`, `status: str`; `estimated_delivery: str | None`. |
+| `ShipmentDetail` — detalle y tracking | `id: int`; `tracking_number`, `carrier: str`; `carrier_tracking_url: str | None`; `recipient`, `destination: str`; `weight_kg: float >= 0`; `status: str`; `estimated_delivery: str | None`; `events: list[TrackingEvent]`, default lista. Cada evento `{timestamp: datetime, location: str = "", status: str, description: str = ""}`. |
+| `CarrierRecommendation` — recomendaciones | `carrier: str`; `estimated_cost: float >= 0`; `estimated_days: int >= 1`; `confidence_score: float` entre 0 y 1 inclusive. |
+| `ReturnRequestSummary` — lista devoluciones | `id`, `order_id: int`; `sku`, `status: str`; `created_at: datetime`. |
+| `ReturnRequestDetail` — detalle y respuesta declarada de mutaciones | `id`, `order_id: int`; `sku`, `product_name: str` (default vacío); `quantity: int >= 1`; `reason`, `status: str`; `inspection_notes: str | None`; `created_at: datetime`; `updated_at: datetime | None`. |
+| `CustomerSummary` — lista clientes | `id: int`; `company_name`, `contact_email`, `country: str`; `is_active: bool`, default `true`. |
+| `CustomerDetail` — detalle cliente | `id: int`; `company_name`, `contact_email`, `country: str`; `contact_name`, `contact_phone`, `address: str` (defaults vacíos); `is_active: bool`, default `true`; `notes: str | None`. |
+| `CustomerHealthScore` — salud cliente | `customer_id: int`; `company_name: str`; `health_score: float` 0–100 inclusive; `risk_level: str` patrón `low|medium|high`; `contract_end_date: str | None`. |
+| `DashboardKPI` — KPI anidado | `label: str`; `value: float`; `unit: str` default vacío; `previous_value: float | None`; `trend: str | None` patrón `up|down|stable`. |
+| `ExecutiveDashboard` — dashboard | Seis objetos `DashboardKPI`: `total_shipments`, `on_time_rate`, `operational_cost`, `return_rate`, `active_customers`, `customer_satisfaction`. |
+| `WeeklyReport` — informe | `week`, `generated_at`, `summary: str`; `highlights: list[str]`; `metrics: dict[str, float]`. |
+| `UserSummary` — lista usuarios | `id: int`; `email`, `full_name`, `role: str`; `is_active: bool`. |
+| `UserDetail` — detalle y respuesta declarada de mutaciones usuarios | `id: int`; `email`, `full_name`, `role: str`; `is_active: bool`; `created_at: str`. |
 
-### Dashboard (`/dashboard/*`)
+Los modelos de respuesta no declaran campos de contraseña, hash, salt, token de reset, usuario interno ORM o relaciones fuera de los tipos enumerados. Esto acredita el diseño de los schemas, no la salida de ejecución de endpoints actualmente 501. Los tests de schemas prueban manualmente algunos campos ausentes de credenciales; no prueban una ruta exitosa que serialice datos reales.
 
-| Método | Ruta | response_model | Serialización | Estado |
-|--------|------|----------------|---------------|--------|
-| GET | `/dashboard/executive` | `ExecutiveDashboard` | ✅ Explícito | ✅ |
-| GET | `/dashboard/weekly-report` | `WeeklyReport` | ✅ Explícito | ✅ |
+## Matriz de tareas de implementación y tests de aceptación
 
-**Payloads objetivo:**
-- **Dashboard:** 6 KPIs estructurados con `label`, `value`, `unit`, `previous_value`, `trend`.
-- **Informe semanal:** `week`, `generated_at`, `summary`, `highlights[]`, `metrics{}`.
+Estas tareas pertenecen a fases posteriores y **no se ejecutan en Fase 1**. Ninguna propone cambios de contrato sin una decisión/requisito explícito. Donde falta una definición de producto, el primer entregable es acordarla y documentarla, no adivinarla.
 
----
+| Prioridad | Tarea | Test verificable requerido para darla por cerrada |
+|---|---|---|
+| P0 | Implementar autenticación real y autorización en cada ruta privada; decidir expresamente si tracking y registro son públicos. Mantener 501 mientras no esté listo, no presentar los endpoints como funcionales. | Pruebas HTTP por ruta privada: anónimo → 401; rol autenticado sin permiso → 403; rol autorizado → status y response model esperados. Casos públicos documentados y probados sin exigir credenciales. |
+| P0 | Completar registro/login/recovery/reset con manejo seguro de credenciales y respuestas de enumeración indistinguibles. | Casos HTTP válidos e inválidos; respuestas de registro/recovery no revelan existencia del email; login exitoso solo expone token definido; reset rechaza token inválido/usado/expirado según las reglas acordadas. Probar errores también. |
+| P0 | Garantizar no exposición de secretos en serializers y en errores/logging. Definir almacenamiento de password solo al incorporar persistencia. | Assertions sobre JSON de éxito y error para todas las rutas pertinentes: nunca `password`, `new_password`, `password_hash`, `salt`, refresh/reset token ni secreto accidental; prueba de almacenamiento nunca contiene password en claro cuando se implemente storage. No volcar secretos de entrada en logs. |
+| P1 | Acordar y cerrar validaciones de requests: enum/transiciones de pedido, política de password compartida, longitudes de campos libres, extra fields, límites de path, rangos y reglas de dominio de SKU/order/client. | Parametrizar pruebas positivas/negativas por campo: tipos/rangos/límites exactos; extra fields con resultado acordado; request inválido da 422 y no produce efecto; rol/campos inmutables no se pueden alterar. Verificar además path/query a nivel HTTP, no solo instanciación Pydantic. |
+| P1 | Revisar minimización y acceso de campos PII/texto libre (contact_email/phone/address/notes, shipping_address, recipient/destination, motivos/notas e historial de eventos); acordar consumidores autorizados. | Fixtures que contengan valores señuelo sensibles + serialización HTTP por rol: incluir únicamente campos aprobados y asegurar que listados no filtran campos de detalle. Comprobar específicamente salida pública de tracking antes de activarlo. |
+| P1 | Mantener y validar listados ligeros de inventario, pedidos, envíos, devoluciones, clientes y usuarios; acordar paginación/orden/filtros antes de cambiar las firmas actuales. | Con fixture de entidad con datos de detalle/relaciones: listado devuelve solo el summary model, no address, notes, líneas, events ni credenciales; prueba de límites/paginación y filtros según contrato aprobado. No cargar/serializar relaciones no solicitadas. |
+| P1 | Asegurar relaciones anidadas intencionales, acotadas y no recursivas: `OrderDetail.items`, `ShipmentDetail.events`, KPIs del dashboard y `WeeklyReport.metrics`. | Crear fixtures con relación grande/extra/secreta/cíclica; respuesta HTTP solo serializa las subclases anidadas declaradas, con campos y cardinalidad aprobados; comprobar que la lista ligera no incorpora relaciones y que el detalle no devuelve ORM crudo. Añadir estas pruebas solo cuando existan ORM/repositorios. |
+| P1 | Hacer corresponder respuestas reales con `response_model`, códigos OpenAPI y códigos de estado por ruta. | Test parametrizado de cada uno de los 31 endpoints: método/ruta en OpenAPI, request schema, `response_model`, status esperado (incluidos 201 en register/create-order/create-return/create-user), JSON parseable y sin propiedades no contratadas; conservar prueba `/health` 200. Mientras un endpoint sea stub, afirmar explícitamente 501 sin contarlo como éxito de contrato. |
+| P2 | Definir vocabulario/unidades del weekly report, KPI y fechas; revisar si valores de lista deben ser paginados. | Validar claves/métricas, unidad y formato temporal según vocabulario decidido; tests de OpenAPI/schema y casos límite. No fijar enums/unidades hasta aprobación de negocio. |
+| P2 | Añadir pruebas ORM solo si se integra ORM/persistencia; documentar por separado una futura respuesta streaming o 204 si aparece. | ORM: fixture verifica allowlist y relaciones eager/selectivas, jamás atributos secretos o relación circular. Streaming: prueba de content-type, headers, autorización, límites, chunks/cancelación; 204: status exacto y body vacío sin modelo JSON. No aplicable al código actual. |
 
-## Hallazgos y riesgos
+## Estado de pruebas y límites de esta auditoría
 
-### ❌ Originales (pre-intervención)
+- **Tests existentes:** `services/api/tests/test_endpoints.py` tiene una prueba de éxito HTTP para `/health` y pruebas 501 para los otros 30 endpoints de aplicación; `services/api/tests/test_schemas.py` cubre construcción/validación de schemas y algunas exclusiones de credenciales. Estos tests describen el estado actual, no autentican ni verifican payloads exitosos de negocio.
+- **Ejecución en este entorno:** no ejecutada. `python --version` informa 3.12.15, pero la importación falla con `ModuleNotFoundError: No module named 'fastapi'`; `uv`, `pytest` y Docker no están disponibles en el shell comprobado. No se instalaron dependencias ni se modificaron manifests/locks por la restricción de Fase 1. Ejecutar en el entorno de proyecto con dependencias instaladas: `cd services/api && uv run --frozen pytest -q` (o `pytest -q` con el virtualenv del servicio activo).
+- **No cubierto por tests actuales:** ruta HTTP de OpenAPI y rutas docs, cada schema expuesto por endpoint de negocio real, redacción en errores, autorización, request extra fields, validaciones de toda entrada, serialización de relaciones/ORM, tamaños de listas y paginación. La propuesta especifica criterios concretos para llenar esos huecos más adelante.
+- **Comprobaciones estáticas de esta auditoría:** `main.py` y 9 módulos router; búsqueda de los 31 decoradores y de los 31 `response_model`; schemas completos; búsqueda en páginas UI y configuraciones Next de ambos proyectos; búsqueda de `StreamingResponse`, `FileResponse`, respuestas 204, websocket y mount. Este análisis no sustituye el contraste runtime, que queda pendiente por el entorno descrito.
 
-| Id | Hallazgo | Riesgo | Solución |
-|----|----------|--------|----------|
-| H01 | `GET /health` sin `response_model` | Bajo — el endpoint es estable y simple | Añadido `response_model=HealthResponse` |
-| H02 | Ausencia total de schemas Pydantic en el proyecto | Alto — cualquier endpoint de negocio expondría ORM crudo | Definidos 28 schemas Pydantic en `app/schemas/` |
-| H03 | Sin validación de entrada en ningún endpoint | Medio — no hay restricción de campos en body | Añadidos validadores Pydantic en todos los schemas de entrada |
-| H04 | Sin separación de schemas de entrada/salida | Alto — un mismo schema para lectura y escritura permite escrituras no autorizadas | Schemas separados: `RegisterRequest` vs `UserProfileResponse`, etc. |
-| H05 | Sin protección en endpoints auth | Crítico — cualquier implementación ingenua expondría hashes | Schemas auth diseñados para no incluir nunca credenciales en salida |
+## Confirmación final de inventario
 
-### ⚠️ Pendientes (no resueltos en esta fase)
+- Las 31 filas numeradas de la tabla de aplicación corresponden una a una con los decoradores encontrados en los nueve routers incluidos en `services/api/main.py`.
+- Método, ruta y `response_model` se copian de los decoradores; entrada se ha contrastado con argumentos de función y modelos Pydantic; status explícito `201` se señala para registro y operaciones create. Las demás rutas tienen el status por defecto de FastAPI (`200`) si llegasen a retornar, pero hoy negocio/auth lanza 501.
+- Cuatro filas adicionales cubren `GET /openapi.json`, `/docs`, `/docs/oauth2-redirect` y `/redoc` que habilita `FastAPI()` por defecto. Son endpoints integrados de documentación; el runtime para comprobarlos no estaba disponible.
+- Resultado desglosado: rutas de aplicación ✅ 15, ⚠️ 16, ❌ 0; docs integradas marcadas ❌ 4 por no llevar `response_model` Pydantic de aplicación; total de filas/operaciones **35**. “Crítico” de seguridad: la falta de auth/autorización real antes de habilitar negocio (hallazgo P0), no una respuesta exitosa demostrada que filtre secretos.
 
-| Id | Hallazgo | Riesgo |
-|----|----------|--------|
-| P01 | Sin autenticación real implementada (endpoints devuelven 501) | Alto — los schemas están listos pero no hay middleware de seguridad |
-| P02 | Sin base de datos ni ORM — no se puede verificar serialización real contra datos | Medio — los tests validan schemas pero no conversión ORM→schema |
-| P03 | Sin paginación en listados | Bajo — los schemas de listado están definidos pero sin offset/limit |
+## Reconciliación con documentación previa de la rama
 
----
+La versión previamente guardada de este mismo Markdown afirmaba que los 31 endpoints ya tenían contratos “implementados” y describía schemas como payloads de éxito. Esa redacción es más amplia de lo que permite concluir el código: la inspección de cada función de negocio/auth confirma que actualmente lanza 501, así que solo puede acreditarse que los decoradores apuntan a modelos Pydantic; no puede afirmarse que esos payloads se entreguen. Este informe reemplaza esa afirmación por la distinción verificada entre schema declarado y respuesta ejecutable. Se conservan los recuentos y nombres de módulos/tests que se pueden corroborar en el checkout, y se descartan como evidencia afirmaciones no verificadas de ausencia previa de modelos o fuga ORM. Ningún cambio de API se hizo para resolver esa discrepancia.
 
-## Schemas Pydantic creados
-
-### Esquemas de autenticación (`app/schemas/auth.py`)
-- `RegisterRequest` — entrada con validación de contraseña
-- `LoginRequest` — entrada login
-- `TokenResponse` — salida token
-- `UserProfileResponse` — perfil público (sin password)
-- `PasswordRecoveryRequest` — entrada recover
-- `PasswordResetRequest` — entrada reset con validación
-- `MessageResponse` — mensaje genérico
-
-### Esquemas de inventario (`app/schemas/inventory.py`)
-- `InventoryItemSummary` — listado ligero
-- `InventoryItemDetail` — detalle completo
-- `InventoryAlert` — alerta stock bajo
-
-### Esquemas de pedidos (`app/schemas/orders.py`)
-- `OrderCreateRequest`, `OrderItemInput` — entrada
-- `OrderItemSummary`, `OrderSummary`, `OrderDetail` — salida
-- `OrderStatusUpdate` — entrada PATCH
-
-### Esquemas de envíos (`app/schemas/shipments.py`)
-- `TrackingEvent` — evento individual
-- `ShipmentSummary`, `ShipmentDetail` — salida
-- `CarrierRecommendationRequest` — entrada
-- `CarrierRecommendation` — salida
-
-### Esquemas de devoluciones (`app/schemas/returns.py`)
-- `ReturnRequestInput` — entrada
-- `ReturnRequestSummary`, `ReturnRequestDetail` — salida
-- `ReturnApproval`, `ReturnInspectionResult` — entrada
-
-### Esquemas de clientes (`app/schemas/customers.py`)
-- `CustomerSummary`, `CustomerDetail` — salida
-- `CustomerHealthScore` — salida
-
-### Esquemas de dashboard (`app/schemas/dashboard.py`)
-- `DashboardKPI` — KPI individual
-- `ExecutiveDashboard` — dashboard completo
-- `WeeklyReport` — informe semanal
-
-### Esquemas de usuarios (`app/schemas/users.py`)
-- `UserCreate`, `UserUpdate` — entrada
-- `UserSummary`, `UserDetail` — salida (sin contraseñas)
-
-### Esquema de health (`app/schemas/health.py`)
-- `HealthResponse` — salida
-
-**Total: 28 schemas Pydantic (14 de entrada, 14 de salida)**
-
----
-
-## Tests creados
-
-### `tests/test_schemas.py`
-- `test_health_response_schema` — valida serialización de health
-- `test_auth_schemas` — valida RegisterRequest, LoginRequest, TokenResponse, UserProfileResponse (sin contraseñas)
-- `test_password_validation` — valida fortaleza de contraseña
-- `test_inventory_schemas` — valida schemas de inventario
-- `test_order_schemas` — valida schemas de pedidos
-- `test_shipment_schemas` — valida schemas de envíos
-- `test_return_schemas` — valida schemas de devoluciones
-- `test_customer_schemas` — valida schemas de clientes
-- `test_user_schemas` — valida schemas de usuarios (sin contraseña en salida)
-- `test_dashboard_schemas` — valida schemas de dashboard
-
-### `tests/test_endpoints.py`
-- `test_health_endpoint` — GET /health → 200 + schema
-- `test_auth_endpoints_return_501` — todos los auth devuelven 501 (no implementado)
-- `test_inventory_endpoints_return_501` — todos los inventory devuelven 501
-- `test_orders_endpoints_return_501` — todos los orders devuelven 501
-- `test_shipments_endpoints_return_501` — todos los shipments devuelven 501
-- `test_returns_endpoints_return_501` — todos los returns devuelven 501
-- `test_customers_endpoints_return_501` — todos los customers devuelven 501
-- `test_users_endpoints_return_501` — todos los users devuelven 501
-- `test_dashboard_endpoints_return_501` — todos los dashboard devuelven 501
-
-### Cobertura de tests de serialización
-- ✅ Health: contrato explícito verificado
-- ✅ Auth: ningún schema de salida contiene `password`, `hash`, `salt`, `token` (salvo en respuesta específica)
-- ✅ Inventario: listado ligero vs detalle completo
-- ✅ Pedidos: entrada acotada, salida separada por listado/detalle
-- ✅ Envíos: tracking events, recomendación
-- ✅ Devoluciones: flujo completo (crear → aprobar → inspeccionar)
-- ✅ Clientes: resumen vs detalle
-- ✅ Usuarios: creación con password, salida sin password
-- ✅ Dashboard: KPIs estructurados
-
----
-
-## Archivos modificados
-
-### Modificados
-- `services/api/main.py` — incluye routers y app package
-- `services/api/pyproject.toml` — añadidas dependencias dev, pytest config
-
-### Creados
-- `services/api/app/__init__.py`
-- `services/api/app/schemas/__init__.py`
-- `services/api/app/schemas/health.py`
-- `services/api/app/schemas/auth.py`
-- `services/api/app/schemas/inventory.py`
-- `services/api/app/schemas/orders.py`
-- `services/api/app/schemas/shipments.py`
-- `services/api/app/schemas/returns.py`
-- `services/api/app/schemas/customers.py`
-- `services/api/app/schemas/dashboard.py`
-- `services/api/app/schemas/users.py`
-- `services/api/app/routers/__init__.py`
-- `services/api/app/routers/health.py`
-- `services/api/app/routers/auth.py`
-- `services/api/app/routers/inventory.py`
-- `services/api/app/routers/orders.py`
-- `services/api/app/routers/shipments.py`
-- `services/api/app/routers/returns.py`
-- `services/api/app/routers/customers.py`
-- `services/api/app/routers/dashboard.py`
-- `services/api/app/routers/users.py`
-- `services/api/tests/__init__.py`
-- `services/api/tests/test_schemas.py`
-- `services/api/tests/test_endpoints.py`
-- `docs/serialization-audit.md`
-
----
-
-## Limitaciones
-
-1. **Endpoints no implementados (501):** Todos los endpoints de negocio devuelven 501 Not Implemented. Los contratos de serialización están definidos pero la lógica de negocio, autenticación real, base de datos y ORM están fuera del alcance.
-2. **Sin base de datos:** No es posible verificar la serialización ORM→schema con datos reales. Los tests validan los schemas de forma aislada.
-3. **Sin paginación:** Los listados no incluyen offset/limit; se asume que se añadirá cuando exista persistencia.
-4. **Sin auth middleware:** Los schemas de auth están listos pero no hay middleware de seguridad implementado.
-5. **Compatible con frontends:** No se detectaron consumidores de API en los frontends existentes, por lo que no hay riesgo de ruptura.
-
----
-
-## Comparativa inventario inicial vs final
-
-| Tipo | Inicial | Final |
-|------|---------|-------|
-| Endpoints | 1 (`GET /health`) | 31 |
-| Schemas Pydantic | 0 | 28 |
-| Routers | 0 (inline) | 9 |
-| Tests | 0 | 2 files, ~30 tests |
-| response_model explícitos | 0 | 31 |
-| Endpoints sin contrato | 1 | 0 |
-
----
-
-*Auditoría realizada como parte del proyecto «Auditoría de Serialización del Backend» de 4Geeks Academy.*
+La API, schemas, contratos, persistencia e infraestructura permanecen sin modificar: esta entrega es solo la auditoría de Fase 1.

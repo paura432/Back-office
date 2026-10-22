@@ -86,3 +86,10 @@ deliberadamente tras `down`.
 - Builds y Compose repetidos tras incorporar evidencias: PASS. GAP Next.js **RESUELTO**. API de negocio, auth, persistencia y produccion permanecen fuera del alcance.
 - Cierre real: cinco endpoints HTTP 200, logs sin errores criticos, terminacion supervisada de un Next.js con salida `ui` no cero, rearranque healthy y SIGTERM normal con salida 0 en `ui`/`api`: PASS. `docker compose down` elimina contenedores y red; los volumenes se conservan.
 - Revision y publicacion finales consultables en el historial de la rama. No crear PR ni hacer merge.
+
+## Auditoría documental de serialización (2026-10-22)
+
+- En `feature/serialization-audit` se completó la auditoría de Fase 1 en `docs/serialization-audit.md`: 31 rutas de aplicación (15 ✅, 16 ⚠️, 0 ❌) y cuatro rutas FastAPI de documentación integradas (sin `response_model` de aplicación). La tabla detalla entradas, schemas declarados, estado ejecutable, consumidores y riesgos.
+- Se confirmó que `/health` es la única respuesta de éxito; las otras 30 rutas de aplicación responden 501. Los frontends no contienen consumidores HTTP de negocio. No se modificaron API, schemas, contratos, tests, dependencias ni despliegue.
+- `git diff --check` pasó y el inventario estático concuerda con 31 decoradores y 31 `response_model`. No se pudieron ejecutar pytest/runtime: el entorno no tiene FastAPI, uv, pytest ni Docker.
+- Publicación de esta fase: commit `docs: audit backend serialization` y push de `feature/serialization-audit`, sin despliegue ni PR/merge.
