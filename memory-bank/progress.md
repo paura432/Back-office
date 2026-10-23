@@ -102,6 +102,30 @@ deliberadamente tras `down`.
 - `docs/serialization-audit.md` describe criterios, evidencia, límites y bloqueos; README de servicios reconciliados con main.
 - PR/commits finales quedan pendientes de revisión completa de diff conforme al protocolo pre-commit.
 
+## Cierre de entrega Backend Serialization Audit (2026-10-23)
+
+- Se recuperó el inventario individual de 31 endpoints de `12feda2` y se integró
+	sin retirar la evidencia actual; se agregó `/status` para completar las 32
+	rutas de aplicación. El documento distingue 2 rutas funcionales (`/health`,
+	`/status`) y 30 stubs HTTP 501; también contabiliza las cuatro rutas framework
+	de documentación por separado.
+- Se retiró `services/api/.coverage` del índice Git y se añadió `**/.coverage` a
+	`.gitignore`; el archivo local ignorado puede regenerarse al ejecutar coverage.
+- Verificación reproducible con uv 0.6.17 desde `services/api`: `uv sync
+	--frozen --extra dev --check` → “Would make no changes”; `pytest --collect-only`
+	→ 91 casos; suite/cobertura → **91 passed, 0 failed, 0 skipped; 100% (404/404
+	statements)** en `app`, `main.py`, `db.py`. Incluye ambos casos parametrizados
+	`operational` y `degraded` de `/status`.
+- La validación final confirma 32/32 `APIRoute.response_model`, OpenAPI para
+	`/health` y `/status`, respuestas HTTP ASGI esperadas y exclusión de password,
+	hash, salt, reset token y metadata no contratada. UI inspeccionada: backoffice
+	consume `/api/status`; no se encontraron consumidores de rutas de negocio.
+- Limitaciones: los 30 endpoints de negocio/auth continúan en 501; no hay
+	autenticación ni autorización, ORM o payloads de negocio exitosos. La conexión
+	PostgreSQL se prueba con mock; no se afirma conexión a una base real.
+- Revisión pre-commit, commits/push y PR de entrega: pendientes al registrar esta
+	actualización. No hacer merge ni despliegue.
+
 ## Auditoria de rendimiento frontend (2026-10-14)
 
 - Rama `feature/frontend-performance-audit`, creada desde `origin/main` actualizado (`9d0561b`); working tree limpio antes del ejercicio.
