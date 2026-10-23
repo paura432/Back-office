@@ -108,8 +108,8 @@ deliberadamente tras `down`.
 - `CACHING_REPORT.md` documenta stack, inventario de 20 GET de aplicación (2 funcionales y 18 stubs 501), dependencias actuales/hipotéticas, frecuencias configuradas y desconocidas, referencias Lighthouse históricas, propuestas condicionales de TTL/clave/ámbito/invalidación y rutas que no deben cachearse.
 - Las medianas frontend disponibles pertenecen a la auditoría anterior en `audit/before/` y `audit/after/`; no se pudieron repetir en este entorno. No hay latencia backend por endpoint ni tráfico/datos operativos disponibles. No se creó ni ejecutó un seeder porque el backend de negocio y sus tablas no existen; producción no se consultó ni alteró.
 - Añadida instrumentación pasiva de duración HTTP en `services/api/main.py`, que registra método, plantilla de ruta, status y ms sin URL raw, params ni payload. Test de log añadido en `services/api/tests/test_timing.py`; compileall y `git diff --check` pasan. No se pudo ejecutar pytest/build/Compose/Lighthouse por ausencia de uv, pytest, FastAPI, Node/npm y Docker.
-- El checkout de `main` contiene marcadores de conflicto previos en `uis/website/{README.md,app/layout.tsx,app/page.tsx}` y `uis/backoffice/{README.md,app/layout.tsx,app/page.tsx}`; no se modificaron por quedar fuera del alcance y bloquean builds frontend.
-- Publicación pendiente de completar checks bloqueados y protocolo pre-commit. Ningún commit/push registrado aún.
+- En el checkout inicial de `main` se encontraron marcadores de conflicto en los seis archivos UI indicados; en una revisión posterior de `feature/caching-optimisation` se reconciliaron esos archivos y, con autorización, ambos `src/styles.css`. Los builds siguen pendientes de ejecución porque falta `npm`.
+- En el momento de registrar esta nota histórica, la publicación estaba pendiente. El cierre de la revisión, los commits y el estado actual de publicación se documentan en la sección posterior correspondiente.
 
 ## Revisión de caching y reconciliación UI (2026-10-23)
 
@@ -119,7 +119,7 @@ deliberadamente tras `down`.
 - No se implementaron lazy loading, `useMemo` ni caching TTL: no hay componentes pesados/cálculos costosos demostrables y 18 GET de negocio son 501; `/health` y `/status` no deben ocultar estado atrasado. El checklist 4Geeks permanece pendiente, con evidencia y razones en `CACHING_REPORT.md`.
 - Checks: `python3 -m compileall -q services/api/main.py services/api/tests/test_timing.py` PASS; `git diff --check` PASS; búsqueda global de marcadores UI sin resultados; el proveedor de errores no reporta errores en los cuatro TSX revisados. Los dos `npm run build` (website y backoffice) y `uv run --frozen --extra dev pytest -q` se intentaron y quedaron bloqueados porque no existen `npm` ni `uv` en PATH; tampoco hay `node_modules`/`.venv`. No se instalaron herramientas, ni se alteraron dependencias/locks. Lighthouse/Compose no ejecutados.
 - El informe ahora distingue los resultados de esta revisión de los Lighthouse históricos, enumera checks pendientes y marca los requisitos de práctica como no implementados/no justificados. No hubo acceso a producción, seed, PR, merge ni despliegue.
-- Pendiente revisión final pre-commit, commits separados (UI y documentación/progreso), push y recomendación GO/NO-GO de PR; los builds/tests runtime siguen siendo el bloqueo para declarar una validación completa.
+- La revisión se publicó en el commit `24f73e5` (UI y documentación/progreso juntos) y el branch estaba sincronizado con `origin/feature/caching-optimisation` al verificarlo. Los checks de build/tests runtime siguen bloqueados por las herramientas ausentes; no se abrió PR, no se hizo merge ni despliegue. Dictamen de esta revisión: NO-GO para abrir PR como entrega completa hasta ejecutar builds/tests en entorno equipado y resolver la discrepancia con el checklist 4Geeks.
 
 ## Cierre de entrega Backend Serialization Audit (2026-10-23)
 
