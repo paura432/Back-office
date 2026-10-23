@@ -10,3 +10,5 @@
 **/*.tsbuildinfo
 uis/*/next-env.d.ts
 trackflow_infra40_evidencias.zip
+
+**/.coverage

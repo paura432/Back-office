@@ -86,7 +86,45 @@ deliberadamente tras `down`.
 - Builds y Compose repetidos tras incorporar evidencias: PASS. GAP Next.js **RESUELTO**. API de negocio, auth, persistencia y produccion permanecen fuera del alcance.
 - Cierre real: cinco endpoints HTTP 200, logs sin errores criticos, terminacion supervisada de un Next.js con salida `ui` no cero, rearranque healthy y SIGTERM normal con salida 0 en `ui`/`api`: PASS. `docker compose down` elimina contenedores y red; los volumenes se conservan.
 - Revision y publicacion finales consultables en el historial de la rama. No crear PR ni hacer merge.
-<<<<<<< HEAD
+## Auditoría documental de serialización (2026-10-22)
+
+- En `feature/serialization-audit` se completó la auditoría de Fase 1 en `docs/serialization-audit.md`: 31 rutas de aplicación (15 ✅, 16 ⚠️, 0 ❌) y cuatro rutas FastAPI de documentación integradas (sin `response_model` de aplicación). La tabla detalla entradas, schemas declarados, estado ejecutable, consumidores y riesgos.
+- Se confirmó que `/health` es la única respuesta de éxito; las otras 30 rutas de aplicación responden 501. Los frontends no contienen consumidores HTTP de negocio. No se modificaron API, schemas, contratos, tests, dependencias ni despliegue.
+- `git diff --check` pasó y el inventario estático concuerda con 31 decoradores y 31 `response_model`. No se pudieron ejecutar pytest/runtime: el entorno no tiene FastAPI, uv, pytest ni Docker.
+- Publicación de esta fase: commit `docs: audit backend serialization` y push de `feature/serialization-audit`, sin despliegue ni PR/merge.
+
+## Cierre de implementación auditoría de serialización (2026-10-23)
+
+- Se integró `origin/main` en `feature/serialization-audit`, conservando la API PostgreSQL (`db.py`), `/health`, `/status`, los routers y la auditoría local; se reconciliaron los conflictos de `main.py`, `pyproject.toml` y esta bitácora sin descartar las entradas de ambas ramas.
+- `/status` usa `StatusResponse{status: operational|degraded}` explícito y conserva la comprobación `SELECT 1`; nunca responde con DSN/credenciales. Los demás endpoints de negocio/auth continúan como stubs 501; no se agregó lógica ni éxito de negocio.
+- Se fijaron runtime/dependencies de tests, se regeneró `services/api/uv.lock` con uv 0.6.17 y se verificó instalación `uv sync --frozen --extra dev`.
+- Se añadieron pruebas HTTP/OpenAPI, filtrado de campos señuelo y comportamiento PostgreSQL mock. Suite: 90 passed, 0 failed, 0 skipped. Cobertura final `app`, `main.py`, `db.py`: 100% (404 statements). Todas las 32 rutas APIRoute tienen response_model; `/health` y `/status` con referencias OpenAPI explícitas.
+- `docs/serialization-audit.md` describe criterios, evidencia, límites y bloqueos; README de servicios reconciliados con main.
+- PR/commits finales quedan pendientes de revisión completa de diff conforme al protocolo pre-commit.
+
+## Cierre de entrega Backend Serialization Audit (2026-10-23)
+
+- Se recuperó el inventario individual de 31 endpoints de `12feda2` y se integró
+	sin retirar la evidencia actual; se agregó `/status` para completar las 32
+	rutas de aplicación. El documento distingue 2 rutas funcionales (`/health`,
+	`/status`) y 30 stubs HTTP 501; también contabiliza las cuatro rutas framework
+	de documentación por separado.
+- Se retiró `services/api/.coverage` del índice Git y se añadió `**/.coverage` a
+	`.gitignore`; el archivo local ignorado puede regenerarse al ejecutar coverage.
+- Verificación reproducible con uv 0.6.17 desde `services/api`: `uv sync
+	--frozen --extra dev --check` → “Would make no changes”; `pytest --collect-only`
+	→ 91 casos; suite/cobertura → **91 passed, 0 failed, 0 skipped; 100% (404/404
+	statements)** en `app`, `main.py`, `db.py`. Incluye ambos casos parametrizados
+	`operational` y `degraded` de `/status`.
+- La validación final confirma 32/32 `APIRoute.response_model`, OpenAPI para
+	`/health` y `/status`, respuestas HTTP ASGI esperadas y exclusión de password,
+	hash, salt, reset token y metadata no contratada. UI inspeccionada: backoffice
+	consume `/api/status`; no se encontraron consumidores de rutas de negocio.
+- Limitaciones: los 30 endpoints de negocio/auth continúan en 501; no hay
+	autenticación ni autorización, ORM o payloads de negocio exitosos. La conexión
+	PostgreSQL se prueba con mock; no se afirma conexión a una base real.
+- Revisión pre-commit, commits/push y PR de entrega: pendientes al registrar esta
+	actualización. No hacer merge ni despliegue.
 
 ## Auditoria de rendimiento frontend (2026-10-14)
 
@@ -113,5 +151,3 @@ deliberadamente tras `down`.
 - **next/font pendiente de remedición:** Documentado como limitación. Los builds compilan correctamente.
 - **git diff --check:** PASS (sin errores de whitespace).
 - **git status:** `AUDIT.md` modificado, `REPORT.md` nuevo, `memory-bank/progress.md` actualizado.
-=======
->>>>>>> origin/main
