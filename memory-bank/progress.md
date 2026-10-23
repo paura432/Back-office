@@ -102,6 +102,15 @@ deliberadamente tras `down`.
 - `docs/serialization-audit.md` describe criterios, evidencia, límites y bloqueos; README de servicios reconciliados con main.
 - PR/commits finales quedan pendientes de revisión completa de diff conforme al protocolo pre-commit.
 
+## Auditoría de caching (2026-10-23)
+
+- Nueva rama `feature/caching-optimisation` creada desde `main` (`43b845b`); el árbol de trabajo estaba limpio. No se implementó caché ni optimizaciones de frontend.
+- `CACHING_REPORT.md` documenta stack, inventario de 20 GET de aplicación (2 funcionales y 18 stubs 501), dependencias actuales/hipotéticas, frecuencias configuradas y desconocidas, referencias Lighthouse históricas, propuestas condicionales de TTL/clave/ámbito/invalidación y rutas que no deben cachearse.
+- Las medianas frontend disponibles pertenecen a la auditoría anterior en `audit/before/` y `audit/after/`; no se pudieron repetir en este entorno. No hay latencia backend por endpoint ni tráfico/datos operativos disponibles. No se creó ni ejecutó un seeder porque el backend de negocio y sus tablas no existen; producción no se consultó ni alteró.
+- Añadida instrumentación pasiva de duración HTTP en `services/api/main.py`, que registra método, plantilla de ruta, status y ms sin URL raw, params ni payload. Test de log añadido en `services/api/tests/test_timing.py`; compileall y `git diff --check` pasan. No se pudo ejecutar pytest/build/Compose/Lighthouse por ausencia de uv, pytest, FastAPI, Node/npm y Docker.
+- El checkout de `main` contiene marcadores de conflicto previos en `uis/website/{README.md,app/layout.tsx,app/page.tsx}` y `uis/backoffice/{README.md,app/layout.tsx,app/page.tsx}`; no se modificaron por quedar fuera del alcance y bloquean builds frontend.
+- Publicación pendiente de completar checks bloqueados y protocolo pre-commit. Ningún commit/push registrado aún.
+
 ## Cierre de entrega Backend Serialization Audit (2026-10-23)
 
 - Se recuperó el inventario individual de 31 endpoints de `12feda2` y se integró
