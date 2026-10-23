@@ -1,7 +1,10 @@
 # TrackFlow Development API
 
-Minimal FastAPI service for the development stack. `GET /health` returns
-`{"status":"ok"}`. No business endpoints, authentication or database are implemented.
+FastAPI service for the development stack. `GET /health` returns
+`{"status":"ok"}`. `GET /status` checks PostgreSQL with `SELECT 1` and returns
+`operational` or `degraded` without exposing connection details. The declared
+business and authentication routes remain explicit `501 Not Implemented` stubs;
+they do not implement business behavior or authentication/authorization.
 
 ## Local Development
 
@@ -12,8 +15,11 @@ uv sync --frozen
 uv run uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Dependencies, including transitive packages and hashes, are recorded in `uv.lock`.
-To intentionally update them, edit `pyproject.toml` and run `uv lock`.
+Runtime and testing dependencies, including transitive packages and hashes, are
+recorded in `uv.lock`. Install tests with `uv sync --frozen --extra dev` and run
+them with `uv run --frozen --extra dev pytest -q`. To intentionally update a
+dependency, edit `pyproject.toml` and run the pinned project uv version's
+`uv lock`.
 
 ## Docker Development
 

@@ -86,10 +86,44 @@ deliberadamente tras `down`.
 - Builds y Compose repetidos tras incorporar evidencias: PASS. GAP Next.js **RESUELTO**. API de negocio, auth, persistencia y produccion permanecen fuera del alcance.
 - Cierre real: cinco endpoints HTTP 200, logs sin errores criticos, terminacion supervisada de un Next.js con salida `ui` no cero, rearranque healthy y SIGTERM normal con salida 0 en `ui`/`api`: PASS. `docker compose down` elimina contenedores y red; los volumenes se conservan.
 - Revision y publicacion finales consultables en el historial de la rama. No crear PR ni hacer merge.
-
 ## Auditoría documental de serialización (2026-10-22)
 
 - En `feature/serialization-audit` se completó la auditoría de Fase 1 en `docs/serialization-audit.md`: 31 rutas de aplicación (15 ✅, 16 ⚠️, 0 ❌) y cuatro rutas FastAPI de documentación integradas (sin `response_model` de aplicación). La tabla detalla entradas, schemas declarados, estado ejecutable, consumidores y riesgos.
 - Se confirmó que `/health` es la única respuesta de éxito; las otras 30 rutas de aplicación responden 501. Los frontends no contienen consumidores HTTP de negocio. No se modificaron API, schemas, contratos, tests, dependencias ni despliegue.
 - `git diff --check` pasó y el inventario estático concuerda con 31 decoradores y 31 `response_model`. No se pudieron ejecutar pytest/runtime: el entorno no tiene FastAPI, uv, pytest ni Docker.
 - Publicación de esta fase: commit `docs: audit backend serialization` y push de `feature/serialization-audit`, sin despliegue ni PR/merge.
+
+## Cierre de implementación auditoría de serialización (2026-10-23)
+
+- Se integró `origin/main` en `feature/serialization-audit`, conservando la API PostgreSQL (`db.py`), `/health`, `/status`, los routers y la auditoría local; se reconciliaron los conflictos de `main.py`, `pyproject.toml` y esta bitácora sin descartar las entradas de ambas ramas.
+- `/status` usa `StatusResponse{status: operational|degraded}` explícito y conserva la comprobación `SELECT 1`; nunca responde con DSN/credenciales. Los demás endpoints de negocio/auth continúan como stubs 501; no se agregó lógica ni éxito de negocio.
+- Se fijaron runtime/dependencies de tests, se regeneró `services/api/uv.lock` con uv 0.6.17 y se verificó instalación `uv sync --frozen --extra dev`.
+- Se añadieron pruebas HTTP/OpenAPI, filtrado de campos señuelo y comportamiento PostgreSQL mock. Suite: 90 passed, 0 failed, 0 skipped. Cobertura final `app`, `main.py`, `db.py`: 100% (404 statements). Todas las 32 rutas APIRoute tienen response_model; `/health` y `/status` con referencias OpenAPI explícitas.
+- `docs/serialization-audit.md` describe criterios, evidencia, límites y bloqueos; README de servicios reconciliados con main.
+- PR/commits finales quedan pendientes de revisión completa de diff conforme al protocolo pre-commit.
+
+## Auditoria de rendimiento frontend (2026-10-14)
+
+- Rama `feature/frontend-performance-audit`, creada desde `origin/main` actualizado (`9d0561b`); working tree limpio antes del ejercicio.
+- Fase 1: ambos frontends compilaron para produccion con Next.js 16.4.0 dentro de la imagen Docker existente. Se iniciaron con `next start`; HTTP 200 en website y backoffice. Lighthouse 12.8.2 / Chromium Headless 141.0.7390.37: 3 informes JSON/HTML por escenario (website/backoffice, desktop/mobile), 12 runs, resultados en `audit/before/`; capturas de filmstrip y viewport guardadas. Navegador, emulacion, versiones, resultados y mediana registrados. No se modifico codigo de aplicaciones antes de la linea base.
+- Medianas Lighthouse iniciales (Performance/A11y/Best Practices/SEO): website desktop 99/95/96/100, website mobile 92/95/93/100; backoffice desktop 100/95/96/100, backoffice mobile 94/95/93/100. Medianas LCP/CLS/TBT/TTFB y cada ejecucion en `audit/before/summary.json` y reports.
+- Smoke Playwright: ambos roots HTTP 200. Website no excede 412 px; backoffice mide 417 px de scroll width a 412 px. Lighthouse observa `/favicon.ico` 404. El baseline medido tiene TBT no cero solo en mobile; TBT no equivale a INP.
+- Fases 2-6 pendientes al registrar esta nota. No hay optimizaciones ni mejoras finales declaradas.
+
+## Retirada de `@import` de fuentes (2026-10-16)
+
+- En `feature/frontend-performance-audit` se eliminó el `@import` duplicado de Google Fonts en `uis/website/src/styles.css` y `uis/backoffice/src/styles.css`. Los enlaces de `app/layout.tsx` siguen siendo el único origen de esas familias.
+- Remedición con la misma metodología Lighthouse, sin otros cambios de aplicación: las peticiones de CSS de fuentes y de woff2 no bajaron; las medianas de CLS no cambiaron. No hay mejora demostrada. Evidencia en `audit/after-fonts/`. `audit/before/` no se alteró.
+- El menú del website pasó a `uis/website/app/site-header.tsx`. La página vuelve a ser Server Component. Build de producción y prueba de apertura/cierre/teclado: PASS. Capturas desktop y móvil idénticas al baseline. Lighthouse posterior no muestra mejora reclamable.
+- En backoffice, a 412 px desbordaba `article.team-card` (borde derecho 416.5 px, `scrollWidth` 417). Se redujo solo su padding horizontal a 6 px bajo 460 px. Tras el cambio, `scrollWidth` es 412 y el texto no se recorta. La captura móvil difiere un 2.98 % por ese padding. Performance móvil mediana 93 frente a 94; no se declara mejora.
+
+## Cierre final auditoría rendimiento (2026-10-20)
+
+- Rama `feature/frontend-performance-audit`, HEAD `add4e1bc2052b7c0c8edef37f917f5b86965e128`.
+- **Builds verificados:** Backoffice (Next.js 16.4.0) y website compilan correctamente con `next/font/google` (DM_Sans, DM_Mono, Manrope) y `font-display: swap`. TypeScript y compilación: PASS.
+- **Lighthouse:** No se pudieron re-ejecutar por falta de Docker Engine y Chromium en el entorno. Los informes existentes en `audit/after/` reflejan el estado tras las correcciones de fuentes, navegación y overflow (commits `07dc18f` + `645896f` + `90042a4`), pero anteriores a `add4e1b`. `audit/before/` se conserva intacto.
+- **REPORT.md:** Creado con comparativa antes/después, LCP, CLS, TBT, puntuaciones, correcciones aplicadas, reutilización y conclusiones. No se inventan mejoras.
+- **AUDIT.md:** Actualizado: tabla de alcance final, correcciones aplicadas con estado ✅/⚠️/❌, evidencia por fase y pendientes documentados.
+- **next/font pendiente de remedición:** Documentado como limitación. Los builds compilan correctamente.
+- **git diff --check:** PASS (sin errores de whitespace).
+- **git status:** `AUDIT.md` modificado, `REPORT.md` nuevo, `memory-bank/progress.md` actualizado.

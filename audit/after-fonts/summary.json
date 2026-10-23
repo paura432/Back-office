@@ -1,0 +1,512 @@
+{
+  "method": "Same as audit/before: Lighthouse 12.8.2, Chrome for Testing 141.0.7390.37, 3 fresh runs, desktop preset and default mobile. Source is 07dc18f, font @import removed, layout links unchanged. audit/before was not modified.",
+  "conclusion": "Network font CSS and woff request counts did not drop. CLS medians were unchanged. Score and timing deltas are within lab variance and are not a demonstrated improvement.",
+  "before": {
+    "website-desktop": {
+      "runs": [
+        {
+          "performance": 99,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 639.483,
+          "cls": 0.053153,
+          "tbtMs": 0,
+          "ttfbMs": 5.136,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div#app > main#top > section.hero > div.hero-art"
+        },
+        {
+          "performance": 99,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 644.151,
+          "cls": 0.053153,
+          "tbtMs": 0,
+          "ttfbMs": 4.141,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div#app > main#top > section.hero > div.hero-art"
+        },
+        {
+          "performance": 99,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 643.282,
+          "cls": 0.053153,
+          "tbtMs": 0,
+          "ttfbMs": 3.001,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div#app > main#top > section.hero > div.hero-art"
+        }
+      ],
+      "median": {
+        "performance": 99,
+        "accessibility": 95,
+        "best-practices": 96,
+        "seo": 100,
+        "lcpMs": 643.282,
+        "cls": 0.053153,
+        "tbtMs": 0,
+        "ttfbMs": 4.141,
+        "fontCssRequests": 1,
+        "woffRequests": 3,
+        "numFonts": 3,
+        "numStylesheets": 2
+      }
+    },
+    "website-mobile": {
+      "runs": [
+        {
+          "performance": 92,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2671.057,
+          "cls": 0.050702,
+          "tbtMs": 103,
+          "ttfbMs": 4.701,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "main#top > section.hero > div.hero-art > div.art-grid"
+        },
+        {
+          "performance": 93,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2456.818,
+          "cls": 0.050702,
+          "tbtMs": 98.0,
+          "ttfbMs": 3.113,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "main#top > section.hero > div.hero-art > div.art-grid"
+        },
+        {
+          "performance": 92,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2664.057,
+          "cls": 0.050702,
+          "tbtMs": 98,
+          "ttfbMs": 2.767,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "main#top > section.hero > div.hero-art > div.art-grid"
+        }
+      ],
+      "median": {
+        "performance": 92,
+        "accessibility": 95,
+        "best-practices": 93,
+        "seo": 100,
+        "lcpMs": 2664.057,
+        "cls": 0.050702,
+        "tbtMs": 98,
+        "ttfbMs": 3.113,
+        "fontCssRequests": 1,
+        "woffRequests": 3,
+        "numFonts": 3,
+        "numStylesheets": 2
+      }
+    },
+    "backoffice-desktop": {
+      "runs": [
+        {
+          "performance": 100,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 652.12,
+          "cls": 0.015558,
+          "tbtMs": 0,
+          "ttfbMs": 20.498,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.lower-grid"
+        },
+        {
+          "performance": 100,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 687.978,
+          "cls": 0.015558,
+          "tbtMs": 0,
+          "ttfbMs": 5.646,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.lower-grid"
+        },
+        {
+          "performance": 100,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 691.302,
+          "cls": 0.015558,
+          "tbtMs": 0,
+          "ttfbMs": 5.602,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.lower-grid"
+        }
+      ],
+      "median": {
+        "performance": 100,
+        "accessibility": 95,
+        "best-practices": 96,
+        "seo": 100,
+        "lcpMs": 687.978,
+        "cls": 0.015558,
+        "tbtMs": 0,
+        "ttfbMs": 5.646,
+        "fontCssRequests": 1,
+        "woffRequests": 2,
+        "numFonts": 2,
+        "numStylesheets": 2
+      }
+    },
+    "backoffice-mobile": {
+      "runs": [
+        {
+          "performance": 94,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2588.515,
+          "cls": 0.022816,
+          "tbtMs": 0,
+          "ttfbMs": 4.784,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.team-grid"
+        },
+        {
+          "performance": 94,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2588.299,
+          "cls": 0.022816,
+          "tbtMs": 0,
+          "ttfbMs": 5.566,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.team-grid"
+        },
+        {
+          "performance": 96,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2184.546,
+          "cls": 0.022816,
+          "tbtMs": 183,
+          "ttfbMs": 4.322,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.team-grid"
+        }
+      ],
+      "median": {
+        "performance": 94,
+        "accessibility": 95,
+        "best-practices": 93,
+        "seo": 100,
+        "lcpMs": 2588.299,
+        "cls": 0.022816,
+        "tbtMs": 0,
+        "ttfbMs": 4.784,
+        "fontCssRequests": 1,
+        "woffRequests": 2,
+        "numFonts": 2,
+        "numStylesheets": 2
+      }
+    }
+  },
+  "after": {
+    "website-desktop": {
+      "runs": [
+        {
+          "performance": 99,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 673.554,
+          "cls": 0.053153,
+          "tbtMs": 57.631,
+          "ttfbMs": 11.169,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div#app > main#top > section.hero > div.hero-art"
+        },
+        {
+          "performance": 99,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 639.574,
+          "cls": 0.053153,
+          "tbtMs": 0,
+          "ttfbMs": 5.458,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div#app > main#top > section.hero > div.hero-art"
+        },
+        {
+          "performance": 99,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 645.441,
+          "cls": 0.053153,
+          "tbtMs": 0,
+          "ttfbMs": 3.193,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div#app > main#top > section.hero > div.hero-art"
+        }
+      ],
+      "median": {
+        "performance": 99,
+        "accessibility": 95,
+        "best-practices": 96,
+        "seo": 100,
+        "lcpMs": 645.441,
+        "cls": 0.053153,
+        "tbtMs": 0,
+        "ttfbMs": 5.458,
+        "fontCssRequests": 1,
+        "woffRequests": 3,
+        "numFonts": 3,
+        "numStylesheets": 2
+      }
+    },
+    "website-mobile": {
+      "runs": [
+        {
+          "performance": 93,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2620.246,
+          "cls": 0.052063,
+          "tbtMs": 17,
+          "ttfbMs": 5.419,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "main#top > section.hero > div.hero-art > div.art-grid"
+        },
+        {
+          "performance": 98,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2091.629,
+          "cls": 0.050702,
+          "tbtMs": 112,
+          "ttfbMs": 4.791,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "main#top > section.hero > div.hero-art > div.art-grid"
+        },
+        {
+          "performance": 93,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2610.919,
+          "cls": 0.050702,
+          "tbtMs": 77,
+          "ttfbMs": 3.399,
+          "fontCssRequests": 1,
+          "woffRequests": 3,
+          "numFonts": 3,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "main#top > section.hero > div.hero-art > div.art-grid"
+        }
+      ],
+      "median": {
+        "performance": 93,
+        "accessibility": 95,
+        "best-practices": 93,
+        "seo": 100,
+        "lcpMs": 2610.919,
+        "cls": 0.050702,
+        "tbtMs": 77,
+        "ttfbMs": 4.791,
+        "fontCssRequests": 1,
+        "woffRequests": 3,
+        "numFonts": 3,
+        "numStylesheets": 2
+      }
+    },
+    "backoffice-desktop": {
+      "runs": [
+        {
+          "performance": 100,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 691.392,
+          "cls": 0.015558,
+          "tbtMs": 0,
+          "ttfbMs": 13.554,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.lower-grid"
+        },
+        {
+          "performance": 100,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 678.787,
+          "cls": 0.015558,
+          "tbtMs": 0,
+          "ttfbMs": 17.815,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.lower-grid"
+        },
+        {
+          "performance": 100,
+          "accessibility": 95,
+          "best-practices": 96,
+          "seo": 100,
+          "lcpMs": 679.796,
+          "cls": 0.016877,
+          "tbtMs": 0,
+          "ttfbMs": 6.91,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.lower-grid"
+        }
+      ],
+      "median": {
+        "performance": 100,
+        "accessibility": 95,
+        "best-practices": 96,
+        "seo": 100,
+        "lcpMs": 679.796,
+        "cls": 0.015558,
+        "tbtMs": 0,
+        "ttfbMs": 13.554,
+        "fontCssRequests": 1,
+        "woffRequests": 2,
+        "numFonts": 2,
+        "numStylesheets": 2
+      }
+    },
+    "backoffice-mobile": {
+      "runs": [
+        {
+          "performance": 94,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2582.916,
+          "cls": 0.022816,
+          "tbtMs": 0,
+          "ttfbMs": 4.366,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.team-grid"
+        },
+        {
+          "performance": 93,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2604.403,
+          "cls": 0.022816,
+          "tbtMs": 0,
+          "ttfbMs": 6.615,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.team-grid"
+        },
+        {
+          "performance": 93,
+          "accessibility": 95,
+          "best-practices": 93,
+          "seo": 100,
+          "lcpMs": 2626.246,
+          "cls": 0.022816,
+          "tbtMs": 0,
+          "ttfbMs": 5.374,
+          "fontCssRequests": 1,
+          "woffRequests": 2,
+          "numFonts": 2,
+          "numStylesheets": 2,
+          "layoutShiftSelector": "div.app-shell > main#home > div.dashboard-content > section.team-grid"
+        }
+      ],
+      "median": {
+        "performance": 93,
+        "accessibility": 95,
+        "best-practices": 93,
+        "seo": 100,
+        "lcpMs": 2604.403,
+        "cls": 0.022816,
+        "tbtMs": 0,
+        "ttfbMs": 5.374,
+        "fontCssRequests": 1,
+        "woffRequests": 2,
+        "numFonts": 2,
+        "numStylesheets": 2
+      }
+    }
+  }
+}

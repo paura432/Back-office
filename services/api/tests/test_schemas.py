@@ -108,6 +108,14 @@ class TestAuthSchemas:
                 full_name="Test User",
             )
 
+    def test_register_request_no_lowercase(self):
+        with pytest.raises(ValidationError):
+            RegisterRequest(
+                email="user@example.com",
+                password="SECUREPASS1",
+                full_name="Test User",
+            )
+
     def test_login_request_valid(self):
         body = LoginRequest(email="user@example.com", password="secret")
         assert body.email == "user@example.com"
@@ -148,6 +156,18 @@ class TestAuthSchemas:
     def test_password_reset_weak(self):
         with pytest.raises(ValidationError):
             PasswordResetRequest(token="tok123", new_password="weak")
+
+    def test_password_reset_requires_lowercase(self):
+        with pytest.raises(ValidationError):
+            PasswordResetRequest(token="tok123", new_password="NEWPASS123")
+
+    def test_password_reset_requires_digit(self):
+        with pytest.raises(ValidationError):
+            PasswordResetRequest(token="tok123", new_password="NewPassword")
+
+    def test_password_reset_requires_uppercase(self):
+        with pytest.raises(ValidationError):
+            PasswordResetRequest(token="tok123", new_password="newpassword1")
 
     def test_message_response(self):
         resp = MessageResponse(message="ok")
