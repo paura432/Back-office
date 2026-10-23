@@ -111,6 +111,16 @@ deliberadamente tras `down`.
 - El checkout de `main` contiene marcadores de conflicto previos en `uis/website/{README.md,app/layout.tsx,app/page.tsx}` y `uis/backoffice/{README.md,app/layout.tsx,app/page.tsx}`; no se modificaron por quedar fuera del alcance y bloquean builds frontend.
 - Publicación pendiente de completar checks bloqueados y protocolo pre-commit. Ningún commit/push registrado aún.
 
+## Revisión de caching y reconciliación UI (2026-10-23)
+
+- En `feature/caching-optimisation` se verificó HEAD `dacd066` sincronizado con `origin/feature/caching-optimisation` y árbol limpio antes de comenzar esta revisión. Se revisó el historial: el commit incluye informe, middleware y test de timing. No se confundió con la base `main` (`43b845b`).
+- Reconciliados los seis archivos UI solicitados: README, layout y page de website y backoffice. Website conserva `SiteHeader` como Client Component y la página como Server Component; se mantienen `BrandMark`/`DecorativeArrow`, metadata, viewport y fuentes vía `next/font`. Backoffice conserva `BackendStatus` (fetch inicial + polling configurado cada 15 s), flechas SVG y contenido estático. Las guías locales quedaron alineadas con los layouts.
+- Durante la búsqueda se hallaron marcadores adicionales en `uis/website/src/styles.css` y `uis/backoffice/src/styles.css`. Tras autorización explícita se eliminaron las secciones duplicadas de estilos y Google Fonts, manteniendo la variante con variables `next/font`, media queries y estilos del indicador. En total hay ocho archivos UI modificados, seis pedidos + dos CSS necesarios para desbloquear la compilación.
+- No se implementaron lazy loading, `useMemo` ni caching TTL: no hay componentes pesados/cálculos costosos demostrables y 18 GET de negocio son 501; `/health` y `/status` no deben ocultar estado atrasado. El checklist 4Geeks permanece pendiente, con evidencia y razones en `CACHING_REPORT.md`.
+- Checks: `python3 -m compileall -q services/api/main.py services/api/tests/test_timing.py` PASS; `git diff --check` PASS; búsqueda global de marcadores UI sin resultados; el proveedor de errores no reporta errores en los cuatro TSX revisados. Los dos `npm run build` (website y backoffice) y `uv run --frozen --extra dev pytest -q` se intentaron y quedaron bloqueados porque no existen `npm` ni `uv` en PATH; tampoco hay `node_modules`/`.venv`. No se instalaron herramientas, ni se alteraron dependencias/locks. Lighthouse/Compose no ejecutados.
+- El informe ahora distingue los resultados de esta revisión de los Lighthouse históricos, enumera checks pendientes y marca los requisitos de práctica como no implementados/no justificados. No hubo acceso a producción, seed, PR, merge ni despliegue.
+- Pendiente revisión final pre-commit, commits separados (UI y documentación/progreso), push y recomendación GO/NO-GO de PR; los builds/tests runtime siguen siendo el bloqueo para declarar una validación completa.
+
 ## Cierre de entrega Backend Serialization Audit (2026-10-23)
 
 - Se recuperó el inventario individual de 31 endpoints de `12feda2` y se integró

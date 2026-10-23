@@ -3,7 +3,7 @@
 **Fecha:** 2026-10-23  
 **Rama:** `feature/caching-optimisation`  
 **Alcance:** auditoría y preparación; no se implementan cachés ni optimizaciones de frontend. La única modificación de runtime es instrumentación pasiva de duración HTTP descrita abajo.  
-**Estado de la evidencia:** inventario de código y mediciones históricas verificables; no se pudo ejecutar una nueva medición end-to-end en este entorno.
+**Estado de la evidencia:** inventario de código y mediciones históricas verificables; en esta revisión se reconciliaron los conflictos UI. Los builds y tests runtime se intentaron, pero no pudieron ejecutarse porque faltan Node/npm y uv en el entorno.
 
 ## Resumen ejecutivo
 
@@ -37,7 +37,9 @@ No se afirma mejora a partir de esas variaciones: los informes corresponden a un
 | Frontend: uso de API | `BackendStatus` llama inmediatamente y luego cada 15 s a `/api/status`; componente de cliente pequeño | Frecuencia configurada, no tráfico observado. El endpoint ejecuta query de DB: cachearlo ocultaría la salud actual y retrasaría la detección. |
 | Healthcheck Compose | `/health` cada 5 s en servicio API | Frecuencia de healthcheck configurada. `/health` devuelve constante y no es candidato significativo a caché; está en ruta de monitorización. |
 | GET de negocio | 18 rutas declaradas entre routers, todas con 501 según implementación y tests; 0 respuestas de negocio exitosas | Sin consultas de negocio ejecutables o latencias reales. No debe inferirse coste real de sus nombres/descripciones. |
-| Runtime/testing disponible | `python 3.12.15`; sin `pip`, `pytest`, `fastapi`, `uv`, `node`, `npm` ni `docker` disponibles en PATH | No fue posible iniciar FastAPI/Compose, correr pytest, builds Next ni Lighthouse/Playwright nuevos. |
+| Runtime/testing disponible en la revisión de cierre | `python3 3.12.15`; `node`, `npm`, `uv` y `docker` no disponibles en PATH; no hay `node_modules` ni `.venv` locales. Hay `package-lock.json` para ambas UIs y `services/api/uv.lock` | Los comandos de build y pytest se intentaron, pero el shell respondió `npm: command not found` / `uv: command not found`; no se instalaron herramientas ni se alteraron locks. Compose y Lighthouse tampoco se pueden ejecutar. |
+| Conflictos de UI | Eliminados los marcadores de los seis archivos solicitados y, con autorización expresa, de `uis/website/src/styles.css` y `uis/backoffice/src/styles.css` | Se conservaron los estilos `next/font`, los estilos responsive, `SiteHeader`, `BrandMark`, `DecorativeArrow` y `BackendStatus`. Los README describen el mecanismo `next/font` que usan los layouts. `git grep` no encuentra marcadores tras resolverlos. |
+| Validaciones posibles | `python3 -m compileall -q services/api/main.py services/api/tests/test_timing.py`, `git diff --check` y búsqueda global de marcadores de conflicto | PASS. `get_errors` no detectó errores en los cuatro archivos TSX de app/layout/pages. Estas comprobaciones no sustituyen los builds ni pytest. |
 | Instrumentación | Se añadió middleware en `services/api/main.py` que emite método, plantilla de ruta, status y `duration_ms`; prueba `services/api/tests/test_timing.py` | Cambio pasivo, no almacena datos ni registra query strings, IDs, tracking numbers o payloads. Sintaxis Python disponible; prueba runtime bloqueada por dependencias ausentes. |
 | Datos/seeder | No se preparó ni ejecutó seed | No existen modelos/tablas de dominio implementados y las rutas son stubs. Inventar dataset o esquema produciría una línea base engañosa; no se tocaron datos de producción. |
 
@@ -89,6 +91,16 @@ No se pudo generar un perfil React/Chrome actual. La inspección de código mues
 | Website: lista de cuatro servicios | 4 registros estáticos y `map` pequeño | Baja | Sin necesidad actual de `useMemo` o lazy loading. |
 | Backoffice: `BackendStatus` | Un fetch inicial y un intervalo cada 15 s; renderiza una etiqueta sencilla | Baja para cálculo/render, medible como carga de polling | No convertirlo en cache de `/status` sin aceptar explícitamente retraso de salud. Medir coste de red por número de pestañas; considerar consolidación/visibilidad sólo como futura optimización funcional separada. |
 
+## Requisitos de la práctica 4Geeks (revisión de esta rama)
+
+| Requisito solicitado | Estado en el código revisado | Decisión y evidencia |
+|---|---|---|
+| 2 casos de lazy loading | **Pendiente / no implementado** | No se identificaron módulos o componentes pesados separables; las páginas son HTML/CSS/SVG, las listas son pequeñas y `SiteHeader`/`BackendStatus` son componentes cliente pequeños. No se añadieron cargas diferidas artificiales. |
+| 1 uso de `useMemo` | **Pendiente / no implementado** | No hay cálculos costosos derivados en render. `services`, `teams` y `priorities` son arrays pequeños constantes a nivel de módulo. Memoizar no aporta beneficio sustentado. |
+| 2 endpoints con cache TTL e invalidación | **Pendiente / no implementado** | No existen dos GET de negocio funcionales: las 18 rutas correspondientes devuelven 501. `/health` y `/status` son endpoints de monitorización; cachearlos produciría salud atrasada. No se crearon endpoints ni se cachearon errores/stubs. Los candidatos documentados siguen siendo diseños condicionales y no cuentan como cumplimiento. |
+
+**Conclusión:** no se satisface todavía el checklist técnico de la práctica. Cumplirlo requeriría inventar lazy loading/useMemo sin coste demostrado y activar caching sobre rutas no funcionales o añadir endpoints de negocio no autorizados. Recomendación: no presentar esta auditoría como implementación completa de los requisitos; solicitar aclaración funcional/aprobación de endpoints reales antes de intentar satisfacerlos. La decisión sobre abrir PR depende además de ejecutar builds y tests en un entorno equipado.
+
 ## Candidatos de caching priorizados (condicionales)
 
 Todos son candidatos de **futuras implementaciones**, no endpoints cacheables hoy; las rutas asociadas responden 501.
@@ -116,14 +128,15 @@ Se añadió middleware de medición en `services/api/main.py`: reloj monotónico
 
 ## Checks y limitaciones para el siguiente paso
 
-- No fue posible ejecutar `docker compose config/build/up`, tests backend, builds frontend, Lighthouse ni perfiles de navegador: Docker/uv/Node/npm no están instalados en el entorno inspeccionado; Python no tiene pip, FastAPI ni pytest.
-- La sintaxis de `main.py` y `tests/test_timing.py` se puede validar con `python -m compileall -q services/api/main.py services/api/tests/test_timing.py`; esto no importa ni ejecuta FastAPI y no sustituye pytest. Repetir pytest tras instalar el entorno documentado.
-- El checkout `main` contiene marcadores `<<<<<<<`, `=======`, `>>>>>>>` ya presentes en seis archivos de UI y README: `uis/website/{README.md,app/layout.tsx,app/page.tsx}` y `uis/backoffice/{README.md,app/layout.tsx,app/page.tsx}`. No se editaron porque están fuera del alcance autorizado; impiden validar los builds frontend y constituyen un bloqueo anterior a este trabajo.
-- No se editó `CONTEXT.md`, configuración, lockfiles, ni variables de entorno. No se creó seed; no se ejecutaron consultas fuera del código ni se modificó DB local/productiva.
+- Build website intentado: `npm --prefix uis/website run build` → bloqueado (`npm: command not found`). Build backoffice intentado: `npm --prefix uis/backoffice run build` → bloqueado (`npm: command not found`). Tests intentados: `uv run --frozen --extra dev pytest -q` → bloqueado (`uv: command not found`). No se instalaron herramientas globales.
+- `python3 -m compileall -q services/api/main.py services/api/tests/test_timing.py` (PASS), `git diff --check` (PASS) y búsqueda global de marcadores (sin resultados). `get_errors` informó sin errores en `website/app/{layout,page}.tsx` y `backoffice/app/{layout,page}.tsx`; estas comprobaciones no reemplazan builds de Next ni pytest.
+- Los seis archivos pedidos (`uis/website/{README.md,app/layout.tsx,app/page.tsx}` y `uis/backoffice/{README.md,app/layout.tsx,app/page.tsx}`) se reconciliaron. Durante el grep se detectaron marcadores adicionales en ambos `src/styles.css`; con autorización expresa se resolvieron conservando la variante alineada con `next/font` y los estilos responsive. No quedan marcadores en `uis/`.
+- No fue posible ejecutar `docker compose config/build/up`, Lighthouse ni perfiles de navegador: Docker/Node/npm no están instalados. No se midió una nueva baseline visual/rendimiento.
+- No se editó `CONTEXT.md`, configuración, lockfiles ni variables de entorno. No se creó seed; no se ejecutaron consultas fuera del código ni se modificó DB local/productiva.
 
 ## Plan de implementación tras aprobación
 
-1. Resolver explícitamente el estado de marcadores de conflicto en UI en un cambio independiente autorizado; construir ambos frontends y guardar nueva línea base de Lighthouse.
+1. Ejecutar los builds de ambos frontends y la suite backend en un entorno con dependencias de proyecto; corregir cualquier error que aparezca y luego guardar una nueva línea base de Lighthouse.
 2. Aprobar contratos de negocio, autenticación, autorización/tenant, esquema y política de frescura antes de habilitar endpoints 501.
 3. Medir con tráfico de prueba representativo, mínimo tres repeticiones por ruta, cold/warm, concurrencia, query plans y p50/p95/p99; registrar errores y tamaño de respuesta. No mezclar `health/status` con agregados de negocio.
 4. Seleccionar candidatos por coste y repetición medidos; empezar por un agregado privado estable solo si hay mejora material, con estrategia de versionado/invalidation, límites de memoria, protección de stampede y pruebas de aislamiento.
