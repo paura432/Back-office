@@ -145,7 +145,8 @@ La comprobación HTTP se hizo contra ASGI (`httpx.ASGITransport`) y rutas de apl
 | Mantener 501 y no declarar éxito inexistente | PASS: stubs conservados y tests de 501; no se implementó negocio ni se añadieron respuestas HTTP de error ficticias. |
 | pytest, OpenAPI, HTTP y exclusión sensible | PASS, 91 tests; assertions de OpenAPI y rutas HTTP ASGI descritas arriba. Los 2 escenarios parametrizados de `/status` se cuentan individualmente. |
 | Documentar resultados/limitaciones/evidencia | Este documento. |
-| Revisión pre-commit | **PASS**: diff completo de los cuatro archivos previstos revisado; reglas y README comprobados; suite, lock, OpenAPI y `git diff --check` pasan; Memory Bank actualizado; estado Git contiene solo `.gitignore`, esta auditoría, `memory-bank/progress.md` y eliminación de `services/api/.coverage`. No se hace merge ni despliegue. |
+| Revisión pre-commit | **PASS**: diff completo de los cuatro archivos previstos revisado; reglas y README comprobados; suite, lock, OpenAPI y `git diff --check` pasan; Memory Bank actualizado; estado Git contiene solo `.gitignore`, esta auditoría, `memory-bank/progress.md` y eliminación de `services/api/.coverage`. |
+| Publicación | Commit `2c35a97` publicado en `feature/serialization-audit`; PR [#4](https://github.com/paura432/Back-office/pull/4), contra `main`, abierto como borrador por limitaciones funcionales pendientes. Sin merge ni despliegue. |
 
 ## Limitaciones y bloqueos funcionales
 
