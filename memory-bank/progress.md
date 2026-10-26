@@ -177,3 +177,11 @@ deliberadamente tras `down`.
 - **next/font pendiente de remedición:** Documentado como limitación. Los builds compilan correctamente.
 - **git diff --check:** PASS (sin errores de whitespace).
 - **git status:** `AUDIT.md` modificado, `REPORT.md` nuevo, `memory-bank/progress.md` actualizado.
+
+## Diseño del plan de telemetría (2026-10-26)
+
+- Rama `feature/telemetry-design` creada desde `main` actualizado (`c1550f9`), árbol limpio. Solo diseño: sin instrumentación, endpoints ni infraestructura.
+- **Bloqueo:** `empresa-BRIEFING.md` no existe en el repositorio ni en el workspace. Las métricas obligatorias del BRIEFING no se verificaron; se usan métricas candidatas de `CONTEXT.md` y la etiqueta `core_candidate` (Núcleo\*).
+- `docs/telemetry/telemetry-plan.md` y `docs/telemetry/event-schemas.json` (JSON Schema 2020-12): 39 eventos en 10 categorías; 11 núcleo candidato y 28 adicionales; 7 con disparador disponible hoy, 5 en demo local, 13 sobre stubs 501 y 14 futuros; 15 `stream` y 24 `batch`. Sobre de 8 campos con allowlist cerrada por evento y nombres de propiedad prohibidos.
+- Validación con `jsonschema` 4.10.3: esquema válido, correspondencia 1:1 Markdown/JSON/enum, nombres, requeridos, privacidad y casos negativos: PASS. No hay tests/build aplicables a documentación.
+- Contradicciones de `CONTEXT.md` conservadas: nombre del CEO, lista de transportistas y qué almacén usa cada SGA.
