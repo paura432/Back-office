@@ -1,0 +1,2625 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:trackflow:telemetry:event:1.0.0",
+  "title": "TrackFlow telemetry event envelope",
+  "description": "Diseño (no implementado). Sobre común + allowlist de propiedades por event_type.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "timestamp",
+    "sessionId",
+    "userId",
+    "event_type",
+    "schemaVersion",
+    "requestId",
+    "properties"
+  ],
+  "properties": {
+    "eventId": {
+      "$ref": "#/$defs/uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "sessionId": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "userId": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^usr_[0-9a-f]{32}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z]+(_[a-z]+)+$",
+      "enum": [
+        "inventory_movement_recorded",
+        "inventory_movement_rejected",
+        "inventory_stock_low_detected",
+        "inventory_items_viewed",
+        "inventory_discrepancy_detected",
+        "order_created",
+        "order_status_changed",
+        "order_ingested",
+        "shipment_created",
+        "shipment_status_updated",
+        "shipment_delivered",
+        "shipment_delivery_failed",
+        "shipment_tracking_viewed",
+        "carrier_recommendation_requested",
+        "carrier_selected",
+        "return_requested",
+        "return_decided",
+        "return_inspected",
+        "return_pickup_scheduled",
+        "customer_health_scored",
+        "customer_contract_alert_triggered",
+        "customer_satisfaction_submitted",
+        "support_ticket_created",
+        "support_ticket_resolved",
+        "auth_login_succeeded",
+        "auth_login_failed",
+        "auth_password_reset_completed",
+        "page_viewed",
+        "cta_clicked",
+        "dashboard_viewed",
+        "api_request_failed",
+        "frontend_error_occurred",
+        "integration_call_failed",
+        "api_request_completed",
+        "web_vitals_measured",
+        "service_status_changed",
+        "report_weekly_generated",
+        "inventory_seed_executed",
+        "backup_completed"
+      ]
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "requestId": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "properties": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "inventory_movement_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/inventory_movement_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "inventory_movement_rejected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/inventory_movement_rejected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "inventory_stock_low_detected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/inventory_stock_low_detected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "inventory_items_viewed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/inventory_items_viewed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "inventory_discrepancy_detected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/inventory_discrepancy_detected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "order_created"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/order_created"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "order_status_changed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/order_status_changed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "order_ingested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/order_ingested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "shipment_created"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/shipment_created"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "shipment_status_updated"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/shipment_status_updated"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "shipment_delivered"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/shipment_delivered"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "shipment_delivery_failed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/shipment_delivery_failed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "shipment_tracking_viewed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/shipment_tracking_viewed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "carrier_recommendation_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/carrier_recommendation_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "carrier_selected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/carrier_selected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "return_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/return_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "return_decided"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/return_decided"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "return_inspected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/return_inspected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "return_pickup_scheduled"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/return_pickup_scheduled"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "customer_health_scored"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/customer_health_scored"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "customer_contract_alert_triggered"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/customer_contract_alert_triggered"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "customer_satisfaction_submitted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/customer_satisfaction_submitted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "support_ticket_created"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/support_ticket_created"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "support_ticket_resolved"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/support_ticket_resolved"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "auth_login_succeeded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/auth_login_succeeded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "auth_login_failed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/auth_login_failed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "auth_password_reset_completed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/auth_password_reset_completed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "page_viewed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/page_viewed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "cta_clicked"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/cta_clicked"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "dashboard_viewed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/dashboard_viewed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "api_request_failed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/api_request_failed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "frontend_error_occurred"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/frontend_error_occurred"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "integration_call_failed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/integration_call_failed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "api_request_completed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/api_request_completed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "web_vitals_measured"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/web_vitals_measured"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "service_status_changed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/service_status_changed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "report_weekly_generated"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/report_weekly_generated"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "inventory_seed_executed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/inventory_seed_executed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "backup_completed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0.0"
+          },
+          "properties": {
+            "$ref": "#/$defs/events/backup_completed"
+          }
+        }
+      }
+    }
+  ],
+  "x-privacy": {
+    "forbiddenPropertyNames": [
+      "email",
+      "password",
+      "new_password",
+      "token",
+      "access_token",
+      "full_name",
+      "contact_name",
+      "contact_email",
+      "contact_phone",
+      "phone",
+      "address",
+      "shipping_address",
+      "destination",
+      "recipient",
+      "tracking_number",
+      "notes",
+      "inspection_notes",
+      "reason",
+      "description",
+      "location",
+      "ip",
+      "ip_address",
+      "user_agent",
+      "url",
+      "q"
+    ],
+    "rules": [
+      "Allowlist estricta: additionalProperties=false en sobre y propiedades.",
+      "userId = 'usr_' + HMAC-SHA256(id interno, secreto rotado) truncado a 32 hex; null sin sesión autenticada.",
+      "sessionId = UUID aleatorio por sesión, rotado a los 30 min de inactividad; no persistente entre dispositivos.",
+      "Sin texto libre, direcciones, contactos, tracking_number, tokens, IP ni user agent completos.",
+      "Direcciones → solo país ISO 3166-1; errores → solo fingerprint hash."
+    ]
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "entityId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "ID interno numérico (no PII directa)."
+    },
+    "sku": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
+    "warehouse": {
+      "type": "string",
+      "enum": [
+        "los-angeles",
+        "zaragoza"
+      ],
+      "description": "Códigos reales usados por la demo de inventario."
+    },
+    "countryCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "ISO 3166-1 alfa-2; nunca dirección."
+    },
+    "carrier": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]{2,32}$",
+      "description": "Código de transportista; catálogo de 8 pendiente (ver contradicciones)."
+    },
+    "statusLabel": {
+      "type": "string",
+      "pattern": "^[a-z][a-z_]{0,49}$",
+      "description": "Estado normalizado; el código aún no define un enum."
+    },
+    "httpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    "routeTemplate": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^(/[A-Za-z0-9_{}./-]*|<unmatched>)$",
+      "description": "Plantilla de ruta, nunca URL con valores ni query string."
+    },
+    "durationMs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "app": {
+      "type": "string",
+      "enum": [
+        "website",
+        "backoffice"
+      ]
+    },
+    "viewportClass": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "tablet",
+        "desktop"
+      ]
+    },
+    "urgency": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high"
+      ]
+    },
+    "weightKg": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "USD",
+        "EUR"
+      ]
+    },
+    "segment": {
+      "type": "string",
+      "enum": [
+        "b2b",
+        "b2c"
+      ]
+    },
+    "riskLevel": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "returnCondition": {
+      "type": "string",
+      "enum": [
+        "mint",
+        "good",
+        "fair",
+        "damaged",
+        "destroyed"
+      ]
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed"
+      ]
+    },
+    "events": {
+      "inventory_movement_recorded": {
+        "title": "inventory_movement_recorded",
+        "description": "`POST /inventory/movements` → 201",
+        "x-category": "inventory",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "demo_local",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sku",
+          "warehouse",
+          "quantity_delta",
+          "quantity_after"
+        ],
+        "properties": {
+          "sku": {
+            "$ref": "#/$defs/sku"
+          },
+          "warehouse": {
+            "$ref": "#/$defs/warehouse"
+          },
+          "quantity_delta": {
+            "type": "integer",
+            "not": {
+              "const": 0
+            }
+          },
+          "quantity_after": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "inventory_movement_rejected": {
+        "title": "inventory_movement_rejected",
+        "description": "`POST /inventory/movements` → 404/409/422",
+        "x-category": "inventory",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "demo_local",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rejection_reason",
+          "status_code"
+        ],
+        "properties": {
+          "sku": {
+            "$ref": "#/$defs/sku"
+          },
+          "warehouse": {
+            "$ref": "#/$defs/warehouse"
+          },
+          "rejection_reason": {
+            "type": "string",
+            "enum": [
+              "item_not_found",
+              "insufficient_stock",
+              "validation_error"
+            ]
+          },
+          "status_code": {
+            "type": "integer",
+            "enum": [
+              404,
+              409,
+              422
+            ]
+          }
+        }
+      },
+      "inventory_stock_low_detected": {
+        "title": "inventory_stock_low_detected",
+        "description": "Movimiento deja `quantity_after` ≤ `low_stock_threshold` (hoy solo se calcula en `GET /inventory/alerts`)",
+        "x-category": "inventory",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "demo_local",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sku",
+          "warehouse",
+          "current_quantity",
+          "threshold"
+        ],
+        "properties": {
+          "sku": {
+            "$ref": "#/$defs/sku"
+          },
+          "warehouse": {
+            "$ref": "#/$defs/warehouse"
+          },
+          "current_quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "inventory_items_viewed": {
+        "title": "inventory_items_viewed",
+        "description": "`GET /inventory/items` → 200",
+        "x-category": "inventory",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "demo_local",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result_count",
+          "cache_status"
+        ],
+        "properties": {
+          "warehouse": {
+            "$ref": "#/$defs/warehouse"
+          },
+          "has_text_query": {
+            "type": "boolean"
+          },
+          "result_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cache_status": {
+            "type": "string",
+            "enum": [
+              "hit",
+              "miss"
+            ]
+          }
+        }
+      },
+      "inventory_discrepancy_detected": {
+        "title": "inventory_discrepancy_detected",
+        "description": "Conciliación SGA comercial / hoja de cálculo vs. stock TrackFlow",
+        "x-category": "inventory",
+        "x-source": "job",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sku",
+          "warehouse",
+          "system_quantity",
+          "counted_quantity",
+          "source_system"
+        ],
+        "properties": {
+          "sku": {
+            "$ref": "#/$defs/sku"
+          },
+          "warehouse": {
+            "$ref": "#/$defs/warehouse"
+          },
+          "system_quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "counted_quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_system": {
+            "type": "string",
+            "enum": [
+              "commercial_wms",
+              "spreadsheet_wms"
+            ]
+          }
+        }
+      },
+      "order_created": {
+        "title": "order_created",
+        "description": "`POST /orders` → 201",
+        "x-category": "orders",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "stub",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_id",
+          "customer_id",
+          "item_count",
+          "ingestion_channel"
+        ],
+        "properties": {
+          "order_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "customer_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "item_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "total_units": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "ingestion_channel": {
+            "type": "string",
+            "enum": [
+              "api",
+              "email",
+              "manual"
+            ]
+          },
+          "destination_country": {
+            "$ref": "#/$defs/countryCode"
+          }
+        }
+      },
+      "order_status_changed": {
+        "title": "order_status_changed",
+        "description": "`PATCH /orders/{order_id}/status`",
+        "x-category": "orders",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_id",
+          "from_status",
+          "to_status"
+        ],
+        "properties": {
+          "order_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "from_status": {
+            "$ref": "#/$defs/statusLabel"
+          },
+          "to_status": {
+            "$ref": "#/$defs/statusLabel"
+          },
+          "seconds_in_previous_status": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "order_ingested": {
+        "title": "order_ingested",
+        "description": "Pipeline de ingesta procesa un email de pedido",
+        "x-category": "orders",
+        "x-source": "pipeline",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "customer_id",
+          "parse_status",
+          "attachment_type"
+        ],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "order_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "parse_status": {
+            "type": "string",
+            "enum": [
+              "parsed",
+              "partial",
+              "failed"
+            ]
+          },
+          "attachment_type": {
+            "type": "string",
+            "enum": [
+              "none",
+              "csv",
+              "xlsx",
+              "pdf",
+              "other"
+            ]
+          },
+          "item_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "shipment_created": {
+        "title": "shipment_created",
+        "description": "Asignación de transportista y etiqueta (no existe `POST /shipments`)",
+        "x-category": "shipments",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "future",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "shipment_id",
+          "order_id",
+          "carrier",
+          "origin_warehouse",
+          "destination_country",
+          "weight_kg"
+        ],
+        "properties": {
+          "shipment_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "order_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "origin_warehouse": {
+            "$ref": "#/$defs/warehouse"
+          },
+          "destination_country": {
+            "$ref": "#/$defs/countryCode"
+          },
+          "weight_kg": {
+            "$ref": "#/$defs/weightKg"
+          },
+          "urgency": {
+            "$ref": "#/$defs/urgency"
+          },
+          "promised_delivery_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "shipment_status_updated": {
+        "title": "shipment_status_updated",
+        "description": "Agregador de tracking recibe un cambio de estado",
+        "x-category": "shipments",
+        "x-source": "integration",
+        "x-delivery": "stream",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "shipment_id",
+          "carrier",
+          "status",
+          "update_source"
+        ],
+        "properties": {
+          "shipment_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "status": {
+            "$ref": "#/$defs/statusLabel"
+          },
+          "update_source": {
+            "type": "string",
+            "enum": [
+              "webhook",
+              "polling"
+            ]
+          }
+        }
+      },
+      "shipment_delivered": {
+        "title": "shipment_delivered",
+        "description": "Estado entregado normalizado",
+        "x-category": "shipments",
+        "x-source": "integration",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "future",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "shipment_id",
+          "carrier",
+          "destination_country",
+          "on_time",
+          "transit_hours"
+        ],
+        "properties": {
+          "shipment_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "destination_country": {
+            "$ref": "#/$defs/countryCode"
+          },
+          "on_time": {
+            "type": "boolean"
+          },
+          "transit_hours": {
+            "type": "number",
+            "minimum": 0
+          },
+          "weight_kg": {
+            "$ref": "#/$defs/weightKg"
+          },
+          "shipping_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "currency": {
+            "$ref": "#/$defs/currency"
+          }
+        }
+      },
+      "shipment_delivery_failed": {
+        "title": "shipment_delivery_failed",
+        "description": "Incidencia de entrega del transportista",
+        "x-category": "shipments",
+        "x-source": "integration",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "future",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "shipment_id",
+          "carrier",
+          "destination_country",
+          "failure_reason"
+        ],
+        "properties": {
+          "shipment_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "destination_country": {
+            "$ref": "#/$defs/countryCode"
+          },
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "address_issue",
+              "recipient_absent",
+              "lost",
+              "damaged",
+              "other"
+            ]
+          },
+          "attempt_number": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "shipment_tracking_viewed": {
+        "title": "shipment_tracking_viewed",
+        "description": "`GET /shipments/tracking/{tracking_number}`",
+        "x-category": "shipments",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lookup_result",
+          "channel"
+        ],
+        "properties": {
+          "lookup_result": {
+            "type": "string",
+            "enum": [
+              "found",
+              "not_found"
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "public_portal",
+              "cx_agent",
+              "backoffice"
+            ]
+          },
+          "carrier": {
+            "$ref": "#/$defs/carrier"
+          }
+        }
+      },
+      "carrier_recommendation_requested": {
+        "title": "carrier_recommendation_requested",
+        "description": "`POST /shipments/carrier-recommendation`",
+        "x-category": "shipments",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "destination_country",
+          "weight_kg",
+          "urgency",
+          "candidates_count"
+        ],
+        "properties": {
+          "destination_country": {
+            "$ref": "#/$defs/countryCode"
+          },
+          "weight_kg": {
+            "$ref": "#/$defs/weightKg"
+          },
+          "urgency": {
+            "$ref": "#/$defs/urgency"
+          },
+          "candidates_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "recommended_carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "confidence_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "carrier_selected": {
+        "title": "carrier_selected",
+        "description": "Coordinador confirma transportista",
+        "x-category": "shipments",
+        "x-source": "backoffice",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "shipment_id",
+          "selected_carrier",
+          "accepted_recommendation"
+        ],
+        "properties": {
+          "shipment_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "selected_carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "recommended_carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "accepted_recommendation": {
+            "type": "boolean"
+          }
+        }
+      },
+      "return_requested": {
+        "title": "return_requested",
+        "description": "`POST /returns` → 201",
+        "x-category": "returns",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "stub",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "return_id",
+          "order_id",
+          "sku",
+          "quantity",
+          "reason_code"
+        ],
+        "properties": {
+          "return_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "order_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "customer_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "sku": {
+            "$ref": "#/$defs/sku"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason_code": {
+            "type": "string",
+            "enum": [
+              "damaged",
+              "wrong_item",
+              "not_as_described",
+              "no_longer_needed",
+              "other"
+            ]
+          }
+        }
+      },
+      "return_decided": {
+        "title": "return_decided",
+        "description": "`POST /returns/{return_id}/approve`",
+        "x-category": "returns",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "stub",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "return_id",
+          "approved",
+          "decision_mode"
+        ],
+        "properties": {
+          "return_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "decision_mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "automatic_rule"
+            ]
+          },
+          "hours_to_decision": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "return_inspected": {
+        "title": "return_inspected",
+        "description": "`POST /returns/{return_id}/inspect`",
+        "x-category": "returns",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "return_id",
+          "sku",
+          "condition",
+          "inspection_mode"
+        ],
+        "properties": {
+          "return_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "sku": {
+            "$ref": "#/$defs/sku"
+          },
+          "condition": {
+            "$ref": "#/$defs/returnCondition"
+          },
+          "inspection_mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "ai_assisted"
+            ]
+          },
+          "ai_suggested_condition": {
+            "$ref": "#/$defs/returnCondition"
+          },
+          "operator_overrode_ai": {
+            "type": "boolean"
+          }
+        }
+      },
+      "return_pickup_scheduled": {
+        "title": "return_pickup_scheduled",
+        "description": "Flujo aprobación → etiqueta → recogida",
+        "x-category": "returns",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "return_id",
+          "carrier",
+          "hours_since_approval"
+        ],
+        "properties": {
+          "return_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "hours_since_approval": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "customer_health_scored": {
+        "title": "customer_health_scored",
+        "description": "Cálculo de salud (`GET /customers/{customer_id}/health`)",
+        "x-category": "customers",
+        "x-source": "job",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "customer_id",
+          "health_score",
+          "risk_level"
+        ],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "health_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "risk_level": {
+            "$ref": "#/$defs/riskLevel"
+          },
+          "days_to_contract_end": {
+            "type": "integer"
+          }
+        }
+      },
+      "customer_contract_alert_triggered": {
+        "title": "customer_contract_alert_triggered",
+        "description": "90 y 30 días antes del vencimiento",
+        "x-category": "customers",
+        "x-source": "job",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "customer_id",
+          "days_before_expiry"
+        ],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "days_before_expiry": {
+            "type": "integer",
+            "enum": [
+              90,
+              30
+            ]
+          },
+          "risk_level": {
+            "$ref": "#/$defs/riskLevel"
+          }
+        }
+      },
+      "customer_satisfaction_submitted": {
+        "title": "customer_satisfaction_submitted",
+        "description": "Encuesta tras entrega, devolución o ticket (método no definido en CONTEXT)",
+        "x-category": "customers",
+        "x-source": "frontend",
+        "x-delivery": "batch",
+        "x-tier": "core_candidate",
+        "x-availability": "future",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "score",
+          "segment",
+          "context"
+        ],
+        "properties": {
+          "score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "segment": {
+            "$ref": "#/$defs/segment"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "delivery",
+              "return",
+              "support_ticket"
+            ]
+          },
+          "customer_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "country": {
+            "$ref": "#/$defs/countryCode"
+          }
+        }
+      },
+      "support_ticket_created": {
+        "title": "support_ticket_created",
+        "description": "Ticket desde email, WhatsApp o teléfono",
+        "x-category": "customers",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ticket_id",
+          "segment",
+          "channel",
+          "topic"
+        ],
+        "properties": {
+          "ticket_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "segment": {
+            "$ref": "#/$defs/segment"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "whatsapp",
+              "phone",
+              "web"
+            ]
+          },
+          "topic": {
+            "type": "string",
+            "enum": [
+              "tracking",
+              "return",
+              "billing",
+              "other"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          }
+        }
+      },
+      "support_ticket_resolved": {
+        "title": "support_ticket_resolved",
+        "description": "Cierre de ticket",
+        "x-category": "customers",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ticket_id",
+          "resolution_mode",
+          "resolution_minutes"
+        ],
+        "properties": {
+          "ticket_id": {
+            "$ref": "#/$defs/entityId"
+          },
+          "resolution_mode": {
+            "type": "string",
+            "enum": [
+              "ai_agent",
+              "human",
+              "ai_then_human"
+            ]
+          },
+          "first_response_minutes": {
+            "type": "number",
+            "minimum": 0
+          },
+          "resolution_minutes": {
+            "type": "number",
+            "minimum": 0
+          },
+          "escalated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "auth_login_succeeded": {
+        "title": "auth_login_succeeded",
+        "description": "`POST /auth/login` → 200",
+        "x-category": "auth",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "method"
+        ],
+        "properties": {
+          "method": {
+            "type": "string",
+            "const": "password"
+          }
+        }
+      },
+      "auth_login_failed": {
+        "title": "auth_login_failed",
+        "description": "`POST /auth/login` → 401/422",
+        "x-category": "auth",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_reason"
+        ],
+        "properties": {
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "invalid_credentials",
+              "inactive_user",
+              "validation_error"
+            ]
+          },
+          "consecutive_failures": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "auth_password_reset_completed": {
+        "title": "auth_password_reset_completed",
+        "description": "`POST /auth/password-reset`",
+        "x-category": "auth",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome"
+        ],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "invalid_token",
+              "expired_token",
+              "weak_password"
+            ]
+          }
+        }
+      },
+      "page_viewed": {
+        "title": "page_viewed",
+        "description": "Carga de ruta en website o backoffice",
+        "x-category": "navigation",
+        "x-source": "frontend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "available",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "app",
+          "route_template",
+          "viewport_class"
+        ],
+        "properties": {
+          "app": {
+            "$ref": "#/$defs/app"
+          },
+          "route_template": {
+            "$ref": "#/$defs/routeTemplate"
+          },
+          "referrer_type": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "internal",
+              "external",
+              "unknown"
+            ]
+          },
+          "viewport_class": {
+            "$ref": "#/$defs/viewportClass"
+          },
+          "locale": {
+            "type": "string",
+            "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+          }
+        }
+      },
+      "cta_clicked": {
+        "title": "cta_clicked",
+        "description": "Clic en CTA del website (cabecera, hero, servicios, red, contacto)",
+        "x-category": "navigation",
+        "x-source": "frontend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "available",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cta_id",
+          "target_anchor"
+        ],
+        "properties": {
+          "cta_id": {
+            "type": "string",
+            "enum": [
+              "header_cta",
+              "hero_primary",
+              "hero_secondary",
+              "service_card",
+              "network",
+              "contact"
+            ]
+          },
+          "target_anchor": {
+            "type": "string",
+            "enum": [
+              "contact",
+              "services"
+            ]
+          },
+          "viewport_class": {
+            "$ref": "#/$defs/viewportClass"
+          }
+        }
+      },
+      "dashboard_viewed": {
+        "title": "dashboard_viewed",
+        "description": "Apertura de un dashboard (`GET /dashboard/executive`)",
+        "x-category": "navigation",
+        "x-source": "frontend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dashboard"
+        ],
+        "properties": {
+          "dashboard": {
+            "type": "string",
+            "enum": [
+              "executive",
+              "warehouse",
+              "carriers",
+              "returns",
+              "cx",
+              "customer_health"
+            ]
+          },
+          "country_filter": {
+            "type": "string",
+            "enum": [
+              "all",
+              "US",
+              "ES"
+            ]
+          },
+          "data_age_minutes": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "api_request_failed": {
+        "title": "api_request_failed",
+        "description": "Middleware HTTP: status ≥ 500 o excepción",
+        "x-category": "errors",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "available",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "method",
+          "route_template",
+          "status_code",
+          "duration_ms"
+        ],
+        "properties": {
+          "method": {
+            "$ref": "#/$defs/httpMethod"
+          },
+          "route_template": {
+            "$ref": "#/$defs/routeTemplate"
+          },
+          "status_code": {
+            "type": "integer",
+            "minimum": 500,
+            "maximum": 599
+          },
+          "error_class": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.]{0,99}$"
+          },
+          "duration_ms": {
+            "$ref": "#/$defs/durationMs"
+          }
+        }
+      },
+      "frontend_error_occurred": {
+        "title": "frontend_error_occurred",
+        "description": "Excepción JS, rechazo no gestionado o fetch fallido (p. ej. `BackendStatus` → `/api/status`)",
+        "x-category": "errors",
+        "x-source": "frontend",
+        "x-delivery": "stream",
+        "x-tier": "additional",
+        "x-availability": "available",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "app",
+          "route_template",
+          "error_kind",
+          "error_fingerprint"
+        ],
+        "properties": {
+          "app": {
+            "$ref": "#/$defs/app"
+          },
+          "route_template": {
+            "$ref": "#/$defs/routeTemplate"
+          },
+          "error_kind": {
+            "type": "string",
+            "enum": [
+              "js_exception",
+              "unhandled_rejection",
+              "fetch_failed"
+            ]
+          },
+          "http_status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "error_fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{16}$"
+          }
+        }
+      },
+      "integration_call_failed": {
+        "title": "integration_call_failed",
+        "description": "Fallo al llamar APIs de transportistas, SGA, ERP o buzón",
+        "x-category": "errors",
+        "x-source": "integration",
+        "x-delivery": "stream",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "integration",
+          "error_kind",
+          "retryable"
+        ],
+        "properties": {
+          "integration": {
+            "type": "string",
+            "enum": [
+              "carrier_api",
+              "commercial_wms",
+              "spreadsheet_wms",
+              "erp",
+              "email_inbox"
+            ]
+          },
+          "carrier": {
+            "$ref": "#/$defs/carrier"
+          },
+          "error_kind": {
+            "type": "string",
+            "enum": [
+              "timeout",
+              "auth",
+              "rate_limited",
+              "bad_response",
+              "unavailable"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "api_request_completed": {
+        "title": "api_request_completed",
+        "description": "Middleware `log_request_timing` (hoy solo log local)",
+        "x-category": "performance",
+        "x-source": "backend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "available",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "method",
+          "route_template",
+          "status_code",
+          "duration_ms"
+        ],
+        "properties": {
+          "method": {
+            "$ref": "#/$defs/httpMethod"
+          },
+          "route_template": {
+            "$ref": "#/$defs/routeTemplate"
+          },
+          "status_code": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "duration_ms": {
+            "$ref": "#/$defs/durationMs"
+          }
+        }
+      },
+      "web_vitals_measured": {
+        "title": "web_vitals_measured",
+        "description": "Web Vitals al cargar o abandonar página",
+        "x-category": "performance",
+        "x-source": "frontend",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "available",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "app",
+          "route_template",
+          "metric",
+          "value",
+          "rating"
+        ],
+        "properties": {
+          "app": {
+            "$ref": "#/$defs/app"
+          },
+          "route_template": {
+            "$ref": "#/$defs/routeTemplate"
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "LCP",
+              "CLS",
+              "INP",
+              "TTFB",
+              "FCP"
+            ]
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "good",
+              "needs_improvement",
+              "poor"
+            ]
+          },
+          "viewport_class": {
+            "$ref": "#/$defs/viewportClass"
+          }
+        }
+      },
+      "service_status_changed": {
+        "title": "service_status_changed",
+        "description": "`/status` cambia entre `operational` y `degraded` (`SELECT 1`)",
+        "x-category": "internal",
+        "x-source": "backend",
+        "x-delivery": "stream",
+        "x-tier": "core_candidate",
+        "x-availability": "available",
+        "x-priority": "P0",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "service",
+          "dependency",
+          "previous_status",
+          "current_status"
+        ],
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "api"
+            ]
+          },
+          "dependency": {
+            "type": "string",
+            "enum": [
+              "postgresql"
+            ]
+          },
+          "previous_status": {
+            "type": "string",
+            "enum": [
+              "operational",
+              "degraded"
+            ]
+          },
+          "current_status": {
+            "type": "string",
+            "enum": [
+              "operational",
+              "degraded"
+            ]
+          }
+        }
+      },
+      "report_weekly_generated": {
+        "title": "report_weekly_generated",
+        "description": "Informe semanal, lunes 07:00 (`GET /dashboard/weekly-report`)",
+        "x-category": "internal",
+        "x-source": "job",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "stub",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "week",
+          "outcome"
+        ],
+        "properties": {
+          "week": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-W[0-9]{2}$"
+          },
+          "outcome": {
+            "$ref": "#/$defs/outcome"
+          },
+          "duration_ms": {
+            "$ref": "#/$defs/durationMs"
+          },
+          "data_freshness_hours": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "inventory_seed_executed": {
+        "title": "inventory_seed_executed",
+        "description": "`seed_inventory.py` (solo BD local `trackflow`)",
+        "x-category": "internal",
+        "x-source": "job",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "demo_local",
+        "x-priority": "P2",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome"
+        ],
+        "properties": {
+          "items_upserted": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "movements_inserted": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outcome": {
+            "$ref": "#/$defs/outcome"
+          }
+        }
+      },
+      "backup_completed": {
+        "title": "backup_completed",
+        "description": "Backup programado de PostgreSQL",
+        "x-category": "internal",
+        "x-source": "job",
+        "x-delivery": "batch",
+        "x-tier": "additional",
+        "x-availability": "future",
+        "x-priority": "P1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "outcome"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "postgresql"
+            ]
+          },
+          "outcome": {
+            "$ref": "#/$defs/outcome"
+          },
+          "duration_ms": {
+            "$ref": "#/$defs/durationMs"
+          },
+          "size_mb": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@ from time import perf_counter
 from fastapi import FastAPI, Request
 
 from db import check_database
-from app.routers import health, auth, inventory, orders, shipments, returns, customers, dashboard, users
+from app.routers import health, auth, inventory, orders, shipments, returns, customers, dashboard, users, telemetry
 from app.schemas.status import StatusResponse
 
 app = FastAPI(title="TrackFlow API", version="0.1.0")
@@ -40,6 +40,7 @@ app.include_router(returns.router)
 app.include_router(customers.router)
 app.include_router(dashboard.router)
 app.include_router(users.router)
+app.include_router(telemetry.router)
 
 
 @app.get(

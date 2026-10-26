@@ -1,0 +1,382 @@
+{
+  "steps": [
+    "2026-10-26T18:31:43.100Z goto backoffice",
+    "2026-10-26T18:32:19.556Z stop API (real outage)",
+    "2026-10-26T18:32:36.797Z restart API",
+    "2026-10-26T18:32:37.319Z API healthy; wait for next 30 s flush",
+    "2026-10-26T18:32:58.496Z throw js error + unhandled rejection with identifying text",
+    "2026-10-26T18:32:59.004Z hide page -> sendBeacon",
+    "2026-10-26T18:33:02.010Z close page (pagehide)"
+  ],
+  "requests": [
+    {
+      "t": "2026-10-26T18:31:43.355Z",
+      "url": "/api/status",
+      "method": "GET",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "x-request-id": "5130f72b-e69e-428c-b05c-49bf044d7abf",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"status\":\"degraded\"}",
+      "body": null
+    },
+    {
+      "t": "2026-10-26T18:31:58.577Z",
+      "url": "/api/status",
+      "method": "GET",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "x-request-id": "20b2981b-90ef-4a8c-9c62-e0f685493002",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"status\":\"degraded\"}",
+      "body": null
+    },
+    {
+      "t": "2026-10-26T18:32:13.576Z",
+      "url": "/api/status",
+      "method": "GET",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "x-request-id": "57d01a95-088c-4431-82f1-9cafd7c417f5",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"status\":\"degraded\"}",
+      "body": null
+    },
+    {
+      "t": "2026-10-26T18:32:13.621Z",
+      "url": "/api/telemetry/events",
+      "method": "POST",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "content-type": "application/json",
+        "origin": "http://127.0.0.1:3001",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 503,
+      "response": "{\"detail\":\"injected test failure\"}",
+      "body": {
+        "events": [
+          {
+            "eventId": "6db53a2d-cd43-4ad3-8fad-dcfa559de78e",
+            "timestamp": "2026-10-26T18:31:43.333Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "page_viewed",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "viewport_class": "desktop",
+              "referrer_type": "direct",
+              "locale": "es-ES"
+            }
+          },
+          {
+            "eventId": "01010d81-431e-48c8-836e-ffe85a856e1c",
+            "timestamp": "2026-10-26T18:31:43.340Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "web_vitals_measured",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "metric": "FCP",
+              "value": 164,
+              "rating": "good",
+              "viewport_class": "desktop"
+            }
+          },
+          {
+            "eventId": "9af20397-96c5-4d96-a235-ad8a7f9fab11",
+            "timestamp": "2026-10-26T18:31:43.341Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "web_vitals_measured",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "metric": "TTFB",
+              "value": 14.799999999813735,
+              "rating": "good",
+              "viewport_class": "desktop"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "t": "2026-10-26T18:32:14.629Z",
+      "url": "/api/telemetry/events",
+      "method": "POST",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "content-type": "application/json",
+        "origin": "http://127.0.0.1:3001",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"received\":3}",
+      "body": {
+        "events": [
+          {
+            "eventId": "6db53a2d-cd43-4ad3-8fad-dcfa559de78e",
+            "timestamp": "2026-10-26T18:31:43.333Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "page_viewed",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "viewport_class": "desktop",
+              "referrer_type": "direct",
+              "locale": "es-ES"
+            }
+          },
+          {
+            "eventId": "01010d81-431e-48c8-836e-ffe85a856e1c",
+            "timestamp": "2026-10-26T18:31:43.340Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "web_vitals_measured",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "metric": "FCP",
+              "value": 164,
+              "rating": "good",
+              "viewport_class": "desktop"
+            }
+          },
+          {
+            "eventId": "9af20397-96c5-4d96-a235-ad8a7f9fab11",
+            "timestamp": "2026-10-26T18:31:43.341Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "web_vitals_measured",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "metric": "TTFB",
+              "value": 14.799999999813735,
+              "rating": "good",
+              "viewport_class": "desktop"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "t": "2026-10-26T18:32:28.810Z",
+      "url": "/api/status",
+      "method": "GET",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "x-request-id": "efa88087-8b85-4d67-a48f-b312fdcbcee9",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 500,
+      "response": "Internal Server Error",
+      "body": null
+    },
+    {
+      "t": "2026-10-26T18:32:43.805Z",
+      "url": "/api/status",
+      "method": "GET",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "x-request-id": "dce39a06-7f67-473c-ac8b-36fd32727ad8",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"status\":\"degraded\"}",
+      "body": null
+    },
+    {
+      "t": "2026-10-26T18:32:43.854Z",
+      "url": "/api/telemetry/events",
+      "method": "POST",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "content-type": "application/json",
+        "origin": "http://127.0.0.1:3001",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"received\":1}",
+      "body": {
+        "events": [
+          {
+            "eventId": "44845e23-f3ae-450d-bba0-97e1ed6c7b8c",
+            "timestamp": "2026-10-26T18:32:28.807Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "frontend_error_occurred",
+            "schemaVersion": "1.0.0",
+            "requestId": "efa88087-8b85-4d67-a48f-b312fdcbcee9",
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "error_kind": "fetch_failed",
+              "error_fingerprint": "48a8a3a2d68b0da5",
+              "http_status": 500
+            }
+          }
+        ]
+      }
+    },
+    {
+      "t": "2026-10-26T18:32:58.979Z",
+      "url": "/api/status",
+      "method": "GET",
+      "resourceType": "fetch",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "x-request-id": "67ec4633-8740-432a-953a-8b7d0da04ee7",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"status\":\"degraded\"}",
+      "body": null
+    },
+    {
+      "t": "2026-10-26T18:32:59.016Z",
+      "url": "/api/telemetry/events",
+      "method": "POST",
+      "resourceType": "ping",
+      "requestHeaders": {
+        "accept": "*/*",
+        "accept-language": "es-ES",
+        "content-type": "application/json",
+        "origin": "http://127.0.0.1:3001",
+        "referer": "http://127.0.0.1:3001/",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"HeadlessChrome\";v=\"156\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux\""
+      },
+      "status": 200,
+      "response": "{\"received\":3}",
+      "body": {
+        "events": [
+          {
+            "eventId": "5e27aba4-cae5-4a58-8bee-9ee41849a4c0",
+            "timestamp": "2026-10-26T18:32:58.504Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "frontend_error_occurred",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "error_kind": "js_exception",
+              "error_fingerprint": "2ea09ae2a4052f85"
+            }
+          },
+          {
+            "eventId": "8b7b5ac0-6da8-4c8b-8273-559645bd9504",
+            "timestamp": "2026-10-26T18:32:58.504Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "frontend_error_occurred",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "error_kind": "unhandled_rejection",
+              "error_fingerprint": "23bf29f314262e31"
+            }
+          },
+          {
+            "eventId": "50d36645-c4b4-411b-b926-4a5afc955cd8",
+            "timestamp": "2026-10-26T18:32:59.006Z",
+            "sessionId": "ab7ac914-5a08-4d38-9c92-50aff2c34bd1",
+            "userId": null,
+            "event_type": "web_vitals_measured",
+            "schemaVersion": "1.0.0",
+            "requestId": null,
+            "properties": {
+              "app": "backoffice",
+              "route_template": "/",
+              "metric": "CLS",
+              "value": 0.0001465352794924554,
+              "rating": "good",
+              "viewport_class": "desktop"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
