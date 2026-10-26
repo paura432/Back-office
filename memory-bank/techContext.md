@@ -62,3 +62,8 @@ Los README locales definen la responsabilidad de cada carpeta y piden documentar
 - Comparacion visual previa contra seis referencias Vite a 1440/390/320 px: 0.0000% de diferencia de pixeles, contenido/enlaces/secciones e interacciones conservados.
 - Cinco capturas originales del usuario en `docs/screenshots/infra-40-{build,compose,website,backoffice,fastapi}.png`, extraidas del ZIP sin modificar bytes. CRC/decodificacion PNG y SHA-256 verificados. Indice en `docs/README.md`; complementan pruebas reales, no las sustituyen.
 - **GAP Next.js resuelto.** API de negocio, auth, persistencia y estrategia de produccion siguen fuera del alcance; no se afirma que esten implementados.
+
+## Almacenamiento de telemetría (2026-10-26)
+
+- Los eventos de `POST /telemetry/events` se guardan en Supabase (PostgreSQL 17), en `public.telemetry_events`. La migración versionada y `config.toml` de la CLI están en `services/api/supabase/`. Solo existe el entorno local (`npx supabase@2.122.0 start --workdir services/api`); no hay proyecto remoto de TrackFlow.
+- La API escribe con `psycopg` usando `TELEMETRY_DATABASE_DSN` (solo backend), con un rol de login miembro de `telemetry_writer` (solo INSERT). El inventario demo y `/status` siguen en el PostgreSQL de Compose (`DATABASE_*`). Compose todavía no pasa `TELEMETRY_DATABASE_DSN`.

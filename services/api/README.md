@@ -16,11 +16,14 @@ both item and alert entries. This cache is not shared across API workers and
 the TTL is the fallback for external/local SQL changes.
 
 `POST /telemetry/events` accepts `{"events": [...]}` (up to 100) and returns
-`{"received": N}`. Events are validated with Pydantic models generated from
-`app/schemas/event-schemas.json`, a copy of `docs/telemetry/event-schemas.json`
-kept identical by `tests/test_telemetry.py`. Any invalid event rejects the whole
-batch with 422. There is no event store yet: accepted events are only logged
-through the `trackflow.telemetry` logger.
+`{"received": N, "stored": N, "rejected": N}`. Each event is validated on its
+own with `TypeAdapter(TelemetryEvent)`, built from
+`app/schemas/event-schemas.json` (a copy of `docs/telemetry/event-schemas.json`
+kept identical by `tests/test_telemetry.py`). Invalid events are rejected one by
+one and the valid ones are written to Supabase `public.telemetry_events` in a
+single insert. Already stored or repeated `eventId`s are skipped and count only
+in `received`. A malformed batch gets 422; a storage failure gets 503 and
+nothing is stored. Details in `docs/telemetry/storage.md`.
 
 ### Synthetic inventory (local only)
 
@@ -56,6 +59,35 @@ responses over the exact same seeded local dataset and emits latency percentiles
 as JSON. Run it after the seeder with `docker compose exec api python
 bench_inventory.py`; do not substitute synthetic numbers for a missing local
 run. Recorded results are in `CACHING_REPORT.md` and `audit/caching/`.
+
+## Telemetry storage (local Supabase)
+
+The migration lives in `supabase/migrations/`. With Docker and the Supabase CLI
+(`npx supabase@2.122.0`), from this folder:
+
+```sh
+npx supabase start --workdir . -x studio,storage-api,imgproxy,realtime,edge-runtime,logflare,vector,mailpit,postgres-meta,supavisor
+```
+
+`start` applies the migration to the local database (port 54322). The table is
+only writable through the `telemetry_writer` group role, so create a login role
+for the API with a password of your own (never commit it):
+
+```sh
+docker exec -i supabase_db_trackflow-back-office psql -U postgres -d postgres \
+  -c "create role trackflow_api_local login password '<local password>' in role telemetry_writer"
+```
+
+Then run the API with
+`TELEMETRY_DATABASE_DSN=postgresql://trackflow_api_local:<local password>@127.0.0.1:54322/postgres`.
+Without it the endpoint answers 503. The Compose `api` service does not set this
+variable yet.
+
+`tests/test_telemetry_storage.py` runs against a real database only when
+`TELEMETRY_TEST_DATABASE_DSN` (login role with `telemetry_writer`) and
+`TELEMETRY_TEST_ADMIN_DSN` (table owner) are set; otherwise it is skipped. Point
+them at a separate development/test database with the migration applied: rows
+cannot be deleted.
 
 ## Local Development
 

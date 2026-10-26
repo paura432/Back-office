@@ -1,0 +1,76 @@
+{
+  "events": [
+    {
+      "eventId": "afc7bb0a-e554-4e9d-a7d1-b6dec1954189",
+      "timestamp": "2026-10-26T19:20:00.000Z",
+      "sessionId": "0e18552d-779f-4fee-a4e7-b9ed623b78ce",
+      "userId": null,
+      "event_type": "page_viewed",
+      "schemaVersion": "1.0.0",
+      "requestId": null,
+      "properties": {
+        "app": "backoffice",
+        "route_template": "/",
+        "viewport_class": "desktop"
+      }
+    },
+    {
+      "eventId": "b31e11db-ba11-4676-a850-aef8282c767c",
+      "timestamp": "2026-10-26T19:20:00.000Z",
+      "sessionId": null,
+      "userId": null,
+      "event_type": "inventory_movement_recorded",
+      "schemaVersion": "1.0.0",
+      "requestId": "dd6f769a-0f0e-4aec-8dc9-60f532c182c0",
+      "properties": {
+        "sku": "DEMO-BOX-001",
+        "warehouse": "zaragoza",
+        "quantity_delta": -3,
+        "quantity_after": 5
+      }
+    },
+    {
+      "eventId": "afc7bb0a-e554-4e9d-a7d1-b6dec1954189",
+      "timestamp": "2026-10-26T19:20:00.000Z",
+      "sessionId": "0e18552d-779f-4fee-a4e7-b9ed623b78ce",
+      "userId": null,
+      "event_type": "page_viewed",
+      "schemaVersion": "1.0.0",
+      "requestId": null,
+      "properties": {
+        "app": "backoffice",
+        "route_template": "/",
+        "viewport_class": "desktop"
+      }
+    },
+    {
+      "eventId": "1c192652-5b2a-4929-ada6-eb5c937229c8",
+      "timestamp": "2026-10-26T19:20:00.000Z",
+      "sessionId": "0e18552d-779f-4fee-a4e7-b9ed623b78ce",
+      "userId": null,
+      "event_type": "page_viewed",
+      "schemaVersion": "1.0.0",
+      "requestId": null,
+      "properties": {
+        "app": "backoffice",
+        "route_template": "/",
+        "viewport_class": "desktop",
+        "email": "someone@example.com"
+      }
+    },
+    {
+      "eventId": "1b7fca1b-357e-43f5-ba75-bb8f1a05178b",
+      "timestamp": "2026-10-26T19:20:00.000Z",
+      "sessionId": "0e18552d-779f-4fee-a4e7-b9ed623b78ce",
+      "userId": null,
+      "event_type": "order_teleported",
+      "schemaVersion": "1.0.0",
+      "requestId": null,
+      "properties": {
+        "app": "backoffice",
+        "route_template": "/",
+        "viewport_class": "desktop"
+      }
+    }
+  ]
+}
