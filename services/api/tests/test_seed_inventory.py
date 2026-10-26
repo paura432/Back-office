@@ -68,7 +68,8 @@ def test_seed_uses_cursor_executemany_and_stable_seed_keys_without_deletes(monke
         assert "DELETE" not in sql.upper()
         assert len(connection.many) == 2
         movement_query, movement_rows = connection.many[1]
-        assert "ON CONFLICT (seed_key)" in movement_query
+        # The unique seed_key index is partial; inference must repeat its predicate.
+        assert "ON CONFLICT (seed_key) WHERE seed_key IS NOT NULL" in movement_query
         assert movement_rows
         assert all(row[0].startswith("inventory-demo-v1:") for row in movement_rows)
 

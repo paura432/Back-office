@@ -65,3 +65,39 @@ def test_movement_invalidates_cached_inventory_and_derives_new_stock(monkeypatch
 
     assert result.quantity == 40
     assert demo_inventory.inventory_cache._entries == {}
+
+
+def test_unfiltered_reads_type_null_parameters_for_postgresql(monkeypatch):
+    """PostgreSQL cannot infer ``%s IS NULL`` when the bound value is None."""
+    queries = []
+
+    class FakeConnection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, query, params=None):
+            queries.append(query)
+            return self
+
+        def fetchall(self):
+            return []
+
+        def fetchone(self):
+            return None
+
+    demo_inventory.inventory_cache.invalidate()
+    monkeypatch.setattr(demo_inventory, "ensure_inventory_schema", lambda: None)
+    monkeypatch.setattr(demo_inventory, "_connect", FakeConnection)
+
+    demo_inventory.list_inventory()
+    demo_inventory.list_inventory_alerts()
+    demo_inventory.get_inventory_item("DEMO-BOX-001")
+
+    assert len(queries) == 3
+    for query in queries:
+        assert "%s IS NULL" not in query
+        assert "%s::text IS NULL" in query
+    demo_inventory.inventory_cache.invalidate()

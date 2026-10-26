@@ -126,7 +126,7 @@ def main() -> None:
                 """
                 INSERT INTO inventory_movements (seed_key, sku, warehouse, quantity_delta)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (seed_key)
+                ON CONFLICT (seed_key) WHERE seed_key IS NOT NULL
                 DO UPDATE SET quantity_delta = EXCLUDED.quantity_delta
                 """,
                 seed_movements,

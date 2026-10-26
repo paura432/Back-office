@@ -121,9 +121,9 @@ def list_inventory(
                   FROM inventory_items AS item
                   LEFT JOIN inventory_movements AS movement
                     ON movement.sku = item.sku AND movement.warehouse = item.warehouse
-                 WHERE (%s IS NULL OR item.warehouse = %s)
-                   AND (%s IS NULL OR item.sku = %s)
-                   AND (%s IS NULL OR item.name ILIKE %s OR item.sku ILIKE %s)
+                 WHERE (%s::text IS NULL OR item.warehouse = %s)
+                   AND (%s::text IS NULL OR item.sku = %s)
+                   AND (%s::text IS NULL OR item.name ILIKE %s OR item.sku ILIKE %s)
                  GROUP BY item.sku, item.name, item.warehouse, item.low_stock_threshold
                  ORDER BY item.warehouse, item.sku
                 """,
@@ -158,7 +158,7 @@ def list_inventory_alerts(warehouse: str | None = None) -> list[InventoryAlert]:
                   LEFT JOIN inventory_movements AS movement
                     ON movement.sku = item.sku AND movement.warehouse = item.warehouse
                  WHERE item.low_stock_threshold IS NOT NULL
-                   AND (%s IS NULL OR item.warehouse = %s)
+                   AND (%s::text IS NULL OR item.warehouse = %s)
                  GROUP BY item.sku, item.name, item.warehouse, item.low_stock_threshold
                 HAVING COALESCE(SUM(movement.quantity_delta), 0) <= item.low_stock_threshold
                  ORDER BY item.warehouse, item.sku
@@ -189,7 +189,7 @@ def get_inventory_item(
                   FROM inventory_items AS item
                   LEFT JOIN inventory_movements AS movement
                     ON movement.sku = item.sku AND movement.warehouse = item.warehouse
-                 WHERE item.sku = %s AND (%s IS NULL OR item.warehouse = %s)
+                 WHERE item.sku = %s AND (%s::text IS NULL OR item.warehouse = %s)
                  GROUP BY item.sku, item.name, item.description, item.warehouse,
                           item.low_stock_threshold
                  ORDER BY item.warehouse
