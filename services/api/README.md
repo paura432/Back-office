@@ -22,14 +22,19 @@ database named `trackflow` on `db`, `localhost`, `127.0.0.1`, or `::1`. The
 provided Compose stack uses the local PostgreSQL service; do not point this
 demo/seeder at a production or other remote database.
 
-From `services/api`, after starting the local Compose database:
+From the repository root (the `db` port is not published to the host, so run
+it inside the `api` container):
 
 ```sh
-uv run --frozen python seed_inventory.py
+docker compose up --build -d --wait db api
+docker compose exec api python seed_inventory.py
 ```
 
 The seeder is reproducible/idempotent for its fixed fictional SKUs and
-warehouse quantities. It replaces movements only for those demo item pairs.
+warehouse quantities: it upserts movements tagged with a stable `seed_key` and
+never deletes rows. If a demo item pair already has untagged movements (for
+example from `POST /inventory/movements`), it refuses to run without changing
+anything; recreate the local database to return to the canonical dataset.
 The HTTP API itself creates the two demo tables on first inventory access.
 
 Inventory routes:
@@ -41,8 +46,9 @@ Inventory routes:
 
 `services/api/bench_inventory.py` compares cold (cache-cleared) and warm
 responses over the exact same seeded local dataset and emits latency percentiles
-as JSON. Run it after the seeder and API startup when Docker/Compose is
-available; do not substitute synthetic numbers for a missing local run.
+as JSON. Run it after the seeder with `docker compose exec api python
+bench_inventory.py`; do not substitute synthetic numbers for a missing local
+run. Recorded results are in `CACHING_REPORT.md` and `audit/caching/`.
 
 ## Local Development
 

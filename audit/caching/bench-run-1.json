@@ -1,0 +1,37 @@
+{
+  "dataset": "fixed synthetic seed from seed_inventory.py",
+  "repetitions_per_endpoint_and_phase": 200,
+  "methodology_note": "Service-call time, same process and dataset. Uncached phase clears only this process's TTL cache before each query; warm phase primes once then measures hits. Excludes HTTP transport/serialization.",
+  "measurements": {
+    "GET /inventory/items": {
+      "dataset_row_count": 12,
+      "uncached_db_read_ms": {
+        "min_ms": 13.225,
+        "median_ms": 28.122,
+        "p95_ms": 57.491,
+        "max_ms": 313.139
+      },
+      "warm_cache_ms": {
+        "min_ms": 0.039,
+        "median_ms": 0.043,
+        "p95_ms": 0.096,
+        "max_ms": 5.578
+      }
+    },
+    "GET /inventory/alerts": {
+      "dataset_row_count": 6,
+      "uncached_db_read_ms": {
+        "min_ms": 12.046,
+        "median_ms": 22.297,
+        "p95_ms": 44.723,
+        "max_ms": 69.325
+      },
+      "warm_cache_ms": {
+        "min_ms": 0.021,
+        "median_ms": 0.022,
+        "p95_ms": 0.04,
+        "max_ms": 1.625
+      }
+    }
+  }
+}

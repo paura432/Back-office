@@ -121,6 +121,13 @@ deliberadamente tras `down`.
 - El informe ahora distingue los resultados de esta revisión de los Lighthouse históricos, enumera checks pendientes y marca los requisitos de práctica como no implementados/no justificados. No hubo acceso a producción, seed, PR, merge ni despliegue.
 - La revisión se publicó en el commit `24f73e5` (UI y documentación/progreso juntos) y el branch estaba sincronizado con `origin/feature/caching-optimisation` al verificarlo. Los checks de build/tests runtime siguen bloqueados por las herramientas ausentes; no se abrió PR, no se hizo merge ni despliegue. Dictamen de esta revisión: NO-GO para abrir PR como entrega completa hasta ejecutar builds/tests en entorno equipado y resolver la discrepancia con el checklist 4Geeks.
 
+## Cierre práctica Caching (2026-10-26)
+
+- Sustituye el dictamen NO-GO anterior. Con autorización expresa, `/inventory/items`, `/inventory/items/{sku}`, `/inventory/alerts` y `POST /inventory/movements` funcionan sobre PostgreSQL local de Compose, con gate `APP_ENV` development/test + `INVENTORY_DEMO_ENABLED`. Caché TTL in-process de 30 s, claves por lectura y filtros normalizados, invalidación total tras movimiento.
+- Corregidos dos fallos que solo aparecían contra PostgreSQL real: `ON CONFLICT (seed_key)` sin el predicado del índice parcial (`InvalidColumnReference`) y filtros `%s IS NULL` sin tipo (`IndeterminateDatatype`, HTTP 500 sin filtros). Añadidos tests de regresión.
+- Verificado con Docker local: seeder ×2 idempotente (12 ítems, 22 movimientos, sin duplicados, movimientos ajenos conservados); hit/miss, TTL a 28 s/30,5 s, invalidación, aislamiento de filtros y 404 fuera de desarrollo por HTTP real. pytest 122 passed; builds website/backoffice PASS (con aviso de vulnerabilidad de Next.js 16.4.0, sin actualizar).
+- Benchmark real (200 llamadas/fase, salida en `audit/caching/`): items mediana 28,1/10,1 ms → 0,043/0,036 ms; alerts 22,3/9,8 ms → 0,022/0,019 ms. Lazy loading/`useMemo` no aplicados con justificación en `CACHING_REPORT.md`.
+
 ## Cierre de entrega Backend Serialization Audit (2026-10-23)
 
 - Se recuperó el inventario individual de 31 endpoints de `12feda2` y se integró

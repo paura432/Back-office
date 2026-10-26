@@ -1,215 +1,131 @@
-# Auditoría e implementación de caching — TrackFlow
+# Performance Optimisation: Caching — TrackFlow
 
-**Fecha:** 2026-10-23  
-**Rama:** `feature/caching-optimisation`  
-**Alcance:** auditoría y preparación; no se implementan cachés ni optimizaciones de frontend. La única modificación de runtime es instrumentación pasiva de duración HTTP descrita abajo.  
-**Estado de la evidencia:** inventario de código y mediciones históricas verificables; en esta revisión se reconciliaron los conflictos UI. Los builds y tests runtime se intentaron, pero no pudieron ejecutarse porque faltan Node/npm y uv en el entorno.
+- **Fecha de verificación:** 2026-10-26
+- **Rama:** `feature/caching-optimisation`
+- **Entorno de verificación:** WSL2 (kernel 6.6.87.2), 16 CPU lógicas, Docker 29.1.3, PostgreSQL 16.15 (`postgres:16-alpine`), Python 3.12.10 en el contenedor `api`, Node 24.14.0 / Next.js 16.4.0 en host.
+- **Datos:** exclusivamente el seed sintético local (`seed_inventory.py`) sobre el PostgreSQL del Compose de desarrollo. No se accedió a producción ni a credenciales reales.
 
-## Resumen ejecutivo
+## Resumen
 
-Este repositorio no tiene actualmente endpoints GET de negocio operativos: los routers declaran listados y detalles, pero devuelven HTTP 501. Los únicos GET implementados son `/health` y `/status`; este último ejecuta un `SELECT 1` contra PostgreSQL. No hay métricas de tráfico real, latencias por ruta, esquema/tablas de negocio ni datos operativos que justifiquen un seeder. No se preparó ni ejecutó seed y no se accedió ni modificó producción.
+- Dos lecturas de inventario cacheadas con TTL de 30 s e invalidación tras escritura: `GET /inventory/items` y `GET /inventory/alerts` (el detalle `GET /inventory/items/{sku}` comparte la misma caché).
+- Medición real antes/después con `bench_inventory.py`: la mediana baja de ~10–28 ms (lectura PostgreSQL) a ~0,02–0,04 ms (hit de caché) según endpoint y corrida.
+- Tests FastAPI: **122 passed**. Builds de website y backoffice: **PASS**.
+- Lazy loading y `useMemo` se descartan de forma justificada: no hay componentes pesados ni cálculos derivados que optimizar (detalle abajo).
 
-El backoffice consulta `/api/status` inmediatamente y cada 15 segundos por pestaña abierta. El healthcheck de Compose consulta `/health` cada 5 segundos. Son las únicas frecuencias de llamada observables desde configuración del repositorio; no equivalen a frecuencia de usuarios ni a RPS de servidor.
+## Implementación
 
-### Línea base disponible
-
-Las mediciones siguientes son **históricas**, tomadas de los informes versionados de la auditoría de frontend anterior (Lighthouse 12.8.2, Chrome 141, tres ejecuciones por escenario). No son mediciones de esta rama ni sustituyen una nueva corrida con la revisión actual. Se citan como referencia reproducible ya archivada:
-
-| Escenario histórico | Performance mediana | LCP mediano | CLS mediano | TBT mediano | TTFB mediano | Evidencia |
-|---|---:|---:|---:|---:|---:|---|
-| Website desktop, baseline | 99 | 643.282 ms | 0.053153 | 0 ms | 4.141 ms | `audit/before/summary.json` |
-| Website mobile, baseline | 92 | 2664.057 ms | 0.050702 | 98 ms | 3.113 ms | `audit/before/summary.json` |
-| Backoffice desktop, baseline | 100 | 687.978 ms | 0.015558 | 0 ms | 5.646 ms | `audit/before/summary.json` |
-| Backoffice mobile, baseline | 94 | 2588.299 ms | 0.022812 | 0 ms | 4.784 ms | `audit/before/summary.json` |
-| Website desktop, auditoría posterior histórica | 99 | 645.060 ms | 0.053153 | 0 ms | 8.260 ms | `audit/after/summary.json` |
-| Website mobile, auditoría posterior histórica | 92 | 2643.309 ms | 0.050702 | 118 ms | 8.616 ms | `audit/after/summary.json` |
-| Backoffice desktop, auditoría posterior histórica | 100 | 688.388 ms | 0.015558 | 0 ms | 6.082 ms | `audit/after/summary.json` |
-| Backoffice mobile, auditoría posterior histórica | 93 | 2602.723 ms | 0.022812 | 56.050 ms | 6.749 ms | `audit/after/summary.json` |
-
-No se afirma mejora a partir de esas variaciones: los informes corresponden a una auditoría previa, con cambios de frontend distintos entre antes y después. El TTFB Lighthouse local no es latencia de endpoints backend ni carga de producción. TBT tampoco es INP. Para cache, faltan latencias y distribución reales por ruta.
-
-## Evidencia de medición en esta auditoría
-
-| Evidencia | Resultado observado | Interpretación / bloqueo |
+| Pieza | Archivo | Comportamiento |
 |---|---|---|
-| Rama inicial | `main`, HEAD `43b845b`; working tree limpio | Se creó la rama de trabajo desde `main`; no había cambios locales que preservar. Checkout identificado por Git como shallow/grafted. |
-| Stack declarado y fuentes | Website y backoffice Next.js 16.4.0 / React 19.3.0 / TypeScript App Router; API FastAPI / Python 3.12; PostgreSQL 16 en Compose | Verificado en manifiestos, código y configuración. No hay caché existente identificada en el servicio. |
-| Frontend: uso de API | `BackendStatus` llama inmediatamente y luego cada 15 s a `/api/status`; componente de cliente pequeño | Frecuencia configurada, no tráfico observado. El endpoint ejecuta query de DB: cachearlo ocultaría la salud actual y retrasaría la detección. |
-| Healthcheck Compose | `/health` cada 5 s en servicio API | Frecuencia de healthcheck configurada. `/health` devuelve constante y no es candidato significativo a caché; está en ruta de monitorización. |
-| GET de negocio | 18 rutas declaradas entre routers, todas con 501 según implementación y tests; 0 respuestas de negocio exitosas | Sin consultas de negocio ejecutables o latencias reales. No debe inferirse coste real de sus nombres/descripciones. |
-| Runtime/testing disponible en la revisión de cierre | `python3 3.12.15`; `node`, `npm`, `uv` y `docker` no disponibles en PATH; no hay `node_modules` ni `.venv` locales. Hay `package-lock.json` para ambas UIs y `services/api/uv.lock` | Los comandos de build y pytest se intentaron, pero el shell respondió `npm: command not found` / `uv: command not found`; no se instalaron herramientas ni se alteraron locks. Compose y Lighthouse tampoco se pueden ejecutar. |
-| Conflictos de UI | Eliminados los marcadores de los seis archivos solicitados y, con autorización expresa, de `uis/website/src/styles.css` y `uis/backoffice/src/styles.css` | Se conservaron los estilos `next/font`, los estilos responsive, `SiteHeader`, `BrandMark`, `DecorativeArrow` y `BackendStatus`. Los README describen el mecanismo `next/font` que usan los layouts. `git grep` no encuentra marcadores tras resolverlos. |
-| Validaciones posibles | `python3 -m compileall -q services/api/main.py services/api/tests/test_timing.py`, `git diff --check` y búsqueda global de marcadores de conflicto | PASS. `get_errors` no detectó errores en los cuatro archivos TSX de app/layout/pages. Estas comprobaciones no sustituyen los builds ni pytest. |
-| Instrumentación | Se añadió middleware en `services/api/main.py` que emite método, plantilla de ruta, status y `duration_ms`; prueba `services/api/tests/test_timing.py` | Cambio pasivo, no almacena datos ni registra query strings, IDs, tracking numbers o payloads. Sintaxis Python disponible; prueba runtime bloqueada por dependencias ausentes. |
-| Datos/seeder | No se preparó ni ejecutó seed | No existen modelos/tablas de dominio implementados y las rutas son stubs. Inventar dataset o esquema produciría una línea base engañosa; no se tocaron datos de producción. |
+| Caché TTL | `services/api/app/services/ttl_cache.py` | Caché in-process, thread-safe (`RLock`), reloj monotónico, TTL configurable; entrada expirada en `now >= expires_at`. Devuelve copias profundas para que el llamante no mute la entrada cacheada. |
+| Lecturas de inventario | `services/api/app/services/demo_inventory.py` | `INVENTORY_TTL_SECONDS = 30`. Claves tipadas por lectura y filtros normalizados: `("items", warehouse, sku, q)`, `("alerts", warehouse)`, `("item", sku, warehouse)`. `warehouse`/`q` se normalizan a minúsculas y `sku` a mayúsculas, así que variantes de mayúsculas comparten entrada. |
+| Modelo de stock | mismo archivo | Tablas locales `inventory_items` (metadatos, umbral) e `inventory_movements` (deltas firmados). La cantidad es `SUM(quantity_delta)`; no hay endpoint para fijarla. |
+| Invalidación | `register_inventory_movement` | `POST /inventory/movements` inserta el movimiento (404 si el SKU/almacén no existe, 409 si dejaría stock negativo) y, tras confirmar la transacción, vacía todas las entradas de inventario. |
+| Gate de demo | `services/api/app/services/inventory_demo_gate.py` | Todas las rutas `/inventory/*` responden 404 salvo `APP_ENV ∈ {development, test}` **y** `INVENTORY_DEMO_ENABLED` verdadero. Compose de desarrollo activa ambas. |
+| Guard de BD local | `demo_inventory._assert_local_database`, `seed_inventory.validate_local_dsn` | Rechazan cualquier DSN que no apunte a la BD `trackflow` en `db`, `localhost`, `127.0.0.1` o `::1`, antes de conectar. |
+| Seeder | `services/api/seed_inventory.py` | 12 pares SKU/almacén ficticios (6 SKU × Los Ángeles/Zaragoza), con stock cero y casos de alerta en ambos almacenes. Movimientos identificados por `seed_key` estable y UPSERT; nunca borra filas. |
+| Benchmark | `services/api/bench_inventory.py` | 200 llamadas por endpoint y fase sobre el mismo proceso y dataset. |
+| Instrumentación | `services/api/main.py` | Middleware que registra método, plantilla de ruta, status y `duration_ms`, sin URL raw, query string ni payload. |
 
-### Reproducción pendiente
+### Correcciones aplicadas en esta revisión
 
-1. Usar un entorno local aislado de desarrollo con Docker Engine/Compose, Node 22 y uv 0.6.17; confirmar `docker compose config` y revisar que el `DATABASE_DSN`/variables apunten únicamente al servicio local de Compose. No apuntar a producción.
-2. Instalar API según `services/api/README.md`: `uv sync --frozen --extra dev`; ejecutar `uv run --frozen --extra dev pytest -q`. Instalar/build de cada UI con sus locks (`npm ci`, `npm run build`).
-3. Levantar exclusivamente el stack local con `docker compose up --build -d --wait`. Capturar versión de herramientas, commit, hardware/entorno y logs; solicitar cada GET varias veces en serie y concurrente, separar cold/warm, registrar status y latencia de cliente. El middleware proporciona duración de aplicación en logs; agregar percentiles p50/p95/p99 por ruta en el harness de medición (no deducirlos de una sola petición).
-4. Ejecutar tres o más repeticiones de Lighthouse en desktop/móvil para website y backoffice con mismo Chrome, perfiles y build de producción. Guardar reportes nuevos sin sobreescribir `audit/before/` ni `audit/after/`.
-5. Para medir datos de negocio, esperar a que se apruebe e implemente un esquema y endpoints funcionales. Si se autoriza un seeder, debe ser script local explícito, idempotente, con IDs/emails/direcciones ficticios reservados, entorno validado como local, y ninguna URL/credencial productiva. Medir endpoints funcionales antes y después de poblar solo esa DB local; eliminar el seed al terminar de acuerdo con el procedimiento del proyecto.
+1. **UPSERT del seeder.** El índice único `inventory_movements_seed_key_idx` es parcial (`WHERE seed_key IS NOT NULL`). `ON CONFLICT (seed_key)` sin predicado fallaba contra PostgreSQL real con `InvalidColumnReference: there is no unique or exclusion constraint matching the ON CONFLICT specification` (reproducido con la versión anterior; la transacción se revirtió completa). Ahora usa `ON CONFLICT (seed_key) WHERE seed_key IS NOT NULL`, y el test lo exige.
+2. **Filtros opcionales en SQL.** `(%s IS NULL OR …)` con parámetro `None` fallaba en PostgreSQL real con `IndeterminateDatatype: could not determine data type of parameter $1` (HTTP 500 en `GET /inventory/items` sin filtros). Se añadió `%s::text IS NULL` en las tres lecturas y un test de regresión. Los tests previos usaban mocks y no lo detectaban.
 
-## Inventario de GET backend
+## Verificación ejecutada
 
-Frecuencia y latencia real de servidor: **desconocidas/no medidas**, salvo configuración explícita del healthcheck y polling descrita arriba. Todos los GET que no sean `/health` y `/status` están declarados como stubs 501 y no tienen dependencias de datos actuales. “Dependencia candidata” describe lo que su contrato sugiere, no una conexión ya implementada.
-
-| GET | Estado actual / dependencia observada | Frecuencia / latencia observada | Sensibilidad y decisión preliminar |
-|---|---|---|---|
-| `/health` | Implementado; respuesta constante `{"status":"ok"}`, sin DB | Compose healthcheck cada 5 s; latencia no medida | No cachear como endpoint de health: respuesta debe representar disponibilidad del proceso y la capa de monitorización ya controla la frecuencia. |
-| `/status` | Implementado; ejecuta PostgreSQL `SELECT 1`, devuelve `operational` o `degraded` | Backoffice al montar y cada 15 s por pestaña; latencia no medida | No cachear inicialmente; contenido refleja disponibilidad dependiente del estado actual. Respuesta actual no contiene credenciales. |
-| `/auth/me` | 501; perfil autenticado, user profile sin secretos por schema; autenticación aún no implementada | Desconocida; 0 RPS de negocio medidos | No cachear compartido. Si se implementa, cualquier cache deberá aislar identidad/sesión y tener invalidación de cambios de cuenta. |
-| `/inventory/items` | 501; lista de stock; no hay DB/repositorio de inventario | Desconocida | Potencialmente cara/frecuente según futura operación; cantidades cambiantes y por almacén. Candidato condicional, cache corto y ámbito de tenant/almacén tras medición. |
-| `/inventory/items/{sku}` | 501; detalle por SKU; sin almacenamiento | Desconocida | Misma sensibilidad de inventario; el stock tiene estabilidad baja. TTL muy corto o no cachear cantidad; separar metadatos estables solo en diseño futuro. |
-| `/inventory/alerts` | 501; umbral y cantidad; sin dependencia implementada | Desconocida | No cachear alertas operativas desactualizadas; si se decide cache futuro, ventana mínima y tenant/almacén en clave. |
-| `/orders/` | 501; listados con estado, fecha, cliente e items según schemas | Desconocida | Datos operativos/posible dirección de envío en detalle; no compartir entre clientes/tenants. Invalidar en creación/cambio de estado. |
-| `/orders/{order_id}` | 501; detalle incluye dirección de envío, notas, items y estado | Desconocida | Sensibilidad alta; no cache compartido ni público. Requerir auth, tenant en clave y TTL mínimo si se aprueba. Invalidar en cada cambio. |
-| `/shipments/` | 501; lista con tracking number, carrier, recipient, status | Desconocida | Puede incluir datos identificativos y estado volátil; aislar tenant y considerar no cachear por defecto. |
-| `/shipments/{shipment_id}` | 501; detalle con destinatario, destino e historial de tracking | Desconocida | Sensibilidad alta y volatilidad alta; evitar cache compartido. Invalidación por eventos del transportista si se reconsidera. |
-| `/shipments/tracking/{tracking_number}` | 501; tracking por número | Desconocida | No cachear en CDN/ámbito global: número de tracking puede permitir consultar estado y datos del destinatario. Si hay portal público, diseñar acceso y exposición mínima; TTL segundos/minutos solo tras análisis. |
-| `/returns/` | 501; listado con order ID, SKU y estado | Desconocida | Datos vinculados a clientes, pedidos y reclamaciones; no cache compartido, invalidar en crear/aprobar/inspeccionar. |
-| `/returns/{return_id}` | 501; detalle incluye motivo y notas de inspección | Desconocida | Sensibilidad alta; no cache público/compartido. En ámbito autenticado, invalidación obligatoria ante transiciones. |
-| `/customers/` | 501; lista contiene empresa, email de contacto, país | Desconocida | Información de contacto/cliente; no cachear compartido entre tenants; invalidar cambios de perfil. |
-| `/customers/{customer_id}` | 501; detalle incluye email, teléfono, dirección y notas | Desconocida | Información privada comercial/identificativa; no cache público. Tenant/usuario y TTL breve en cualquier futuro cache privado. |
-| `/customers/{customer_id}/health` | 501; score/riesgo y fecha contractual | Desconocida | Dato comercial sensible, pero derivado potencialmente estable. Candidato solo después de medir; key por tenant+cliente+versión de datos, TTL inicialmente 5–15 min, invalidación al cambiar inputs. |
-| `/users/` | 501; lista con email, rol y estado | Desconocida | Datos de cuentas/roles; no cache compartido. Invalidar inmediatamente al cambiar rol/estado. |
-| `/users/{user_id}` | 501; detalle personal con email, rol y fecha de alta; sin contraseña en schema | Desconocida | Datos personales/cuenta; sólo cache privado y clave con tenant/usuario, si se permite. No cachear información de credenciales. |
-| `/dashboard/executive` | 501; agregados propuestos de envíos, coste, retornos, clientes y satisfacción | Desconocida | Candidato principal futuro: agregación potencialmente costosa y compartible dentro de un tenant/ámbito autorizado; datos no necesariamente reales-time. Cache privado por tenant+país+filtros+versión, TTL de partida 1–5 min, invalidación/refresh por eventos relevantes. Contrastar freshness con “tiempo real” requerido. |
-| `/dashboard/weekly-report` | 501; reporte semanal con resumen, highlights y métricas | Desconocida | Candidato futuro de alta estabilidad una vez cerrado el periodo; clave tenant+semana+zona horaria/país+versión. TTL hasta siguiente generación semanal (o 24 h con refresh al generar), invalidar/regenerar al corregir datos. No hay job implementado. |
-
-**Nota de conteo:** 20 rutas GET de aplicación en total; 2 operativas y 18 stubs 501 (incluye `/auth/me`). Ningún endpoint funcional de negocio expone hoy datos de negocio. Framework OpenAPI/docs no se cuenta como ruta de aplicación de negocio.
-
-## Frontend: análisis de coste y estabilidad
-
-No se pudo generar un perfil React/Chrome actual. La inspección de código muestra páginas estáticas con arrays constantes definidos a nivel de módulo; no hay filtering, sorting, transformaciones grandes ni cálculos derivados dentro de render, por lo que envolver `services`, `teams` o `priorities` en `useMemo` no tiene beneficio demostrable y añade complejidad. Website `SiteHeader` es un Client Component pequeño por su estado de menú; el resto de página es Server Component en el estado de auditoría previo documentado. Backoffice renderiza arrays de cinco áreas/cuatro prioridades y un componente `BackendStatus` pequeño que hace polling. No hay paquetes de gráficos, tablas virtualizadas o dependencias de UI grandes identificadas en los manifiestos revisados.
-
-| Candidato | Evidencia/coste observado | Prioridad para perfil | Recomendación previa a implementación |
-|---|---|---|---|
-| Website: ilustración CSS/red de la landing, ticker y secciones inferiores | Contenido principalmente HTML/CSS; no hay evidencia de bundle JS grande; arte en CSS/SVG inline. Lighthouse histórico mobile con TBT mediano 98 ms (baseline) y 118 ms en informe posterior, sin atribución probada a un componente | Media-baja | Medir JS transferido, long tasks y coste de render antes. No aplicar `dynamic()` por intuición; estudiar lazy loading solo si aparece módulo pesado real y fuera del contenido LCP. |
-| Backoffice: listado de equipos y prioridades | 5 + 4 registros estáticos, arrays constantes fuera del componente | Baja | No usar `useMemo`: cálculo trivial y estable. Reevaluar si se conectan datasets grandes, filtros o tablas. |
-| Website: lista de cuatro servicios | 4 registros estáticos y `map` pequeño | Baja | Sin necesidad actual de `useMemo` o lazy loading. |
-| Backoffice: `BackendStatus` | Un fetch inicial y un intervalo cada 15 s; renderiza una etiqueta sencilla | Baja para cálculo/render, medible como carga de polling | No convertirlo en cache de `/status` sin aceptar explícitamente retraso de salud. Medir coste de red por número de pestañas; considerar consolidación/visibilidad sólo como futura optimización funcional separada. |
-
-## Requisitos de la práctica 4Geeks (revisión de esta rama)
-
-| Requisito solicitado | Estado en el código revisado | Decisión y evidencia |
+| Comprobación | Comando / método | Resultado |
 |---|---|---|
-| 2 casos de lazy loading | **Pendiente / no implementado** | No se identificaron módulos o componentes pesados separables; las páginas son HTML/CSS/SVG, las listas son pequeñas y `SiteHeader`/`BackendStatus` son componentes cliente pequeños. No se añadieron cargas diferidas artificiales. |
-| 1 uso de `useMemo` | **Pendiente / no implementado** | No hay cálculos costosos derivados en render. `services`, `teams` y `priorities` son arrays pequeños constantes a nivel de módulo. Memoizar no aporta beneficio sustentado. |
-| 2 endpoints con cache TTL e invalidación | **Pendiente / no implementado** | No existen dos GET de negocio funcionales: las 18 rutas correspondientes devuelven 501. `/health` y `/status` son endpoints de monitorización; cachearlos produciría salud atrasada. No se crearon endpoints ni se cachearon errores/stubs. Los candidatos documentados siguen siendo diseños condicionales y no cuentan como cumplimiento. |
+| Suite FastAPI | `cd services/api && uv run --frozen --extra dev pytest -q` | **PASS** — 122 passed, 0 failed (cobertura de `app`, `main`, `db`, `seed_inventory`: 96 %) |
+| Build website | `cd uis/website && npm ci && npm run build` | **PASS** (exit 0). La primera invocación se detuvo con exit 1 solo para mostrar un aviso de vulnerabilidad de Next.js 16.4.0; al repetir compila sin errores. Ver limitaciones. |
+| Build backoffice | `cd uis/backoffice && npm ci && npm run build` | **PASS** (exit 0), mismo aviso. |
+| Stack local | `docker compose up --build -d --wait db api` | `db` y `api` healthy |
+| Seeder ×2 | `docker compose exec api python seed_inventory.py` (dos veces) | Tras ambas: 12 ítems, 22 movimientos (11 pares con stock > 0 × 2), 0 `seed_key` duplicados, mismo hash de `(id, seed_key, delta)` → actualiza en sitio, no reinserta |
+| Conservación de movimientos | Ítem y movimiento ajenos al seed creados por SQL, luego reseed | Movimiento ajeno intacto; recuentos y hash sin cambios |
+| Movimientos sin `seed_key` en pares demo | Reseed tras un `POST` de API y un `INSERT` externo | El seeder se niega (`RuntimeError … origin is ambiguous`), revierte y no altera ninguna fila (diseño intencionado, ver limitaciones) |
 
-**Conclusión:** no se satisface todavía el checklist técnico de la práctica. Cumplirlo requeriría inventar lazy loading/useMemo sin coste demostrado y activar caching sobre rutas no funcionales o añadir endpoints de negocio no autorizados. Recomendación: no presentar esta auditoría como implementación completa de los requisitos; solicitar aclaración funcional/aprobación de endpoints reales antes de intentar satisfacerlos. La decisión sobre abrir PR depende además de ejecutar builds y tests en un entorno equipado.
+### Comportamiento de caché por HTTP real (API en Compose, puerto 8000)
 
-## Implementación de práctica en `feature/caching-optimisation` (2026-10-26)
+| Caso | Observado |
+|---|---|
+| Miss inicial | `GET /inventory/items?sku=DEMO-BOX-001&warehouse=los-angeles` → quantity 38 |
+| Hit | Tras `INSERT` externo de +5 por SQL, misma clave a t=0,2 s → 38 (servido desde caché) |
+| Aislamiento de filtros | `?warehouse=los-angeles` (otra clave) → 43 en la misma ventana |
+| Normalización | `?sku=demo-box-001&warehouse=LOS-ANGELES` → 38 (misma entrada que la clave original) |
+| TTL vigente | t=28,0 s → 38 |
+| Expiración | t=30,5 s → 43 |
+| Invalidación de alertas | `GET /inventory/alerts?warehouse=zaragoza` incluía `DEMO-BOX-001` (8 ≤ 10); `POST` +5 → 201 (quantity 13); la lectura inmediata ya no la incluye |
+| Invalidación de listado | `GET /inventory/items?warehouse=zaragoza` pasa de 8 a 13 inmediatamente tras el `POST` |
+| Aislamiento entre almacenes | Alertas Zaragoza: BOX, FILL, TAPE; Los Ángeles: LABEL (0), MAILER, PALLET |
+| Validaciones de escritura | Delta que deja stock negativo → 409; SKU inexistente → 404 |
 
-Por solicitud expresa se autorizó habilitar únicamente el par de lecturas de
-inventario y su escritura por movimientos, limitadas estrictamente al PostgreSQL
-de desarrollo local. Esta entrega no convierte los demás stubs en funcionales,
-no añade autenticación ni usa producción.
+### Bloqueo de rutas demo fuera de desarrollo (Uvicorn real)
 
-- `GET /inventory/items` acepta `warehouse`, `sku`, `q`; `GET /inventory/alerts`
-	acepta `warehouse`; el detalle existente admite `warehouse`. Las respuestas
-	conservan los schemas `InventoryItemSummary`, `InventoryItemDetail` y
-	`InventoryAlert` sin campos extra.
-- Tablas locales `inventory_items` (metadatos y umbral) e
-	`inventory_movements` (deltas firmados, fecha e índice). La cantidad de cada
-	SKU/almacén es `SUM(quantity_delta)` y se devuelve como quantity derivado. No
-	existe endpoint para fijar quantity. `POST /inventory/movements` inserta
-	entradas/salidas, rechaza SKU inexistente (404) y evita stock negativo (409).
-- Cache thread-safe, in-process, con TTL inicial de **30 s** para ambas lecturas
-	y detalle. Claves tipadas por lectura y compuestas por todos los filtros
-	normalizados. Un movimiento exitoso limpia todas las claves de inventario.
-	En ejecución multiproceso cada worker mantiene su cache; el TTL es el fallback
-	para modificaciones SQL externas. Esta caché de ejemplo no se propone como
-	coordinación para inventario operativo de producción.
-- `services/api/seed_inventory.py` se puede ejecutar solamente contra el DB
-	`trackflow` en host local o servicio Compose `db`; el guard se ejecuta antes
-	de conectar. Reemplaza únicamente los movimientos de sus 12 pares ficticios
-	SKU/almacén fijos, de forma idempotente/reproducible, con cantidades variadas,
-	stock cero y casos de alerta en ambos almacenes. Ningún dato ni URL productiva
-	se ha utilizado.
-- Suite de caché: hit/miss, expiración al límite TTL, invalidación, aislamiento
-	por tipo/filtros y copias defensivas; pruebas de servicio para guard local y
-	recomputación del stock tras movimiento; tests HTTP/schema adaptados. Ver
-	`services/api/tests/test_ttl_cache.py` y `test_inventory_local.py`.
+Las cuatro rutas (`GET /inventory/items`, `GET /inventory/items/{sku}`, `GET /inventory/alerts`, `POST /inventory/movements`) devolvieron **404 `Inventory demo is not enabled`** con: `APP_ENV=production` + flag activo, `APP_ENV=staging` + flag activo, sin variables y `APP_ENV=development` sin flag. Los tests `test_inventory_demo_gate.py` cubren los mismos casos.
 
-### Medición antes/después del caché
+## Mediciones antes/después
 
-Metodología implementada en `services/api/bench_inventory.py`: 200 llamadas
-directas por endpoint y fase; mismo proceso y seed; fase anterior limpia la
-entrada antes de cada llamada para forzar query PostgreSQL, fase posterior
-precalienta la misma consulta y mide hits. Reporta min/mediana/p95/max en ms.
-Esto mide tiempo de servicio (no transporte HTTP), usando el mismo dataset.
+`bench_inventory.py` ejecutado dentro del contenedor `api` contra el dataset canónico del seed (hash verificado igual al de la primera siembra). **Antes** = caché vaciada antes de cada llamada (lectura PostgreSQL, incluida la apertura de conexión que hace `_connect()` por lectura). **Después** = caché precalentada, se miden hits. 200 llamadas por endpoint y fase. Mide tiempo de llamada al servicio, no transporte HTTP. Salida bruta en `audit/caching/bench-run-1.json` y `audit/caching/bench-run-2.json`.
 
-| Endpoint | Dataset y N | Antes: DB sin cache | Después: cache hit | Estado |
-|---|---:|---:|---:|---|
-| `/inventory/items` | seed sintético, 200/fase | Pendiente de ejecución | Pendiente de ejecución | El entorno de esta sesión no tiene Docker/uv/PostgreSQL ni dependencias Python; no se inventan latencias. |
-| `/inventory/alerts` | seed sintético, 200/fase | Pendiente de ejecución | Pendiente de ejecución | Mismo bloqueo. |
+| Endpoint | Filas | Corrida | Antes mediana | Antes p95 | Después mediana | Después p95 |
+|---|---:|---|---:|---:|---:|---:|
+| `GET /inventory/items` | 12 | 1 (16:22:08Z) | 28,122 ms | 57,491 ms | 0,043 ms | 0,096 ms |
+| `GET /inventory/items` | 12 | 2 (16:22:26Z) | 10,149 ms | 14,045 ms | 0,036 ms | 0,052 ms |
+| `GET /inventory/alerts` | 6 | 1 (16:22:08Z) | 22,297 ms | 44,723 ms | 0,022 ms | 0,040 ms |
+| `GET /inventory/alerts` | 6 | 2 (16:22:26Z) | 9,829 ms | 16,302 ms | 0,019 ms | 0,042 ms |
 
-Para cerrar esta tabla: iniciar exclusivamente `docker compose up -d db api`,
-ejecutar desde `services/api` `uv run --frozen --extra dev pytest -q`,
-`uv run --frozen python seed_inventory.py` y `uv run --frozen python
-bench_inventory.py`; pegar los percentiles emitidos sin alterar N/dataset. El
-script compara servicio Python/DB directo, no las latencias end-to-end HTTP; no
-confundir estos resultados con los TTFB históricos Lighthouse de UI arriba.
+La fase "antes" varía bastante entre corridas consecutivas (la primera es ~2–3× más lenta); no se descarta ninguna. En ambas, el hit es más de dos órdenes de magnitud más rápido. Con 12 y 6 filas el coste dominante es la ida a PostgreSQL, no el tamaño del resultado; estas cifras no extrapolan a volúmenes reales ni incluyen HTTP/serialización.
 
-### Lazy loading / `useMemo`
+## Decisiones
 
-Se inspeccionaron Website y Backoffice junto con la auditoría visual ya
-archivada: listas estáticas de 4/5/4 elementos y componentes cliente pequeños;
-no hay tablas grandes, librerías de gráficas, cálculo costoso o módulo pesado
-independiente que beneficie la carga diferida. Se descarta explícitamente añadir
-`dynamic()`/lazy loading artificial o `useMemo` a arrays constantes; hacerlo no
-reduciría trabajo material y complicaría render/carga. No se cambió código UI.
+- **TTL 30 s.** Ventana corta porque el stock es volátil; la invalidación explícita cubre las escrituras por API y el TTL acota la antigüedad ante cambios SQL externos (verificado arriba).
+- **Invalidación total de inventario.** Un movimiento vacía todas las claves (listados, alertas y detalle). Es más simple y seguro que calcular qué combinaciones de filtros se ven afectadas; con este volumen el coste del miss posterior es bajo.
+- **Caché in-process.** Suficiente para el ejercicio y sin nuevas dependencias ni infraestructura. No se añadió Redis ni otra pieza de arquitectura.
+- **Endpoints no cacheados.** `/health` y `/status` (monitorización: una respuesta cacheada ocultaría una caída) y los 15 GET restantes, que siguen siendo stubs 501 (no se cachean errores). Rutas con datos personales o por tenant (`/auth/me`, `/users/*`, `/customers/*`, `/orders/*`, `/returns/*`, `/shipments/*`) no deben usar caché compartida cuando se implementen.
+- **Seeder conservador.** Solo inserta o actualiza sus filas con `seed_key`; nunca borra. Si encuentra movimientos sin `seed_key` en sus pares, no puede distinguir datos de prueba de movimientos legítimos y se detiene sin cambios.
 
-### Estado de ejecución y límites
+### Lazy loading y `useMemo`: no aplicados
 
-En el entorno disponible al comenzar: Python 3.12.15 sí; `uv`, `docker`,
-`node`, `npm`, `psql`, FastAPI, psycopg, pytest y httpx no están disponibles.
-No se pudo iniciar PostgreSQL/Compose, ejecutar la suite, builds UI ni obtener
-latencias reales. La tabla anterior queda bloqueada expresamente; no se declara
-PASS. Pendiente ejecutar pruebas, dos builds y medición en el contenedor
-devcontainer/Codespaces equipado antes de considerar lista la entrega.
+Revisión del código y del build de producción de esta rama:
 
-## Candidatos de caching priorizados (condicionales)
+- Ambas apps dependen únicamente de `next`, `react` y `react-dom`; el código de `app/` suma 226 líneas.
+- Los chunks propios de página son de 1 416 B (website) y 872 B (backoffice). Los chunks grandes (~200–240 KB) son el runtime de React/Next, que el lazy loading de componentes no elimina.
+- Solo hay dos Client Components: `SiteHeader` (19 líneas, estado del menú móvil, visible en la carga inicial) y `BackendStatus` (49 líneas, fetch a `/api/status` cada 15 s, visible arriba del todo). Diferirlos retrasaría contenido visible sin ahorro medible.
+- No hay cálculos derivados en render: las listas (4 servicios, 5 áreas, 4 prioridades) son constantes de módulo. `useMemo` añadiría trabajo de comparación sin evitar ningún cómputo.
 
-Todos son candidatos de **futuras implementaciones**, no endpoints cacheables hoy; las rutas asociadas responden 501.
+Aplicar `dynamic()`/`lazy()` o `useMemo` aquí sería artificial. Se reevaluará si se añaden tablas grandes, gráficos, filtrado o dependencias pesadas en cliente.
 
-| Prioridad | Recurso | Coste potencial | Frecuencia | Estabilidad | TTL inicial propuesto | Clave / ámbito | Invalidación | Razón / condición |
-|---|---|---|---|---|---|---|---|---|
-| 1 | `/dashboard/executive` | Alto potencial: agregación de varias métricas (hipótesis basada en contrato) | Desconocida; se espera uso de dashboard, sin dato real | Media; ventanas por país y agregados | 1–5 min, a validar contra frescura requerida | `dashboard:executive:{tenant}:{country}:{filters}:{data_version}`; backend privado, tenant autorizado | Eventos de pedido/envío/devolución/cliente o invalidación por versión; TTL como fallback | Mejor perfil coste/estabilidad si el query plan confirma agregación cara. No puede afirmarse hoy. |
-| 2 | `/dashboard/weekly-report` | Potencialmente alto si agregación/generación de resumen; no existe job/LLM probado | Desconocida; contrato indica reporte semanal | Alta para semana cerrada, baja mientras semana abierta | Semana cerrada: hasta siguiente generación semanal; periodo abierto: no cachear o TTL corto | `dashboard:weekly:{tenant}:{week}:{timezone}:{data_version}`; acceso privado | Regeneración semanal y correcciones explícitas de datos | Gran estabilidad temporal tras cierre; primero definir job, calendario, correcciones y propiedad de datos. |
-| 3 | `/inventory/items` (solo campos estables/listado) | Medio/alto solo con volumen real; no medido | Desconocida | Baja para quantity; mayor para descripciones estáticas | 5–30 s para stock, sujeto a SLA operativo; separar metadatos estables | `inventory:list:{tenant}:{warehouse}:{filters}:{version}`; interno/privado | Eventos de recepción, picking, ajuste, transferencia; TTL fallback | Frecuencia potencial en operaciones, pero stock desactualizado puede causar decisiones incorrectas. No cachear cifras hasta acordar tolerancia de staleness. |
+## Limitaciones
 
-**Candidato alternativo:** `/shipments/tracking/{tracking_number}` podría tener alta frecuencia, pero es de alta volatilidad y sensibilidad; no está entre los tres principales precisamente porque el riesgo de respuesta stale o exposición supera evidencia de beneficio. No cachear inicialmente.
+- La caché es por proceso: con varios workers cada uno tiene la suya y una escritura solo invalida la del worker que la atiende; los demás convergen por TTL (≤ 30 s). No sirve como coordinación de inventario en producción.
+- `get_or_set` mantiene el lock durante la consulta, así que los misses concurrentes se serializan (sin estampida, pero sin paralelismo). Aceptable para la demo.
+- Cada miss abre una conexión PostgreSQL nueva (sin pool), lo que infla la fase "antes".
+- Tras registrar movimientos por API en pares demo, el seeder se niega a reejecutarse; para volver al dataset canónico hay que recrear la BD local.
+- El benchmark mide la llamada al servicio en proceso, no latencia HTTP de extremo a extremo ni carga concurrente.
+- Next.js 16.4.0 muestra un aviso de vulnerabilidad conocida en `next build`. Actualizar dependencias globales queda fuera del alcance de esta práctica y requiere decisión aparte.
+- Los tests usan uv 0.11.16 en host; el contenedor fija uv 0.6.17. `uv.lock` no cambió.
 
-## Endpoints/rutas que no cachear
+## Requisitos de la práctica
 
-- `/health`: monitorización de proceso; una respuesta cacheada puede declarar sano un proceso que ya no lo está.
-- `/status`: depende de conectividad actual a PostgreSQL; cache de cualquier duración suprime la comprobación. Un cache separado con objetivo de disponibilidad distinto requeriría diseño explícito y señal visual etiquetada como stale.
-- `/auth/me`, `/users/*`, `/customers/*`, `/orders/*`, `/returns/*`: requieren identidad/tenant y algunos incluyen email, teléfono, dirección, notas, motivos o roles. No usar cache público/compartido. No hay autorización implementada todavía.
-- `/shipments/tracking/{tracking_number}` y detalles de envío: tracking number, destinatario, destino e historial; volatilidad alta y posible consulta pública. No usar cache global/CDN; revisar privacidad y autorización antes de implementar.
-- `/inventory/alerts` y cantidad de inventario: la antigüedad puede afectar operación física; sin SLA de freshness y eventos de invalidación, dejar sin caché.
-- Recomendaciones con datos de destino/peso, si en el futuro se exponen por GET: actualmente la recomendación es POST y 501. No cachear cuerpo sensible en infraestructura genérica sin diseño de clave y retención.
+| Requisito | Estado | Evidencia |
+|---|---|---|
+| Seeder local reproducible | ✅ Cumplido | Dos ejecuciones idempotentes, sin duplicados, conservando movimientos ajenos |
+| 2 endpoints con caché TTL | ✅ Cumplido | `/inventory/items` y `/inventory/alerts`, TTL 30 s verificado por HTTP |
+| Invalidación al modificar datos | ✅ Cumplido | `POST /inventory/movements` invalida listado y alertas al instante |
+| Medición antes/después | ✅ Cumplido | Tabla anterior y `audit/caching/*.json` |
+| Sin exposición fuera de desarrollo | ✅ Cumplido | Gate 404 verificado en producción/staging/sin flag |
+| 2 casos de lazy loading | ⚠️ No aplicado, justificado | Sin componentes pesados ni diferibles (sección anterior) |
+| 1 uso de `useMemo` | ⚠️ No aplicado, justificado | Sin cálculos derivados en render |
+| Tests y builds | ✅ PASS | 122 tests; website y backoffice compilan |
 
-## Timing backend agregado
+## Reproducción
 
-Se añadió middleware de medición en `services/api/main.py`: reloj monotónico alrededor de cada petición, log estructurado con método, plantilla de ruta, status y milisegundos con tres decimales. Se evita incluir URL raw, query string, path params, cabeceras, cuerpo, credenciales, tenant, IDs y tracking numbers. El middleware no retiene la respuesta, no altera status/body deliberadamente y no implementa cache. Se añadió prueba en `services/api/tests/test_timing.py` que verifica registro para `GET /health`; no se pudo ejecutar por ausencia de FastAPI/pytest. Aún no hay agregación p50/p95/p99 ni métricas exportables; recoger logs en un entorno de medición y reportar percentiles antes de seleccionar cache.
+Desde la raíz, solo contra el stack local:
 
-## Checks y limitaciones para el siguiente paso
-
-- Build website intentado: `npm --prefix uis/website run build` → bloqueado (`npm: command not found`). Build backoffice intentado: `npm --prefix uis/backoffice run build` → bloqueado (`npm: command not found`). Tests intentados: `uv run --frozen --extra dev pytest -q` → bloqueado (`uv: command not found`). No se instalaron herramientas globales.
-- `python3 -m compileall -q services/api/main.py services/api/tests/test_timing.py` (PASS), `git diff --check` (PASS) y búsqueda global de marcadores (sin resultados). `get_errors` informó sin errores en `website/app/{layout,page}.tsx` y `backoffice/app/{layout,page}.tsx`; estas comprobaciones no reemplazan builds de Next ni pytest.
-- Los seis archivos pedidos (`uis/website/{README.md,app/layout.tsx,app/page.tsx}` y `uis/backoffice/{README.md,app/layout.tsx,app/page.tsx}`) se reconciliaron. Durante el grep se detectaron marcadores adicionales en ambos `src/styles.css`; con autorización expresa se resolvieron conservando la variante alineada con `next/font` y los estilos responsive. No quedan marcadores en `uis/`.
-- No fue posible ejecutar `docker compose config/build/up`, Lighthouse ni perfiles de navegador: Docker/Node/npm no están instalados. No se midió una nueva baseline visual/rendimiento.
-- No se editó `CONTEXT.md`, configuración, lockfiles ni variables de entorno. No se creó seed; no se ejecutaron consultas fuera del código ni se modificó DB local/productiva.
-
-## Plan de implementación tras aprobación
-
-1. Ejecutar los builds de ambos frontends y la suite backend en un entorno con dependencias de proyecto; corregir cualquier error que aparezca y luego guardar una nueva línea base de Lighthouse.
-2. Aprobar contratos de negocio, autenticación, autorización/tenant, esquema y política de frescura antes de habilitar endpoints 501.
-3. Medir con tráfico de prueba representativo, mínimo tres repeticiones por ruta, cold/warm, concurrencia, query plans y p50/p95/p99; registrar errores y tamaño de respuesta. No mezclar `health/status` con agregados de negocio.
-4. Seleccionar candidatos por coste y repetición medidos; empezar por un agregado privado estable solo si hay mejora material, con estrategia de versionado/invalidation, límites de memoria, protección de stampede y pruebas de aislamiento.
-5. Probar invalidación tras mutaciones relevantes, tenant/rol, país, filtros y errores; documentar freshness permitida y comportamiento ante backend/cache caídos.
-6. Comparar antes/después con mismo hardware, dataset exclusivamente local/ficticio, build, tráfico y metodología; exigir resultado de corrección/privacidad y rendimiento, no solo hit ratio. Mantener endpoints de health y datos volátiles/sensibles fuera de caches compartidos.
+```sh
+docker compose up --build -d --wait db api
+docker compose exec api python seed_inventory.py
+docker compose exec api python bench_inventory.py
+cd services/api && uv run --frozen --extra dev pytest -q
+cd uis/website && npm ci && npm run build
+cd uis/backoffice && npm ci && npm run build
+```
