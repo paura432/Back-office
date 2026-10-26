@@ -20,10 +20,13 @@ def measure(callable_):
     """Collect uncached and cached latency for exactly the same call."""
     uncached = []
     cached = []
+    dataset_row_count = None
     for _ in range(REPETITIONS):
         inventory_cache.invalidate()
         started = time.perf_counter_ns()
-        callable_()
+        result = callable_()
+        if dataset_row_count is None:
+            dataset_row_count = len(result)
         uncached.append((time.perf_counter_ns() - started) / 1_000_000)
 
     inventory_cache.invalidate()
@@ -32,7 +35,11 @@ def measure(callable_):
         started = time.perf_counter_ns()
         callable_()
         cached.append((time.perf_counter_ns() - started) / 1_000_000)
-    return {"uncached_db_read_ms": percentiles(uncached), "warm_cache_ms": percentiles(cached)}
+    return {
+        "dataset_row_count": dataset_row_count,
+        "uncached_db_read_ms": percentiles(uncached),
+        "warm_cache_ms": percentiles(cached),
+    }
 
 
 def percentiles(samples: Sequence[float]) -> dict[str, float]:

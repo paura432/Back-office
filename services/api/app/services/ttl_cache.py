@@ -1,6 +1,7 @@
 """Small thread-safe in-process TTL cache for local inventory reads."""
 
 from copy import deepcopy
+from math import ulp
 from threading import RLock
 from time import monotonic
 from typing import Callable, Generic, TypeVar
@@ -24,12 +25,16 @@ class TTLCache(Generic[T]):
         with self._lock:
             now = self._clock()
             entry = self._entries.get(key)
-            if entry is not None and entry[0] > now:
+            if entry is not None and not self._expired(entry[0], now):
                 return deepcopy(entry[1])
 
             value = factory()
             self._entries[key] = (now + self.ttl_seconds, deepcopy(value))
             return deepcopy(value)
+
+    def _expired(self, expires_at: float, now: float) -> bool:
+        """Treat values at the TTL boundary as expired despite float rounding."""
+        return now >= expires_at or expires_at - now <= max(ulp(expires_at), ulp(now))
 
     def invalidate(self, key: object | None = None) -> None:
         """Invalidate one entry, or every entry when key is omitted."""

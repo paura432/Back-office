@@ -26,6 +26,8 @@ services:
     init: true
     environment:
       WATCHFILES_FORCE_POLLING: "true"
+      APP_ENV: development
+      INVENTORY_DEMO_ENABLED: "true"
       DATABASE_HOST: db
       DATABASE_PORT: "5432"
       DATABASE_NAME: ${POSTGRES_DB:-trackflow}

@@ -68,33 +68,69 @@ def main() -> None:
             """
         )
         connection.execute(
+            "ALTER TABLE inventory_movements ADD COLUMN IF NOT EXISTS seed_key text"
+        )
+        connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS inventory_movements_seed_key_idx "
+            "ON inventory_movements (seed_key) WHERE seed_key IS NOT NULL"
+        )
+        connection.execute(
             "CREATE INDEX IF NOT EXISTS inventory_movements_item_idx "
             "ON inventory_movements (sku, warehouse, occurred_at DESC)"
         )
-        connection.executemany(
-            """
-            INSERT INTO inventory_items (sku, warehouse, name, description, low_stock_threshold)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (sku, warehouse) DO UPDATE SET
-                name = EXCLUDED.name,
-                description = EXCLUDED.description,
-                low_stock_threshold = EXCLUDED.low_stock_threshold
-            """,
-            [item[:5] for item in ITEMS],
-        )
-        for sku, warehouse, _name, _description, _threshold, quantity in ITEMS:
-            connection.execute(
-                "DELETE FROM inventory_movements WHERE sku = %s AND warehouse = %s",
-                (sku, warehouse),
+        with connection.cursor() as cursor:
+            cursor.executemany(
+                """
+                INSERT INTO inventory_items (sku, warehouse, name, description, low_stock_threshold)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (sku, warehouse) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    description = EXCLUDED.description,
+                    low_stock_threshold = EXCLUDED.low_stock_threshold
+                """,
+                [item[:5] for item in ITEMS],
             )
-            if quantity:
-                # Two fixed deltas demonstrate that stock is a ledger sum rather
-                # than a mutable quantity column.
-                first_delta = max(1, quantity // 3)
-                connection.executemany(
-                    "INSERT INTO inventory_movements (sku, warehouse, quantity_delta) VALUES (%s, %s, %s)",
-                    [(sku, warehouse, first_delta), (sku, warehouse, quantity - first_delta)],
+
+            # Older demo runs had no provenance key. Never guess which rows are
+            # disposable: fail without touching the existing movement ledger.
+            cursor.execute(
+                """
+                SELECT 1
+                  FROM inventory_movements
+                 WHERE (sku, warehouse) IN (SELECT * FROM unnest(%s::text[], %s::text[]))
+                   AND seed_key IS NULL
+                 LIMIT 1
+                """,
+                ([item[0] for item in ITEMS], [item[1] for item in ITEMS]),
+            )
+            if cursor.fetchone() is not None:
+                raise RuntimeError(
+                    "Refusing to seed item pairs with untagged movements; "
+                    "their origin is ambiguous"
                 )
+
+            seed_movements = []
+            for sku, warehouse, _name, _description, _threshold, quantity in ITEMS:
+                if quantity == 0:
+                    continue
+                # Two fixed, tagged deltas demonstrate a ledger-derived stock.
+                first_delta = max(1, quantity // 3)
+                second_delta = quantity - first_delta
+                seed_movements.extend(
+                    [
+                        (f"inventory-demo-v1:{sku}:{warehouse}:1", sku, warehouse, first_delta),
+                        (f"inventory-demo-v1:{sku}:{warehouse}:2", sku, warehouse, second_delta),
+                    ]
+                )
+            cursor.executemany(
+                """
+                INSERT INTO inventory_movements (seed_key, sku, warehouse, quantity_delta)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (seed_key)
+                DO UPDATE SET quantity_delta = EXCLUDED.quantity_delta
+                """,
+                seed_movements,
+            )
     print(f"Seeded {len(ITEMS)} synthetic item/warehouse pairs in local trackflow DB")
 
 

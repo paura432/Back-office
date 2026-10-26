@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.schemas.inventory import (
     InventoryAlert,
@@ -14,8 +14,13 @@ from app.services.demo_inventory import (
     list_inventory_alerts,
     register_inventory_movement,
 )
+from app.services.inventory_demo_gate import require_inventory_demo_enabled
 
-router = APIRouter(prefix="/inventory", tags=["inventory"])
+router = APIRouter(
+    prefix="/inventory",
+    tags=["inventory"],
+    dependencies=[Depends(require_inventory_demo_enabled)],
+)
 
 
 @router.get("/items", response_model=list[InventoryItemSummary])

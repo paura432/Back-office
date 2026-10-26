@@ -9,7 +9,9 @@ from main import app
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("INVENTORY_DEMO_ENABLED", "true")
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
