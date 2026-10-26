@@ -1,8 +1,8 @@
 # Captura de telemetría en el frontend
 
-Implementa en la backoffice la captura definida en [`telemetry-plan.md`](./telemetry-plan.md) y el contrato [`event-schemas.json`](./event-schemas.json), sin cambiar nombres, propiedades ni envelope.
+Hemos implementado en la backoffice la captura definida en [`telemetry-plan.md`](./telemetry-plan.md) y en el contrato [`event-schemas.json`](./event-schemas.json), sin cambiar nombres, propiedades ni envelope.
 
-> **Bloqueo vigente:** `empresa-BRIEFING.md` sigue sin existir. Las métricas obligatorias no están verificadas y nada de esta captura implica su aprobación.
+**Bloqueo:** `empresa-BRIEFING.md` sigue sin existir. Las métricas obligatorias no están verificadas y esta captura no implica su aprobación.
 
 ## Flujo
 
@@ -40,18 +40,18 @@ Implementa en la backoffice la captura definida en [`telemetry-plan.md`](./telem
 | Comprobación | Resultado |
 |---|---|
 | `uv run --frozen --extra dev pytest -q` (`services/api`) | 148 passed (122 previos + 26 de `tests/test_telemetry.py`: lotes válidos, vacío, 13 eventos inválidos, restricciones numéricas, 5 formas de lote inválidas, cuerpo no JSON, paridad con el contrato) |
-| `npm test` (`uis/backoffice`, `node:test`) | 7 passed: envelope, flush a 20 y a 30 s, backoff 1/2/4 s con máximo 3 reintentos y mismo `eventId`, sin reintento en 4xx, `sendBeacon` sin reenvíos, fallback a `fetch`, rotación de sesión. Si se fuerzan 4 reintentos o un backoff fijo, los tests fallan. |
+| `npm test` (`uis/backoffice`, `node:test`) | 7 passed: envelope, flush a 20 y a 30 s, backoff 1/2/4 s con máximo 3 reintentos y mismo `eventId`, sin reintento en 4xx, `sendBeacon` sin reenvíos, fallback a `fetch`, rotación de sesión. Comprobamos que fallan si se fuerzan 4 reintentos o un backoff fijo. |
 | `npm run typecheck` / `npm run build` | PASS (`next build` carga `.env.local`) |
-| Navegador real (Chromium 156 headless, `next start` + Uvicorn) | Ver abajo |
+| Prueba automatizada en navegador (script Playwright 1.64 con Chromium 156 headless, contra `next start` en :3001 y Uvicorn en :8000) | Ver abajo |
 
-**Ejecución en navegador** ([`evidence/browser-run.json`](./evidence/browser-run.json), log de la API en [`evidence/api-accepted-events.jsonl`](./evidence/api-accepted-events.jsonl)):
+**Prueba en navegador.** Un script de Playwright abre la backoffice, registra todas las peticiones a `/api/telemetry/events` y `/api/status` ([`evidence/browser-run.json`](./evidence/browser-run.json)) y, con la API arrancada con logging INFO, guarda los eventos aceptados ([`evidence/api-accepted-events.jsonl`](./evidence/api-accepted-events.jsonl)). Después validamos todos los eventos con `jsonschema` contra `event-schemas.json`. Comprobamos lo siguiente:
 
-1. Flush a los 30 s: el primer POST recibe un **503 inyectado** en la prueba; a 1 s se reintenta con los **mismos 3 `eventId`** → `200 {"received":3}`.
-2. **Caída real de la API**: `/api/status` → 500 en el proxy → un `fetch_failed` con `http_status: 500` y `requestId` igual al `X-Request-Id` de esa petición; tras reiniciar la API → `200 {"received":1}`.
-3. Error JS y promesa rechazada con email, número y `token=secret` en el mensaje; al ocultar la página, `sendBeacon` (tipo `ping`) → `200 {"received":3}`. Al cerrarla, el LCP llegó por un segundo beacon que la API registró y Playwright ya no pudo capturar.
-4. Resultado: 8 eventos aceptados por la API, todos distintos; ningún `eventId` duplicado entre respuestas 200; 0 errores con `jsonschema` contra `event-schemas.json`; ni `@`, ni `probe`, ni `secret`, ni `token=`, ni `12345` ni URLs en los lotes; `userId` siempre `null`.
+1. A los 30 s se envía el primer lote. El script responde a ese primer POST con un 503 (`context.route`); a 1 s el cliente lo reintenta con los mismos 3 `eventId` y la API devuelve `200 {"received":3}`.
+2. El script detiene el proceso de Uvicorn: `/api/status` devuelve 500 en el proxy y se registra un `fetch_failed` con `http_status: 500` y un `requestId` igual al `X-Request-Id` de esa petición. Tras reiniciar la API, el lote llega con `200 {"received":1}`.
+3. El script lanza un error JS y una promesa rechazada con un email, un número y `token=secret` en el mensaje, y después fuerza `visibilityState = 'hidden'`. El lote sale por `sendBeacon` (tipo `ping`) y la API devuelve `200 {"received":3}`. Al cerrar la página, el LCP llegó en un segundo beacon: la API lo registró, pero Playwright ya no pudo capturarlo.
+4. La API aceptó 8 eventos, todos con `eventId` distinto y sin duplicados entre las respuestas 200; `jsonschema` no dio ningún error; en los lotes no aparecían `@`, `probe`, `secret`, `token=`, `12345` ni URLs; `userId` fue siempre `null`.
 
-**DevTools (panel Network real de Chromium inspeccionando la pestaña de la backoffice):**
+**DevTools.** Comprobamos en el panel Network de DevTools que el POST a `/api/telemetry/events` devolvía 200 y contenía el lote `events[]`. Las capturas también están automatizadas: Chromium se lanzó con `--remote-debugging-port`, el frontend de DevTools se conectó a la pestaña de la backoffice y Playwright abrió la petición y sus pestañas Headers, Payload y Response tras el flush de 30 s.
 
 | Headers: `POST /api/telemetry/events` → 200 OK | Payload: lote `events[]` | Response |
 |---|---|---|
