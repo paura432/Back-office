@@ -9,7 +9,7 @@ from main import app
 async def test_every_application_route_declares_a_pydantic_response_model():
     routes = [route for route in app.routes if isinstance(route, APIRoute)]
 
-    assert len(routes) == 32
+    assert len(routes) == 33
     assert all(route.response_model is not None for route in routes)
     assert all(
         route.response_field is not None

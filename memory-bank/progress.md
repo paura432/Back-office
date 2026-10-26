@@ -102,6 +102,32 @@ deliberadamente tras `down`.
 - `docs/serialization-audit.md` describe criterios, evidencia, límites y bloqueos; README de servicios reconciliados con main.
 - PR/commits finales quedan pendientes de revisión completa de diff conforme al protocolo pre-commit.
 
+## Auditoría de caching (2026-10-23)
+
+- Nueva rama `feature/caching-optimisation` creada desde `main` (`43b845b`); el árbol de trabajo estaba limpio. No se implementó caché ni optimizaciones de frontend.
+- `CACHING_REPORT.md` documenta stack, inventario de 20 GET de aplicación (2 funcionales y 18 stubs 501), dependencias actuales/hipotéticas, frecuencias configuradas y desconocidas, referencias Lighthouse históricas, propuestas condicionales de TTL/clave/ámbito/invalidación y rutas que no deben cachearse.
+- Las medianas frontend disponibles pertenecen a la auditoría anterior en `audit/before/` y `audit/after/`; no se pudieron repetir en este entorno. No hay latencia backend por endpoint ni tráfico/datos operativos disponibles. No se creó ni ejecutó un seeder porque el backend de negocio y sus tablas no existen; producción no se consultó ni alteró.
+- Añadida instrumentación pasiva de duración HTTP en `services/api/main.py`, que registra método, plantilla de ruta, status y ms sin URL raw, params ni payload. Test de log añadido en `services/api/tests/test_timing.py`; compileall y `git diff --check` pasan. No se pudo ejecutar pytest/build/Compose/Lighthouse por ausencia de uv, pytest, FastAPI, Node/npm y Docker.
+- En el checkout inicial de `main` se encontraron marcadores de conflicto en los seis archivos UI indicados; en una revisión posterior de `feature/caching-optimisation` se reconciliaron esos archivos y, con autorización, ambos `src/styles.css`. Los builds siguen pendientes de ejecución porque falta `npm`.
+- En el momento de registrar esta nota histórica, la publicación estaba pendiente. El cierre de la revisión, los commits y el estado actual de publicación se documentan en la sección posterior correspondiente.
+
+## Revisión de caching y reconciliación UI (2026-10-23)
+
+- En `feature/caching-optimisation` se verificó HEAD `dacd066` sincronizado con `origin/feature/caching-optimisation` y árbol limpio antes de comenzar esta revisión. Se revisó el historial: el commit incluye informe, middleware y test de timing. No se confundió con la base `main` (`43b845b`).
+- Reconciliados los seis archivos UI solicitados: README, layout y page de website y backoffice. Website conserva `SiteHeader` como Client Component y la página como Server Component; se mantienen `BrandMark`/`DecorativeArrow`, metadata, viewport y fuentes vía `next/font`. Backoffice conserva `BackendStatus` (fetch inicial + polling configurado cada 15 s), flechas SVG y contenido estático. Las guías locales quedaron alineadas con los layouts.
+- Durante la búsqueda se hallaron marcadores adicionales en `uis/website/src/styles.css` y `uis/backoffice/src/styles.css`. Tras autorización explícita se eliminaron las secciones duplicadas de estilos y Google Fonts, manteniendo la variante con variables `next/font`, media queries y estilos del indicador. En total hay ocho archivos UI modificados, seis pedidos + dos CSS necesarios para desbloquear la compilación.
+- No se implementaron lazy loading, `useMemo` ni caching TTL: no hay componentes pesados/cálculos costosos demostrables y 18 GET de negocio son 501; `/health` y `/status` no deben ocultar estado atrasado. El checklist 4Geeks permanece pendiente, con evidencia y razones en `CACHING_REPORT.md`.
+- Checks: `python3 -m compileall -q services/api/main.py services/api/tests/test_timing.py` PASS; `git diff --check` PASS; búsqueda global de marcadores UI sin resultados; el proveedor de errores no reporta errores en los cuatro TSX revisados. Los dos `npm run build` (website y backoffice) y `uv run --frozen --extra dev pytest -q` se intentaron y quedaron bloqueados porque no existen `npm` ni `uv` en PATH; tampoco hay `node_modules`/`.venv`. No se instalaron herramientas, ni se alteraron dependencias/locks. Lighthouse/Compose no ejecutados.
+- El informe ahora distingue los resultados de esta revisión de los Lighthouse históricos, enumera checks pendientes y marca los requisitos de práctica como no implementados/no justificados. No hubo acceso a producción, seed, PR, merge ni despliegue.
+- La revisión se publicó en el commit `24f73e5` (UI y documentación/progreso juntos) y el branch estaba sincronizado con `origin/feature/caching-optimisation` al verificarlo. Los checks de build/tests runtime siguen bloqueados por las herramientas ausentes; no se abrió PR, no se hizo merge ni despliegue. Dictamen de esta revisión: NO-GO para abrir PR como entrega completa hasta ejecutar builds/tests en entorno equipado y resolver la discrepancia con el checklist 4Geeks.
+
+## Cierre práctica Caching (2026-10-26)
+
+- Sustituye el dictamen NO-GO anterior. Con autorización expresa, `/inventory/items`, `/inventory/items/{sku}`, `/inventory/alerts` y `POST /inventory/movements` funcionan sobre PostgreSQL local de Compose, con gate `APP_ENV` development/test + `INVENTORY_DEMO_ENABLED`. Caché TTL in-process de 30 s, claves por lectura y filtros normalizados, invalidación total tras movimiento.
+- Corregidos dos fallos que solo aparecían contra PostgreSQL real: `ON CONFLICT (seed_key)` sin el predicado del índice parcial (`InvalidColumnReference`) y filtros `%s IS NULL` sin tipo (`IndeterminateDatatype`, HTTP 500 sin filtros). Añadidos tests de regresión.
+- Verificado con Docker local: seeder ×2 idempotente (12 ítems, 22 movimientos, sin duplicados, movimientos ajenos conservados); hit/miss, TTL a 28 s/30,5 s, invalidación, aislamiento de filtros y 404 fuera de desarrollo por HTTP real. pytest 122 passed; builds website/backoffice PASS (con aviso de vulnerabilidad de Next.js 16.4.0, sin actualizar).
+- Benchmark real (200 llamadas/fase, salida en `audit/caching/`): items mediana 28,1/10,1 ms → 0,043/0,036 ms; alerts 22,3/9,8 ms → 0,022/0,019 ms. Lazy loading/`useMemo` no aplicados con justificación en `CACHING_REPORT.md`.
+
 ## Cierre de entrega Backend Serialization Audit (2026-10-23)
 
 - Se recuperó el inventario individual de 31 endpoints de `12feda2` y se integró
