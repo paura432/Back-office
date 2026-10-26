@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional
 
@@ -30,3 +30,18 @@ class InventoryAlert(BaseModel):
     warehouse: str
     current_quantity: int = Field(ge=0)
     threshold: int = Field(ge=0)
+
+
+class InventoryMovementCreate(BaseModel):
+    """Signed stock change recorded as an immutable inventory movement."""
+
+    sku: str = Field(min_length=1, max_length=64)
+    warehouse: str = Field(min_length=1, max_length=64)
+    quantity_delta: int
+
+    @field_validator("quantity_delta")
+    @classmethod
+    def reject_zero_delta(cls, value: int) -> int:
+        if value == 0:
+            raise ValueError("quantity_delta must not be zero")
+        return value

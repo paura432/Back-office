@@ -1,4 +1,4 @@
-# Auditoría de rendimiento y caching — TrackFlow
+# Auditoría e implementación de caching — TrackFlow
 
 **Fecha:** 2026-10-23  
 **Rama:** `feature/caching-optimisation`  
@@ -100,6 +100,77 @@ No se pudo generar un perfil React/Chrome actual. La inspección de código mues
 | 2 endpoints con cache TTL e invalidación | **Pendiente / no implementado** | No existen dos GET de negocio funcionales: las 18 rutas correspondientes devuelven 501. `/health` y `/status` son endpoints de monitorización; cachearlos produciría salud atrasada. No se crearon endpoints ni se cachearon errores/stubs. Los candidatos documentados siguen siendo diseños condicionales y no cuentan como cumplimiento. |
 
 **Conclusión:** no se satisface todavía el checklist técnico de la práctica. Cumplirlo requeriría inventar lazy loading/useMemo sin coste demostrado y activar caching sobre rutas no funcionales o añadir endpoints de negocio no autorizados. Recomendación: no presentar esta auditoría como implementación completa de los requisitos; solicitar aclaración funcional/aprobación de endpoints reales antes de intentar satisfacerlos. La decisión sobre abrir PR depende además de ejecutar builds y tests en un entorno equipado.
+
+## Implementación de práctica en `feature/caching-optimisation` (2026-10-26)
+
+Por solicitud expresa se autorizó habilitar únicamente el par de lecturas de
+inventario y su escritura por movimientos, limitadas estrictamente al PostgreSQL
+de desarrollo local. Esta entrega no convierte los demás stubs en funcionales,
+no añade autenticación ni usa producción.
+
+- `GET /inventory/items` acepta `warehouse`, `sku`, `q`; `GET /inventory/alerts`
+	acepta `warehouse`; el detalle existente admite `warehouse`. Las respuestas
+	conservan los schemas `InventoryItemSummary`, `InventoryItemDetail` y
+	`InventoryAlert` sin campos extra.
+- Tablas locales `inventory_items` (metadatos y umbral) e
+	`inventory_movements` (deltas firmados, fecha e índice). La cantidad de cada
+	SKU/almacén es `SUM(quantity_delta)` y se devuelve como quantity derivado. No
+	existe endpoint para fijar quantity. `POST /inventory/movements` inserta
+	entradas/salidas, rechaza SKU inexistente (404) y evita stock negativo (409).
+- Cache thread-safe, in-process, con TTL inicial de **30 s** para ambas lecturas
+	y detalle. Claves tipadas por lectura y compuestas por todos los filtros
+	normalizados. Un movimiento exitoso limpia todas las claves de inventario.
+	En ejecución multiproceso cada worker mantiene su cache; el TTL es el fallback
+	para modificaciones SQL externas. Esta caché de ejemplo no se propone como
+	coordinación para inventario operativo de producción.
+- `services/api/seed_inventory.py` se puede ejecutar solamente contra el DB
+	`trackflow` en host local o servicio Compose `db`; el guard se ejecuta antes
+	de conectar. Reemplaza únicamente los movimientos de sus 12 pares ficticios
+	SKU/almacén fijos, de forma idempotente/reproducible, con cantidades variadas,
+	stock cero y casos de alerta en ambos almacenes. Ningún dato ni URL productiva
+	se ha utilizado.
+- Suite de caché: hit/miss, expiración al límite TTL, invalidación, aislamiento
+	por tipo/filtros y copias defensivas; pruebas de servicio para guard local y
+	recomputación del stock tras movimiento; tests HTTP/schema adaptados. Ver
+	`services/api/tests/test_ttl_cache.py` y `test_inventory_local.py`.
+
+### Medición antes/después del caché
+
+Metodología implementada en `services/api/bench_inventory.py`: 200 llamadas
+directas por endpoint y fase; mismo proceso y seed; fase anterior limpia la
+entrada antes de cada llamada para forzar query PostgreSQL, fase posterior
+precalienta la misma consulta y mide hits. Reporta min/mediana/p95/max en ms.
+Esto mide tiempo de servicio (no transporte HTTP), usando el mismo dataset.
+
+| Endpoint | Dataset y N | Antes: DB sin cache | Después: cache hit | Estado |
+|---|---:|---:|---:|---|
+| `/inventory/items` | seed sintético, 200/fase | Pendiente de ejecución | Pendiente de ejecución | El entorno de esta sesión no tiene Docker/uv/PostgreSQL ni dependencias Python; no se inventan latencias. |
+| `/inventory/alerts` | seed sintético, 200/fase | Pendiente de ejecución | Pendiente de ejecución | Mismo bloqueo. |
+
+Para cerrar esta tabla: iniciar exclusivamente `docker compose up -d db api`,
+ejecutar desde `services/api` `uv run --frozen --extra dev pytest -q`,
+`uv run --frozen python seed_inventory.py` y `uv run --frozen python
+bench_inventory.py`; pegar los percentiles emitidos sin alterar N/dataset. El
+script compara servicio Python/DB directo, no las latencias end-to-end HTTP; no
+confundir estos resultados con los TTFB históricos Lighthouse de UI arriba.
+
+### Lazy loading / `useMemo`
+
+Se inspeccionaron Website y Backoffice junto con la auditoría visual ya
+archivada: listas estáticas de 4/5/4 elementos y componentes cliente pequeños;
+no hay tablas grandes, librerías de gráficas, cálculo costoso o módulo pesado
+independiente que beneficie la carga diferida. Se descarta explícitamente añadir
+`dynamic()`/lazy loading artificial o `useMemo` a arrays constantes; hacerlo no
+reduciría trabajo material y complicaría render/carga. No se cambió código UI.
+
+### Estado de ejecución y límites
+
+En el entorno disponible al comenzar: Python 3.12.15 sí; `uv`, `docker`,
+`node`, `npm`, `psql`, FastAPI, psycopg, pytest y httpx no están disponibles.
+No se pudo iniciar PostgreSQL/Compose, ejecutar la suite, builds UI ni obtener
+latencias reales. La tabla anterior queda bloqueada expresamente; no se declara
+PASS. Pendiente ejecutar pruebas, dos builds y medición en el contenedor
+devcontainer/Codespaces equipado antes de considerar lista la entrega.
 
 ## Candidatos de caching priorizados (condicionales)
 

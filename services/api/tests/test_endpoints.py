@@ -68,20 +68,74 @@ class TestAuthEndpoints:
 # ── Inventory ──────────────────────────────────────────────────────────
 
 class TestInventoryEndpoints:
-    async def test_list_inventory_returns_501(self, client):
+    async def test_list_inventory_returns_schema_compliant_records(self, client, monkeypatch):
+        from app.routers import inventory
+
+        monkeypatch.setattr(
+            inventory,
+            "list_inventory",
+            lambda **_filters: [{
+                "sku": "DEMO-BOX-001",
+                "name": "Shipping box",
+                "warehouse": "los-angeles",
+                "quantity": 38,
+                "low_stock_threshold": 10,
+            }],
+        )
         async with client as ac:
             resp = await ac.get("/inventory/items")
-        assert resp.status_code == 501
+        assert resp.status_code == 200
+        assert resp.json()[0]["quantity"] == 38
 
-    async def test_get_inventory_item_returns_501(self, client):
+    async def test_get_inventory_item_returns_404_for_unknown_item(self, client, monkeypatch):
+        from app.routers import inventory
+
+        monkeypatch.setattr(inventory, "get_inventory_item", lambda *_args, **_kwargs: None)
         async with client as ac:
             resp = await ac.get("/inventory/items/SKU-001")
-        assert resp.status_code == 501
+        assert resp.status_code == 404
 
-    async def test_get_alerts_returns_501(self, client):
+    async def test_get_alerts_returns_schema_compliant_records(self, client, monkeypatch):
+        from app.routers import inventory
+
+        monkeypatch.setattr(
+            inventory,
+            "list_inventory_alerts",
+            lambda **_filters: [{
+                "sku": "DEMO-TAPE-001",
+                "name": "Packing tape",
+                "warehouse": "zaragoza",
+                "current_quantity": 5,
+                "threshold": 12,
+            }],
+        )
         async with client as ac:
             resp = await ac.get("/inventory/alerts")
-        assert resp.status_code == 501
+        assert resp.status_code == 200
+        assert resp.json()[0]["current_quantity"] == 5
+
+    async def test_register_inventory_movement_uses_ledger_service(self, client, monkeypatch):
+        from app.routers import inventory
+
+        monkeypatch.setattr(
+            inventory,
+            "register_inventory_movement",
+            lambda movement: {
+                "sku": movement.sku,
+                "name": "Shipping box",
+                "description": "Synthetic example",
+                "warehouse": movement.warehouse,
+                "quantity": 40,
+                "low_stock_threshold": 10,
+                "last_updated": None,
+            },
+        )
+        async with client as ac:
+            resp = await ac.post("/inventory/movements", json={
+                "sku": "DEMO-BOX-001", "warehouse": "los-angeles", "quantity_delta": 2,
+            })
+        assert resp.status_code == 201
+        assert resp.json()["quantity"] == 40
 
 
 # ── Orders ─────────────────────────────────────────────────────────────
