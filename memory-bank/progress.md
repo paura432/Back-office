@@ -185,3 +185,11 @@ deliberadamente tras `down`.
 - `docs/telemetry/telemetry-plan.md` y `docs/telemetry/event-schemas.json` (JSON Schema 2020-12): 39 eventos en 10 categorías; 11 núcleo candidato y 28 adicionales; 7 con disparador disponible hoy, 5 en demo local, 13 sobre stubs 501 y 14 futuros; 15 `stream` y 24 `batch`. Sobre de 8 campos con allowlist cerrada por evento y nombres de propiedad prohibidos.
 - Validación con `jsonschema` 4.10.3: esquema válido, correspondencia 1:1 Markdown/JSON/enum, nombres, requeridos, privacidad y casos negativos: PASS. No hay tests/build aplicables a documentación.
 - Contradicciones de `CONTEXT.md` conservadas: nombre del CEO, lista de transportistas y qué almacén usa cada SGA.
+
+## Captura de telemetría en frontend (2026-10-26)
+
+- Rama `feature/telemetry-frontend-capture` creada desde `main` (`6b6bdec`, que ya incluye el plan mergeado en #6). `empresa-BRIEFING.md` sigue sin existir: métricas obligatorias no verificadas.
+- API: `POST /telemetry/events` valida lotes con modelos Pydantic generados desde una copia del contrato (`services/api/app/schemas/event-schemas.json`, idéntica a `docs/` por test) y devuelve `{"received": N}`. Rechazo atómico con 422. Sin almacén: los eventos aceptados solo se registran en el log. Hay 34 rutas de aplicación.
+- Backoffice: `src/services/telemetry.ts` (`track`, cola, flush a 30 s/20 eventos, `sendBeacon`, 3 reintentos con backoff) y `app/telemetry-reporter.tsx`. Instrumentados `page_viewed`, `frontend_error_occurred` (también en `BackendStatus`) y `web_vitals_measured`; 36 pendientes con su motivo en `docs/telemetry/frontend-capture.md`.
+- Verificado: pytest 148 passed; `node:test` 7 passed; typecheck y build PASS. Con un script de Playwright sobre Chromium 156 comprobamos lotes con 200, el reintento tras un 503 inyectado con los mismos `eventId`, una caída real de la API y el envío por beacon, sin errores de contrato ni fugas de PII. Las capturas de DevTools (también automatizadas) están en `docs/telemetry/evidence/`.
+- Pendiente: persistencia y deduplicación en el servidor, adopción de `X-Request-Id` en el middleware, instrumentar el website y el aviso de seguridad de Next.js 16.4.0.

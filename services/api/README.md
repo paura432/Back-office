@@ -15,6 +15,13 @@ whose keys include read type and all active filters; successful movements clear
 both item and alert entries. This cache is not shared across API workers and
 the TTL is the fallback for external/local SQL changes.
 
+`POST /telemetry/events` accepts `{"events": [...]}` (up to 100) and returns
+`{"received": N}`. Events are validated with Pydantic models generated from
+`app/schemas/event-schemas.json`, a copy of `docs/telemetry/event-schemas.json`
+kept identical by `tests/test_telemetry.py`. Any invalid event rejects the whole
+batch with 422. There is no event store yet: accepted events are only logged
+through the `trackflow.telemetry` logger.
+
 ### Synthetic inventory (local only)
 
 The API refuses inventory database connections unless the DSN targets the

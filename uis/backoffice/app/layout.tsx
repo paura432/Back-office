@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { DM_Mono, DM_Sans } from 'next/font/google';
+import TelemetryReporter from './telemetry-reporter';
 import '../src/styles.css';
 
 const dmSans = DM_Sans({
@@ -27,5 +28,5 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: '#f4f6f8' };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="en" className={`${dmSans.variable} ${dmMono.variable}`}><body>{children}</body></html>;
+  return <html lang="en" className={`${dmSans.variable} ${dmMono.variable}`}><body><TelemetryReporter />{children}</body></html>;
 }
