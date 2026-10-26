@@ -2,15 +2,15 @@
 
 The JSON file is a copy of ``docs/telemetry/event-schemas.json`` (a test keeps
 both identical), so event names, envelope and property allowlists have a single
-source of truth. Each event type becomes a closed Pydantic model and the batch
-uses a discriminated union on ``event_type``.
+source of truth. Each event type becomes a closed Pydantic model and each
+event of a batch is validated with a discriminated union on ``event_type``.
 """
 import json
 from datetime import date, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, Strict, StringConstraints, create_model, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, Strict, StringConstraints, TypeAdapter, create_model
 
 CONTRACT = json.loads(Path(__file__).with_name("event-schemas.json").read_text(encoding="utf-8"))
 DEFS = CONTRACT["$defs"]
@@ -94,22 +94,23 @@ EVENT_MODELS = {name: _event_model(name, spec) for name, spec in DEFS["events"].
 TelemetryEvent = Annotated[Union[tuple(EVENT_MODELS.values())], Field(discriminator="event_type")]
 
 
+TELEMETRY_EVENT_ADAPTER = TypeAdapter(TelemetryEvent)
+
+
 class TelemetryBatch(BaseModel):
-    """Batch sent by clients; the whole batch is rejected if any event is invalid."""
+    """Raw batch sent by clients. Items are validated one by one against
+    ``TelemetryEvent`` so an invalid event does not reject the rest."""
 
     model_config = Closed
 
-    events: list[TelemetryEvent] = Field(max_length=MAX_BATCH_EVENTS)
-
-    @model_validator(mode="after")
-    def reject_duplicate_event_ids(self) -> "TelemetryBatch":
-        ids = [event.eventId for event in self.events]
-        if len(ids) != len(set(ids)):
-            raise ValueError("duplicate eventId in batch")
-        return self
+    events: list[Any] = Field(max_length=MAX_BATCH_EVENTS)
 
 
 class TelemetryAck(BaseModel):
-    """Number of events accepted from the batch."""
+    """Outcome of a batch. ``stored`` counts rows inserted by this request;
+    events whose ``eventId`` was already stored or repeated in the batch count
+    only in ``received`` (``received - stored - rejected``)."""
 
     received: int = Field(ge=0)
+    stored: int = Field(ge=0)
+    rejected: int = Field(ge=0)
