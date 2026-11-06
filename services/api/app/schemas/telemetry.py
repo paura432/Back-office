@@ -114,3 +114,65 @@ class TelemetryAck(BaseModel):
     received: int = Field(ge=0)
     stored: int = Field(ge=0)
     rejected: int = Field(ge=0)
+
+
+class ReportPeriod(BaseModel):
+    """Period covered by the report: ``from`` inclusive, ``to`` exclusive, UTC."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    from_: datetime = Field(alias="from")
+    to: datetime
+
+
+class EventsPerDay(BaseModel):
+    date: date
+    service: str
+    event_type: str
+    events: int = Field(ge=0)
+    share: float = Field(ge=0, le=1, description="Share of that day's events.")
+
+
+class ErrorRatePerDay(BaseModel):
+    date: date
+    app: str
+    sessions: int = Field(ge=0)
+    sessions_with_errors: int = Field(ge=0)
+    errors: int = Field(ge=0)
+    error_rate: float = Field(ge=0, le=1, description="sessions_with_errors / sessions")
+
+
+class FrontendErrorsPerDay(BaseModel):
+    date: date
+    app: str
+    route_template: str
+    error_kind: str
+    errors: int = Field(ge=0)
+    distinct_errors: int = Field(ge=0, description="Distinct error fingerprints.")
+    sessions: int = Field(ge=0, description="Distinct sessions affected.")
+
+
+class WebVitalsPerDay(BaseModel):
+    date: date
+    app: str
+    route_template: str
+    metric: str
+    unit: str
+    samples: int = Field(ge=0)
+    mean: float
+    p75: float
+    poor_rate: float = Field(ge=0, le=1)
+
+
+class ReportMetrics(BaseModel):
+    events_per_day: list[EventsPerDay]
+    error_rate_per_day: list[ErrorRatePerDay]
+    frontend_errors_per_day: list[FrontendErrorsPerDay]
+    web_vitals_per_day: list[WebVitalsPerDay]
+
+
+class TelemetryReport(BaseModel):
+    """Technical report computed from ``public.telemetry_events``."""
+
+    period: ReportPeriod
+    metrics: ReportMetrics

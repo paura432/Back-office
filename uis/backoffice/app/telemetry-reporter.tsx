@@ -2,14 +2,16 @@
 
 import { useEffect } from 'react';
 import { useReportWebVitals } from 'next/web-vitals';
-import { track, type EventProperties } from '../src/services/telemetry';
+import { track, type EventProperties, type RouteTemplate } from '../src/services/telemetry';
 
 type VitalName = EventProperties['web_vitals_measured']['metric'];
 const VITALS = new Set<string>(['LCP', 'CLS', 'INP', 'TTFB', 'FCP']);
 let pageViewed = false; // React Strict Mode runs effects twice in development.
 
-// Only templates, never raw URLs: the backoffice has a single static route.
-export const routeTemplate = () => (window.location.pathname === '/' ? '/' : '<unmatched>');
+// Only templates, never raw URLs: the backoffice only has static routes.
+const ROUTES: readonly RouteTemplate[] = ['/', '/telemetry'];
+export const routeTemplate = (): RouteTemplate =>
+  ROUTES.find((route) => route === window.location.pathname) ?? '<unmatched>';
 
 const viewportClass = () => (window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop');
 

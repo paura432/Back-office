@@ -22,7 +22,7 @@ Hemos implementado en la backoffice la captura definida en [`telemetry-plan.md`]
 | `frontend_error_occurred` | Errores | `app/telemetry-reporter.tsx` (`window` `error` / `unhandledrejection`) y `app/backend-status.tsx` | Excepción JS o promesa rechazada; fallo de `/api/status` (solo en la transición a fallo, no en cada sondeo de 15 s) | `app`, `route_template`, `error_kind`, `error_fingerprint` (FNV-1a de 64 bits; nunca mensaje ni stack), `http_status` |
 | `web_vitals_measured` | Rendimiento | `app/telemetry-reporter.tsx` (`useReportWebVitals` de Next.js, sin dependencias nuevas) | Next.js reporta LCP, CLS, INP, TTFB o FCP | `app`, `route_template`, `metric`, `value`, `rating`, `viewport_class` |
 
-`route_template` solo toma `/` o `<unmatched>`; nunca se envían la URL, la query ni el referrer. El `fetch_failed` lleva como `requestId` el mismo UUID que se envía en `X-Request-Id` a `/api/status`.
+`route_template` solo toma `/`, `/telemetry` (la página del reporte técnico, ver [`report.md`](./report.md#dashboard)) o `<unmatched>`; nunca se envían la URL, la query ni el referrer. El `fetch_failed` lleva como `requestId` el mismo UUID que se envía en `X-Request-Id` a `/api/status`.
 
 ## Eventos pendientes (36) y motivo
 

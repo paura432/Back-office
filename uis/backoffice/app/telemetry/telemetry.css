@@ -1,0 +1,27 @@
+.tr-page { max-width: 1240px; margin: 0 auto; padding: 32px 28px 48px; --tr-bar: #2a78d6; --tr-track: #e8edf1; }
+.tr-header { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; justify-content: space-between; }
+.tr-header h1 { margin: 6px 0 4px; font-size: 28px; color: var(--navy); }
+.tr-header p { margin: 0; color: var(--muted); font-size: 14px; }
+.tr-back { font: 12px var(--mono); color: var(--muted); }
+.tr-range { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.tr-range label { display: grid; gap: 4px; font: 11px var(--mono); color: var(--muted); }
+.tr-range input, .tr-range button { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: #202c39; }
+.tr-range button { background: var(--navy); color: #fff; border-color: var(--navy); cursor: pointer; }
+.tr-period { margin: 20px 0 0; font-size: 14px; color: #202c39; }
+.tr-status { margin: 20px 0 0; color: var(--muted); }
+.tr-status--error { color: #9b2c2c; }
+.tr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+.tr-card { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; overflow-x: auto; }
+.tr-card--wide { grid-column: 1 / -1; }
+.tr-card h2 { margin: 0; font-size: 16px; color: var(--navy); }
+.tr-question { margin: 4px 0 12px; font-size: 13px; color: var(--muted); }
+.tr-card table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tr-card th { text-align: left; font: 500 11px var(--mono); color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tr-card td { padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tr-card code { font: 12px var(--mono); }
+.tr-num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.tr-bar-col { width: 28%; min-width: 90px; }
+.tr-bar { display: block; height: 8px; border-radius: 4px; background: var(--tr-track); }
+.tr-bar i { display: block; height: 100%; border-radius: 4px; background: var(--tr-bar); }
+.tr-empty { color: var(--muted); text-align: center; }
+@media (max-width: 900px) { .tr-grid { grid-template-columns: minmax(0, 1fr); } .tr-page { padding: 24px 16px; } }

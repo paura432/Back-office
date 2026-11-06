@@ -33,6 +33,14 @@ A successful `POST /inventory/movements` also emits the business event
 `TELEMETRY_DATABASE_DSN`, database down) the movement is unaffected, a
 `telemetry_emit_failed` warning is logged and the event is dropped without retry.
 
+`GET /telemetry/report?start_date=…&end_date=…` returns the technical telemetry
+report: events per day, frontend error rate per day, frontend errors by route
+and kind, and Web Vitals per day. Both dates are optional ISO 8601 values
+(default: the last 7 days, UTC). The metrics are pandas functions in
+`app/telemetry/analysis.py`; the endpoint resolves the period once, passes it to
+each metric and caches the result for 60 s per date combination. Details in
+`docs/telemetry/report.md`.
+
 ### Synthetic inventory (local only)
 
 The API refuses inventory database connections unless the DSN targets the
@@ -96,6 +104,30 @@ variable yet.
 `TELEMETRY_TEST_ADMIN_DSN` (table owner) are set; otherwise it is skipped. Point
 them at a separate development/test database with the migration applied: rows
 cannot be deleted.
+
+## Telemetry report
+
+`GET /telemetry/report` reads `public.telemetry_events` through
+`TELEMETRY_READ_DATABASE_DSN`, a login role granted `telemetry_reader` (SELECT
+only, migration `20261106183444_create_telemetry_reader.sql`). The writer role
+still cannot read. Apply pending migrations without resetting the local
+database, then create the reader login role with a password of your own (never
+commit it):
+
+```sh
+npx supabase migration up --local --workdir .
+docker exec -i supabase_db_trackflow-back-office psql -U postgres -d postgres \
+  -c "create role trackflow_report_local login password '<local password>' in role telemetry_reader"
+```
+
+Run the API with
+`TELEMETRY_READ_DATABASE_DSN=postgresql://trackflow_report_local:<local password>@127.0.0.1:54322/postgres`.
+Without it the report answers 503. The Compose `api` service does not set this
+variable yet.
+
+`tests/test_telemetry_report_storage.py` also needs `TELEMETRY_TEST_READER_DSN`
+(login role with `telemetry_reader` on the test database), besides the two
+variables above; otherwise it is skipped.
 
 ## Local Development
 
