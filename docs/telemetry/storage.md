@@ -32,7 +32,7 @@ La lista de 8 columnas sale del sobre del contrato. El enunciado del ejercicio n
 
 `POST /telemetry/events` recibe `{ "events": [...] }` como lote crudo (máximo 100) y:
 
-1. valida cada elemento por separado con `TypeAdapter(TelemetryEvent)`. El modelo de evento no cambia; los inválidos (incluidos los que no son objetos) se rechazan uno a uno;
+1. valida cada elemento por separado con `TypeAdapter(TelemetryEvent)`. El modelo de evento no cambia; los inválidos (incluidos los que no son objetos) se rechazan uno a uno. `TelemetryEvent` es, desde la fase anterior, una unión discriminada por `event_type` (un modelo cerrado por evento), no un `BaseModel`, así que no tiene `.model_validate()`; `TypeAdapter(...).validate_python(raw)` es la forma de Pydantic v2 de hacer esa misma validación por elemento sin modificar el modelo;
 2. descarta los `eventId` repetidos dentro del lote (se queda con el primero);
 3. inserta todos los válidos en **una sola sentencia** (`jsonb_to_recordset`, una transacción) y devuelve `200 {"received": N, "stored": N, "rejected": N}`.
 
@@ -107,6 +107,8 @@ El mismo lote enviado otra vez devuelve `{"received":5,"stored":0,"rejected":2}`
 
 ### Flujo real: movimiento → FastAPI → Supabase local
 
+La backoffice no tiene módulo de inventario (solo el dashboard de contexto, el estado del backend y la telemetría), y esta fase no permite cambiar el frontend. Por eso las entradas y salidas se registraron llamando directamente a `POST /inventory/movements`. El evento lo emite el backend, así que cualquier cliente que registre un movimiento, incluida una futura pantalla de inventario, lo genera sin cambios.
+
 Ejecutado el 2026-11-06 con un `docker compose run` puntual del servicio `api` (sin modificar `docker-compose.yml`): el inventario demo en el Postgres de Compose y `TELEMETRY_DATABASE_DSN` pasada con `-e` hacia la BD `postgres` del Supabase local, con un rol de login temporal que solo tenía `telemetry_writer` y que se borró al terminar. Registro completo: [`evidence/business-event-checks.txt`](./evidence/business-event-checks.txt).
 
 | Caso | Respuesta | Evento guardado |
@@ -120,6 +122,12 @@ Ejecutado el 2026-11-06 con un `docker compose run` puntual del servicio `api` (
 | Salida válida con el Postgres de Supabase pausado (`docker pause`) | 201 en 16 ms | No; el movimiento sí queda confirmado y el log muestra `telemetry_emit_failed … error=TelemetryStoreError` |
 
 Resultado: 4 movimientos confirmados en el inventario y 3 eventos `inventory_movement_recorded` en Supabase, uno por cada movimiento con la telemetría disponible. En cada fila, `quantity_after` coincide con el stock que devolvió la API y `timestamp` con `occurred_at` truncado a milisegundos.
+
+### Captura de la tabla en Supabase Studio
+
+Table Editor del Supabase local con `public.telemetry_events` ordenada por `timestamp`: 8 filas reales, 5 técnicas o de navegación de la backoffice (`page_viewed`, `web_vitals_measured`, `frontend_error_occurred`) y 3 de negocio del backend (`inventory_movement_recorded`). La captura se tomó con un script de Playwright (Chromium headless, 2560 × 545) para que la columna `tags` se viera completa.
+
+![Tabla telemetry_events en Supabase Studio](./evidence/storage-supabase-table.png)
 
 ## Limitaciones
 
