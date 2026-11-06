@@ -1,0 +1,254 @@
+{
+  "browser": "chromium 156.0.8078.4",
+  "playwright": "1.64.1",
+  "log": [
+    {
+      "t": 0.43,
+      "step": "api_started"
+    },
+    {
+      "t": 0.73,
+      "step": "status_poll",
+      "status": 200,
+      "requestId": "49f66d0c-0b83-4773-b5ad-db32c8ac5a38"
+    },
+    {
+      "t": 1.23,
+      "step": "page_loaded"
+    },
+    {
+      "t": 15.85,
+      "step": "status_poll",
+      "status": 200,
+      "requestId": "9c90574a-4a08-4ad4-87bb-1930dfc70b6e"
+    },
+    {
+      "t": 30.85,
+      "step": "status_poll",
+      "status": 200,
+      "requestId": "3f3d468c-28bd-495a-ae7f-0af344c75342"
+    },
+    {
+      "t": 30.91,
+      "step": "telemetry_post",
+      "status": 200,
+      "type": "fetch",
+      "response": {
+        "received": 3,
+        "stored": 3,
+        "rejected": 0
+      },
+      "n": 3
+    },
+    {
+      "t": 31.3,
+      "step": "api_stopped"
+    },
+    {
+      "t": 45.97,
+      "step": "status_poll",
+      "status": 500,
+      "requestId": "b39ec098-c35a-4c78-984c-8fd3bbf5c381"
+    },
+    {
+      "t": 46.39,
+      "step": "api_started"
+    },
+    {
+      "t": 46.43,
+      "step": "db_paused"
+    },
+    {
+      "t": 60.97,
+      "step": "status_poll",
+      "status": 200,
+      "requestId": "f61d5454-f405-4a28-a2ab-cb6604fcaad9"
+    },
+    {
+      "t": 64.03,
+      "step": "telemetry_post",
+      "status": 503,
+      "type": "fetch",
+      "response": {
+        "detail": "Telemetry storage unavailable"
+      },
+      "n": 1
+    },
+    {
+      "t": 64.06,
+      "step": "db_unpaused"
+    },
+    {
+      "t": 65.04,
+      "step": "telemetry_post",
+      "status": 200,
+      "type": "fetch",
+      "response": {
+        "received": 1,
+        "stored": 1,
+        "rejected": 0
+      },
+      "n": 1
+    },
+    {
+      "t": 65.23,
+      "step": "telemetry_post",
+      "status": 200,
+      "type": "ping",
+      "response": {
+        "received": 1,
+        "stored": 1,
+        "rejected": 0
+      },
+      "n": 0
+    },
+    {
+      "t": 68.22,
+      "step": "page_hidden"
+    },
+    {
+      "t": 69.39,
+      "step": "api_stopped"
+    }
+  ],
+  "telemetry": [
+    {
+      "t": 30.91,
+      "type": "fetch",
+      "status": 200,
+      "response": {
+        "received": 3,
+        "stored": 3,
+        "rejected": 0
+      },
+      "eventIds": [
+        "6e9e58a9-6f75-4bbe-9c97-45aface615f6",
+        "6286e0ee-98e1-422f-a1c1-abc9e53cabc1",
+        "8eeb82a2-e2b2-4237-98d1-532b004dfc1f"
+      ],
+      "events": [
+        {
+          "eventId": "6e9e58a9-6f75-4bbe-9c97-45aface615f6",
+          "timestamp": "2026-10-26T19:11:23.327Z",
+          "sessionId": "55282994-7c07-450a-8b5d-5fc6fc4036df",
+          "userId": null,
+          "event_type": "page_viewed",
+          "schemaVersion": "1.0.0",
+          "requestId": null,
+          "properties": {
+            "app": "backoffice",
+            "route_template": "/",
+            "viewport_class": "desktop",
+            "referrer_type": "direct",
+            "locale": "en-US"
+          }
+        },
+        {
+          "eventId": "6286e0ee-98e1-422f-a1c1-abc9e53cabc1",
+          "timestamp": "2026-10-26T19:11:23.333Z",
+          "sessionId": "55282994-7c07-450a-8b5d-5fc6fc4036df",
+          "userId": null,
+          "event_type": "web_vitals_measured",
+          "schemaVersion": "1.0.0",
+          "requestId": null,
+          "properties": {
+            "app": "backoffice",
+            "route_template": "/",
+            "metric": "FCP",
+            "value": 108,
+            "rating": "good",
+            "viewport_class": "desktop"
+          }
+        },
+        {
+          "eventId": "8eeb82a2-e2b2-4237-98d1-532b004dfc1f",
+          "timestamp": "2026-10-26T19:11:23.333Z",
+          "sessionId": "55282994-7c07-450a-8b5d-5fc6fc4036df",
+          "userId": null,
+          "event_type": "web_vitals_measured",
+          "schemaVersion": "1.0.0",
+          "requestId": null,
+          "properties": {
+            "app": "backoffice",
+            "route_template": "/",
+            "metric": "TTFB",
+            "value": 11.299999999813735,
+            "rating": "good",
+            "viewport_class": "desktop"
+          }
+        }
+      ]
+    },
+    {
+      "t": 64.03,
+      "type": "fetch",
+      "status": 503,
+      "response": {
+        "detail": "Telemetry storage unavailable"
+      },
+      "eventIds": [
+        "987b8341-ffa0-470f-b6e2-b73684b8daa4"
+      ],
+      "events": [
+        {
+          "eventId": "987b8341-ffa0-470f-b6e2-b73684b8daa4",
+          "timestamp": "2026-10-26T19:12:08.593Z",
+          "sessionId": "55282994-7c07-450a-8b5d-5fc6fc4036df",
+          "userId": null,
+          "event_type": "frontend_error_occurred",
+          "schemaVersion": "1.0.0",
+          "requestId": "b39ec098-c35a-4c78-984c-8fd3bbf5c381",
+          "properties": {
+            "app": "backoffice",
+            "route_template": "/",
+            "error_kind": "fetch_failed",
+            "error_fingerprint": "48a8a3a2d68b0da5",
+            "http_status": 500
+          }
+        }
+      ]
+    },
+    {
+      "t": 65.04,
+      "type": "fetch",
+      "status": 200,
+      "response": {
+        "received": 1,
+        "stored": 1,
+        "rejected": 0
+      },
+      "eventIds": [
+        "987b8341-ffa0-470f-b6e2-b73684b8daa4"
+      ],
+      "events": [
+        {
+          "eventId": "987b8341-ffa0-470f-b6e2-b73684b8daa4",
+          "timestamp": "2026-10-26T19:12:08.593Z",
+          "sessionId": "55282994-7c07-450a-8b5d-5fc6fc4036df",
+          "userId": null,
+          "event_type": "frontend_error_occurred",
+          "schemaVersion": "1.0.0",
+          "requestId": "b39ec098-c35a-4c78-984c-8fd3bbf5c381",
+          "properties": {
+            "app": "backoffice",
+            "route_template": "/",
+            "error_kind": "fetch_failed",
+            "error_fingerprint": "48a8a3a2d68b0da5",
+            "http_status": 500
+          }
+        }
+      ]
+    },
+    {
+      "t": 65.23,
+      "type": "ping",
+      "status": 200,
+      "response": {
+        "received": 1,
+        "stored": 1,
+        "rejected": 0
+      },
+      "eventIds": []
+    }
+  ]
+}

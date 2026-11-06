@@ -1,0 +1,86 @@
+# Evento de negocio inventory_movement_recorded: flujo real contra Supabase local (2026-11-06)
+# Stack: API FastAPI en un 'docker compose run' puntual del servicio api (:8010, imagen trackflow-dev-api).
+#   Inventario demo: Postgres de Compose (DATABASE_*), sembrado con seed_inventory.py.
+#   Telemetría: TELEMETRY_DATABASE_DSN -> BD postgres del Supabase local (host.docker.internal:54322)
+#   con un rol de login temporal miembro solo de telemetry_writer (borrado al terminar).
+#   docker-compose.yml no se ha modificado. La DSN no aparece en logs ni respuestas.
+
+## Peticiones a POST /inventory/movements (curl)
+
+### 1. Salida válida con X-Request-Id
+X-Request-Id: b5f238c5-6675-4d1a-bacd-ba9c3c187517
+body: {"sku":"DEMO-BOX-001","warehouse":"los-angeles","quantity_delta":-2}
+HTTP 201 (39 ms): {"sku":"DEMO-BOX-001","name":"Shipping box","description":"Synthetic corrugated box.","warehouse":"los-angeles","quantity":36,"low_stock_threshold":10,"last_updated":"2026-11-06T18:16:29.960246Z"}
+
+### 2. Entrada válida con X-Request-Id en mayúsculas
+X-Request-Id: 2FC8CD70-9FDD-4A48-9F2D-AE124BD0DAF8
+body: {"sku":"DEMO-BOX-001","warehouse":"zaragoza","quantity_delta":5}
+HTTP 201 (18 ms): {"sku":"DEMO-BOX-001","name":"Shipping box","description":"Synthetic corrugated box.","warehouse":"zaragoza","quantity":13,"low_stock_threshold":10,"last_updated":"2026-11-06T18:16:30.023936Z"}
+
+### 3. SKU inexistente sin X-Request-Id (404)
+body: {"sku":"DEMO-TAPE-002","warehouse":"zaragoza","quantity_delta":3}
+HTTP 404 (12 ms): {"detail":"Inventory item not found"}
+
+### 4. SKU inexistente (404)
+X-Request-Id: f30b7f20-3f49-40df-89e0-821b7c515d4a
+body: {"sku":"NO-EXISTE-999","warehouse":"zaragoza","quantity_delta":1}
+HTTP 404 (13 ms): {"detail":"Inventory item not found"}
+
+### 5. Stock insuficiente (409)
+X-Request-Id: 6648c3f6-6868-40cd-ae24-4d39406728b0
+body: {"sku":"DEMO-BOX-001","warehouse":"los-angeles","quantity_delta":-100000}
+HTTP 409 (15 ms): {"detail":"Movement would reduce stock below zero"}
+
+### 6. Delta cero (422)
+body: {"sku":"DEMO-BOX-001","warehouse":"los-angeles","quantity_delta":0}
+HTTP 422 (4 ms): {"detail":[{"type":"value_error","loc":["body","quantity_delta"],"msg":"Value error, quantity_delta must not be zero","input":0,"ctx":{"error":{}}}]}
+
+### 7. Entrada válida sin X-Request-Id
+body: {"sku":"DEMO-TAPE-001","warehouse":"zaragoza","quantity_delta":3}
+HTTP 201 (18 ms): {"sku":"DEMO-TAPE-001","name":"Packing tape","description":"Synthetic kraft tape roll.","warehouse":"zaragoza","quantity":8,"low_stock_threshold":12,"last_updated":"2026-11-06T18:16:44.964165Z"}
+
+## docker pause supabase_db_trackflow-back-office
+### 8. Salida válida con el Postgres de Supabase pausado
+X-Request-Id: 1caec39b-eb6c-4919-9086-3889d383656b
+body: {"sku":"DEMO-PALLET-001","warehouse":"los-angeles","quantity_delta":-1}
+HTTP 201 (16 ms): {"sku":"DEMO-PALLET-001","name":"Reusable pallet","description":"Synthetic EUR-sized pallet.","warehouse":"los-angeles","quantity":3,"low_stock_threshold":6,"last_updated":"2026-11-06T18:16:45.093223Z"}
+
+## docker unpause supabase_db_trackflow-back-office
+## Log de la API (sin las líneas de /health)
+INFO:     172.28.0.1:35674 - "POST /inventory/movements HTTP/1.1" 201 Created
+INFO:     172.28.0.1:35684 - "POST /inventory/movements HTTP/1.1" 201 Created
+INFO:     172.28.0.1:35690 - "POST /inventory/movements HTTP/1.1" 404 Not Found
+INFO:     172.28.0.1:35696 - "POST /inventory/movements HTTP/1.1" 404 Not Found
+INFO:     172.28.0.1:35706 - "POST /inventory/movements HTTP/1.1" 409 Conflict
+INFO:     172.28.0.1:35716 - "POST /inventory/movements HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.28.0.1:38362 - "POST /inventory/movements HTTP/1.1" 201 Created
+INFO:     172.28.0.1:38368 - "POST /inventory/movements HTTP/1.1" 201 Created
+telemetry_emit_failed event_type=inventory_movement_recorded error=TelemetryStoreError
+
+## Supabase local, BD postgres: inventory_movement_recorded desde 2026-11-06T18:16:29Z
+               event_id               |         timestamp          | service | session_id | user_id |              request_id              |                                                           tags                                                            
+--------------------------------------+----------------------------+---------+------------+---------+--------------------------------------+---------------------------------------------------------------------------------------------------------------------------
+ e88dc5ef-b917-485a-b0b1-234388db63f9 | 2026-11-06 18:16:29.96+00  | backend |            |         | b5f238c5-6675-4d1a-bacd-ba9c3c187517 | {"sku": "DEMO-BOX-001", "warehouse": "los-angeles", "schemaVersion": "1.0.0", "quantity_after": 36, "quantity_delta": -2}
+ 33926298-614f-42ab-a62d-58c6a927b3d1 | 2026-11-06 18:16:30.023+00 | backend |            |         | 2fc8cd70-9fdd-4a48-9f2d-ae124bd0daf8 | {"sku": "DEMO-BOX-001", "warehouse": "zaragoza", "schemaVersion": "1.0.0", "quantity_after": 13, "quantity_delta": 5}
+ c876cb29-56a5-4131-9dbb-2fcc80908817 | 2026-11-06 18:16:44.964+00 | backend |            |         | 81747de3-5a80-4df1-8a32-1ad4c10c8c96 | {"sku": "DEMO-TAPE-001", "warehouse": "zaragoza", "schemaVersion": "1.0.0", "quantity_after": 8, "quantity_delta": 3}
+(3 rows)
+
+## Eventos por request_id de los casos 1, 2, 4, 5 y 8 (los rechazados y el del Supabase pausado no tienen fila)
+              request_id              | eventos 
+--------------------------------------+---------
+ 2fc8cd70-9fdd-4a48-9f2d-ae124bd0daf8 |       1
+ b5f238c5-6675-4d1a-bacd-ba9c3c187517 |       1
+ 1caec39b-eb6c-4919-9086-3889d383656b |       0
+ 6648c3f6-6868-40cd-ae24-4d39406728b0 |       0
+ f30b7f20-3f49-40df-89e0-821b7c515d4a |       0
+(5 rows)
+
+## Postgres de Compose: movimientos confirmados desde 2026-11-06T18:16:29Z (el de DEMO-PALLET-001 es el del caso 8)
+       sku       |  warehouse  | quantity_delta |          occurred_at          
+-----------------+-------------+----------------+-------------------------------
+ DEMO-BOX-001    | los-angeles |             -2 | 2026-11-06 18:16:29.960246+00
+ DEMO-BOX-001    | zaragoza    |              5 | 2026-11-06 18:16:30.023936+00
+ DEMO-TAPE-001   | zaragoza    |              3 | 2026-11-06 18:16:44.964165+00
+ DEMO-PALLET-001 | los-angeles |             -1 | 2026-11-06 18:16:45.093223+00
+(4 rows)
+

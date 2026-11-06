@@ -1,0 +1,87 @@
+# Almacenamiento de telemetría: comprobaciones sobre Supabase local (2026-10-26)
+# Stack: supabase CLI 2.122.0, public.ecr.aws/supabase/postgres:17.11.0.006
+
+## Filas en la BD de desarrollo (postgres) tras el flujo navegador -> Next.js -> FastAPI
+               event_id               |       event_type        |         timestamp          |  service   |              session_id              | user_id |              request_id              |                                                                                 tags                                                                                  
+--------------------------------------+-------------------------+----------------------------+------------+--------------------------------------+---------+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 6e9e58a9-6f75-4bbe-9c97-45aface615f6 | page_viewed             | 2026-10-26 19:11:23.327+00 | backoffice | 55282994-7c07-450a-8b5d-5fc6fc4036df |         |                                      | {"app": "backoffice", "locale": "en-US", "referrer_type": "direct", "schemaVersion": "1.0.0", "route_template": "/", "viewport_class": "desktop"}
+ 6286e0ee-98e1-422f-a1c1-abc9e53cabc1 | web_vitals_measured     | 2026-10-26 19:11:23.333+00 | backoffice | 55282994-7c07-450a-8b5d-5fc6fc4036df |         |                                      | {"app": "backoffice", "value": 108.0, "metric": "FCP", "rating": "good", "schemaVersion": "1.0.0", "route_template": "/", "viewport_class": "desktop"}
+ 8eeb82a2-e2b2-4237-98d1-532b004dfc1f | web_vitals_measured     | 2026-10-26 19:11:23.333+00 | backoffice | 55282994-7c07-450a-8b5d-5fc6fc4036df |         |                                      | {"app": "backoffice", "value": 11.299999999813735, "metric": "TTFB", "rating": "good", "schemaVersion": "1.0.0", "route_template": "/", "viewport_class": "desktop"}
+ 987b8341-ffa0-470f-b6e2-b73684b8daa4 | frontend_error_occurred | 2026-10-26 19:12:08.593+00 | backoffice | 55282994-7c07-450a-8b5d-5fc6fc4036df |         | b39ec098-c35a-4c78-984c-8fd3bbf5c381 | {"app": "backoffice", "error_kind": "fetch_failed", "http_status": 500, "schemaVersion": "1.0.0", "route_template": "/", "error_fingerprint": "48a8a3a2d68b0da5"}
+ d531757f-05fb-4b42-b412-441618e16ef0 | web_vitals_measured     | 2026-10-26 19:12:27.835+00 | backoffice | 55282994-7c07-450a-8b5d-5fc6fc4036df |         |                                      | {"app": "backoffice", "value": 0.002780906054708693, "metric": "CLS", "rating": "good", "schemaVersion": "1.0.0", "route_template": "/", "viewport_class": "desktop"}
+(5 rows)
+
+ total | distinct_ids 
+-------+--------------
+     5 |            5
+(1 row)
+
+## Reenvío del primer lote real (3 eventos) por /api/telemetry/events
+{"received":3,"stored":0,"rejected":0}  HTTP 200
+
+## Lote mixto (storage-mixed-batch.json) contra la BD telemetry_test (:8001)
+# eventos: page_viewed válido, inventory_movement_recorded válido (datos de prueba), page_viewed repetido, propiedad email no permitida, event_type inexistente
+1er envío: {"received":5,"stored":2,"rejected":2}  HTTP 200
+2º envío:  {"received":5,"stored":0,"rejected":2}  HTTP 200
+lote de 101 eventos: HTTP 422
+lote vacío: {"received":0,"stored":0,"rejected":0}  HTTP 200
+
+## Data API con la clave anon local
+--- POST /rest/v1/telemetry_events con clave anon
+{"code":"42501","details":null,"hint":"Grant the required privileges to the current role with: GRANT INSERT ON public.telemetry_events TO anon;","message":"permission denied for table telemetry_events"}  HTTP 401
+--- GET /rest/v1/telemetry_events con clave anon
+{"code":"42501","details":null,"hint":"Grant the required privileges to the current role with: GRANT SELECT ON public.telemetry_events TO anon;","message":"permission denied for table telemetry_events"}  HTTP 401
+
+## Índices
+            indexname            |                                             indexdef                                             
+---------------------------------+--------------------------------------------------------------------------------------------------
+ telemetry_events_event_type_idx | CREATE INDEX telemetry_events_event_type_idx ON public.telemetry_events USING btree (event_type)
+ telemetry_events_pkey           | CREATE UNIQUE INDEX telemetry_events_pkey ON public.telemetry_events USING btree (event_id)
+ telemetry_events_tags_idx       | CREATE INDEX telemetry_events_tags_idx ON public.telemetry_events USING gin (tags)
+ telemetry_events_timestamp_idx  | CREATE INDEX telemetry_events_timestamp_idx ON public.telemetry_events USING btree ("timestamp")
+(4 rows)
+
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Bitmap Heap Scan on telemetry_events
+   Recheck Cond: ("timestamp" >= '2026-10-26 00:00:00+00'::timestamp with time zone)
+   ->  Bitmap Index Scan on telemetry_events_timestamp_idx
+         Index Cond: ("timestamp" >= '2026-10-26 00:00:00+00'::timestamp with time zone)
+(4 rows)
+
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Bitmap Heap Scan on telemetry_events
+   Recheck Cond: (event_type = 'web_vitals_measured'::text)
+   ->  Bitmap Index Scan on telemetry_events_event_type_idx
+         Index Cond: (event_type = 'web_vitals_measured'::text)
+(4 rows)
+
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Bitmap Heap Scan on telemetry_events
+   Recheck Cond: (tags @> '{"metric": "LCP"}'::jsonb)
+   ->  Bitmap Index Scan on telemetry_events_tags_idx
+         Index Cond: (tags @> '{"metric": "LCP"}'::jsonb)
+(4 rows)
+
+## RLS y permisos
+ relrowsecurity | relforcerowsecurity 
+----------------+---------------------
+ t              | t
+(1 row)
+
+     grantee      |                       privileges                        
+------------------+---------------------------------------------------------
+ postgres         | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ telemetry_writer | INSERT
+(2 rows)
+
+       policyname        |  cmd   |       roles        | with_check 
+-------------------------+--------+--------------------+------------
+ telemetry_writer_insert | INSERT | {telemetry_writer} | true
+(1 row)
+
+## Linter y migraciones
+supabase db lint --local --schema public --level warning -> No schema errors found
+supabase migration list --local -> 20261026190259 aplicada
