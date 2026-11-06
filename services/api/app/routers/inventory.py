@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 
 from app.schemas.inventory import (
     InventoryAlert,
@@ -15,6 +15,7 @@ from app.services.demo_inventory import (
     register_inventory_movement,
 )
 from app.services.inventory_demo_gate import require_inventory_demo_enabled
+from app.services.telemetry_store import emit_event, request_id_from
 
 router = APIRouter(
     prefix="/inventory",
@@ -58,10 +59,18 @@ def get_low_stock_alerts(
     response_model=InventoryItemDetail,
     status_code=status.HTTP_201_CREATED,
 )
-def create_inventory_movement(movement: InventoryMovementCreate):
-    """Registra una entrada/salida; la cantidad nunca se edita directamente."""
+def create_inventory_movement(
+    movement: InventoryMovementCreate,
+    request: Request,
+    background_tasks: BackgroundTasks,
+):
+    """Registra una entrada/salida; la cantidad nunca se edita directamente.
+
+    Solo tras el commit del movimiento se programa ``inventory_movement_recorded``;
+    se guarda después de enviar la respuesta y su fallo no afecta al movimiento.
+    """
     try:
-        return register_inventory_movement(movement)
+        item = InventoryItemDetail.model_validate(register_inventory_movement(movement))
     except InventoryItemNotFound:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -72,3 +81,16 @@ def create_inventory_movement(movement: InventoryMovementCreate):
             status_code=status.HTTP_409_CONFLICT,
             detail="Movement would reduce stock below zero",
         ) from None
+    background_tasks.add_task(
+        emit_event,
+        "inventory_movement_recorded",
+        {
+            "sku": item.sku,
+            "warehouse": item.warehouse,
+            "quantity_delta": movement.quantity_delta,
+            "quantity_after": item.quantity,
+        },
+        occurred_at=item.last_updated,
+        request_id=request_id_from(request.headers.get("x-request-id")),
+    )
+    return item

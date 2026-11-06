@@ -12,8 +12,9 @@ import uuid
 import psycopg
 import pytest
 from httpx import ASGITransport, AsyncClient
+from psycopg.conninfo import make_conninfo
 
-from app.services.telemetry_store import TelemetryStoreError, store_events
+from app.services.telemetry_store import TelemetryStoreError, emit_event, store_events
 from main import app
 
 WRITER_DSN = os.environ.get("TELEMETRY_TEST_DATABASE_DSN")
@@ -99,12 +100,23 @@ async def test_resent_batch_is_idempotent(post):
 
 
 async def test_storage_failure_returns_503_and_stores_nothing(post, monkeypatch):
-    monkeypatch.setenv("TELEMETRY_DATABASE_DSN", WRITER_DSN.replace("://trackflow_api_local:", "://trackflow_api_local:wrong"))
+    monkeypatch.setenv("TELEMETRY_DATABASE_DSN", make_conninfo(WRITER_DSN, password="wrong"))
     batch = [page_viewed()]
     resp = await post(batch)
     assert resp.status_code == 503
     assert "stored" not in resp.json()
     assert stored([batch[0]["eventId"]]) == {}
+
+
+def test_backend_event_is_persisted(monkeypatch):
+    monkeypatch.setenv("TELEMETRY_DATABASE_DSN", WRITER_DSN)
+    request_id = str(uuid.uuid4())
+    properties = {"sku": "DEMO-BOX-001", "warehouse": "los-angeles", "quantity_delta": 4, "quantity_after": 44}
+    emit_event("inventory_movement_recorded", properties, occurred_at=None, request_id=request_id)
+    assert admin_query(
+        "select event_type, service, session_id, tags from public.telemetry_events where request_id = %s",
+        (request_id,),
+    ) == [("inventory_movement_recorded", "backend", None, {**properties, "schemaVersion": "1.0.0"})]
 
 
 def test_bulk_insert_is_all_or_nothing(monkeypatch):

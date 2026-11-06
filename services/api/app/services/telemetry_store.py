@@ -5,11 +5,18 @@ It should use a login role granted ``telemetry_writer``, which can INSERT and
 nothing else (see ``supabase/migrations``). Errors never include the DSN.
 """
 import json
+import logging
 import os
+import re
+import uuid
+from datetime import datetime, timezone
 
 import psycopg
 
-from app.schemas.telemetry import DEFS
+from app.schemas.telemetry import DEFS, SCHEMA_VERSION, TELEMETRY_EVENT_ADAPTER
+
+logger = logging.getLogger("trackflow.telemetry")
+UUID_PATTERN = re.compile(DEFS["uuid"]["pattern"])
 
 # One statement for the whole batch: either every new row is inserted or none.
 # Already stored eventIds are skipped, so client retries are idempotent. The
@@ -62,3 +69,30 @@ def store_events(rows: list[dict]) -> int:
                 return cursor.rowcount
     except psycopg.Error as exc:
         raise TelemetryStoreError("telemetry storage write failed") from exc
+
+
+def request_id_from(header: str | None) -> str:
+    """Reuse a contract-valid ``X-Request-Id`` or create one for this request."""
+    if header and UUID_PATTERN.match(header.strip().lower()):
+        return header.strip().lower()
+    return str(uuid.uuid4())
+
+
+def emit_event(event_type: str, properties: dict, *, occurred_at: datetime | None, request_id: str) -> None:
+    """Validate and store one backend event. It runs after the response and
+    never raises: a telemetry failure must not affect the operation itself."""
+    try:
+        moment = (occurred_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        event = TELEMETRY_EVENT_ADAPTER.validate_python({
+            "eventId": str(uuid.uuid4()),
+            "timestamp": moment.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+            "sessionId": None,
+            "userId": None,
+            "event_type": event_type,
+            "schemaVersion": SCHEMA_VERSION,
+            "requestId": request_id,
+            "properties": properties,
+        })
+        store_events([to_row(event)])
+    except Exception as exc:  # noqa: BLE001 - any failure is logged and dropped
+        logger.warning("telemetry_emit_failed event_type=%s error=%s", event_type, type(exc).__name__)

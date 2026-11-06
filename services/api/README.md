@@ -25,6 +25,14 @@ single insert. Already stored or repeated `eventId`s are skipped and count only
 in `received`. A malformed batch gets 422; a storage failure gets 503 and
 nothing is stored. Details in `docs/telemetry/storage.md`.
 
+A successful `POST /inventory/movements` also emits the business event
+`inventory_movement_recorded` (`sku`, `warehouse`, `quantity_delta`,
+`quantity_after`) after the response is sent. Its `requestId` is the request's
+`X-Request-Id` when it is a valid UUID, otherwise a new one. Rejected movements
+(404, 409, 422) emit nothing. If the event cannot be stored (missing
+`TELEMETRY_DATABASE_DSN`, database down) the movement is unaffected, a
+`telemetry_emit_failed` warning is logged and the event is dropped without retry.
+
 ### Synthetic inventory (local only)
 
 The API refuses inventory database connections unless the DSN targets the

@@ -276,3 +276,82 @@ def test_models_match_contract_allowlists():
 def test_api_contract_copy_is_identical_to_docs():
     copy_path = Path(__file__).resolve().parents[1] / "app" / "schemas" / "event-schemas.json"
     assert copy_path.read_bytes() == DOCS_CONTRACT.read_bytes()
+
+
+# ── inventory_movement_recorded desde POST /inventory/movements ──────────
+
+MOVEMENT_RESULT = {
+    "sku": "DEMO-BOX-001", "name": "Shipping box", "description": "Synthetic", "warehouse": "zaragoza",
+    "quantity": 37, "low_stock_threshold": 10, "last_updated": "2026-10-26T19:40:01.123456+00:00",
+}
+
+
+@pytest.fixture
+def inventory_router(monkeypatch):
+    from app.routers import inventory
+
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("INVENTORY_DEMO_ENABLED", "true")
+    monkeypatch.setattr(inventory, "register_inventory_movement", lambda movement: dict(MOVEMENT_RESULT))
+    return inventory
+
+
+async def post_movement(client, delta, headers=None):
+    async with client as ac:
+        return await ac.post("/inventory/movements", headers=headers or {},
+                             json={"sku": "DEMO-BOX-001", "warehouse": "zaragoza", "quantity_delta": delta})
+
+
+async def test_movement_emits_contract_event_after_commit(client, inventory_router, monkeypatch):
+    rows = []
+    monkeypatch.setattr(telemetry_store, "store_events", lambda batch: rows.extend(batch) or len(batch))
+    request_id = "3d2c1b0a-9f8e-4d7c-a6b5-4c3d2e1f0a9b"
+    resp = await post_movement(client, -3, {"X-Request-Id": request_id})
+    assert resp.status_code == 201 and resp.json()["quantity"] == 37
+    assert len(rows) == 1
+    row = rows[0]
+    assert (row["event_type"], row["service"], row["session_id"], row["user_id"], row["request_id"]) == (
+        "inventory_movement_recorded", "backend", None, None, request_id)
+    assert row["timestamp"] == "2026-10-26T19:40:01.123Z"
+    assert row["tags"] == {"sku": "DEMO-BOX-001", "warehouse": "zaragoza", "quantity_delta": -3,
+                           "quantity_after": 37, "schemaVersion": "1.0.0"}
+    TELEMETRY_EVENT_ADAPTER.validate_python({
+        "eventId": row["event_id"], "timestamp": row["timestamp"], "sessionId": None, "userId": None,
+        "event_type": row["event_type"], "schemaVersion": "1.0.0", "requestId": row["request_id"],
+        "properties": {k: v for k, v in row["tags"].items() if k != "schemaVersion"},
+    })
+
+
+@pytest.mark.parametrize("header", [None, "not-a-uuid", "00000000-0000-0000-0000-000000000000"])
+async def test_movement_creates_request_id_when_header_is_missing_or_invalid(client, inventory_router, monkeypatch, header):
+    rows = []
+    monkeypatch.setattr(telemetry_store, "store_events", lambda batch: rows.extend(batch) or len(batch))
+    await post_movement(client, 5, {"X-Request-Id": header} if header else None)
+    assert rows[0]["request_id"] != header
+    assert telemetry_store.UUID_PATTERN.match(rows[0]["request_id"])
+
+
+@pytest.mark.parametrize("error", [TelemetryStoreError("telemetry storage write failed"), RuntimeError("boom")])
+async def test_telemetry_failure_does_not_affect_the_movement(client, inventory_router, monkeypatch, error):
+    def fail(_batch):
+        raise error
+
+    monkeypatch.setattr(telemetry_store, "store_events", fail)
+    resp = await post_movement(client, 5)
+    assert resp.status_code == 201
+    assert resp.json()["quantity"] == 37
+
+
+@pytest.mark.parametrize("exception, status_code", [("InventoryItemNotFound", 404), ("InsufficientInventory", 409)])
+async def test_rejected_movement_emits_nothing(client, inventory_router, monkeypatch, exception, status_code):
+    from app.services import demo_inventory
+
+    def reject(_movement):
+        raise getattr(demo_inventory, exception)
+
+    rows = []
+    monkeypatch.setattr(inventory_router, "register_inventory_movement", reject)
+    monkeypatch.setattr(telemetry_store, "store_events", lambda batch: rows.extend(batch) or len(batch))
+    resp = await post_movement(client, -500)
+    assert resp.status_code == status_code
+    assert rows == []

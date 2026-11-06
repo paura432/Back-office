@@ -56,9 +56,9 @@ Ver [`services/api/README.md`](../../services/api/README.md#telemetry-storage-lo
 
 | Comprobación | Resultado |
 |---|---|
-| `uv run --frozen --extra dev pytest -q` con `TELEMETRY_TEST_*_DSN` | **178 passed**, 0 skipped. Incluye 36 tests de `test_telemetry.py` (almacén simulado: lote válido, vacío, 100 elementos en una escritura, 13 inválidos individuales, restricciones numéricas, mixto, todos inválidos, duplicado en lote y ya guardado, fallo de BD → 503, falta de configuración → 503, error sin DSN, una sola sentencia, 5 formas de lote → 422, cuerpo no JSON y paridad con el contrato) y 20 de `test_telemetry_storage.py` contra Postgres real |
-| Mismo comando sin esas variables | 158 passed, 20 skipped (los de integración) |
-| `test_telemetry_storage.py` (BD `telemetry_test` de Supabase local) | Persistencia de todas las columnas, reenvío idempotente, 503 real con credenciales erróneas sin filas, **atomicidad** (lote con una fila que viola un `CHECK` → no se guarda ninguna), UPDATE/DELETE/TRUNCATE bloqueados para el propietario, `telemetry_writer` sin SELECT/UPDATE/DELETE, `anon`/`authenticated`/`service_role` sin lectura ni escritura, RLS forzado, PK como única clave única y uso de cada índice en `EXPLAIN` |
+| `uv run --frozen --extra dev pytest -q` con `TELEMETRY_TEST_*_DSN` (repetido el 2026-11-06) | **187 passed**, 0 skipped. Incluye 44 tests de `test_telemetry.py` (almacén simulado: lote válido, vacío, 100 elementos en una escritura, 13 inválidos individuales, restricciones numéricas, mixto, todos inválidos, duplicado en lote y ya guardado, fallo de BD → 503, falta de configuración → 503, error sin DSN, una sola sentencia, 5 formas de lote → 422, cuerpo no JSON y paridad con el contrato; y para `inventory_movement_recorded`: evento válido tras el 201, `requestId` reutilizado o generado si falta o no es válido, fallo de telemetría sin efecto en el movimiento, y 404/409 sin evento) y 21 de `test_telemetry_storage.py` contra Postgres real |
+| Mismo comando sin esas variables | 166 passed, 21 skipped (los de integración) |
+| `test_telemetry_storage.py` (BD `telemetry_test` de Supabase local) | Persistencia de todas las columnas, reenvío idempotente, 503 real con credenciales erróneas sin filas, **atomicidad** (lote con una fila que viola un `CHECK` → no se guarda ninguna), UPDATE/DELETE/TRUNCATE bloqueados para el propietario, `telemetry_writer` sin SELECT/UPDATE/DELETE, `anon`/`authenticated`/`service_role` sin lectura ni escritura, RLS forzado, PK como única clave única, uso de cada índice en `EXPLAIN` y persistencia de un evento emitido por el backend |
 | `supabase db lint --local --schema public` | Sin errores |
 | `npm test`, `npm run typecheck`, `npm run build` (backoffice, sin cambios) | 7 passed; PASS; PASS (con el aviso ya conocido de vulnerabilidad de Next.js 16.4.0) |
 
@@ -73,7 +73,7 @@ Un script de Playwright 1.64.1 (Chromium 156, headless) abrió la backoffice ser
 
 Resultado en la BD de desarrollo: **5 eventos, 5 `event_id` distintos** (1 `page_viewed`, 3 `web_vitals_measured`, 1 `frontend_error_occurred`, todos con `service = backoffice`). Al reenviar el primer lote real por el proxy de Next.js, la API respondió `{"received":3,"stored":0,"rejected":0}`. Filas, consultas y planes en [`evidence/storage-checks.txt`](./evidence/storage-checks.txt).
 
-**Evento de negocio:** no hay. Ningún flujo actual emite eventos de negocio. Los únicos que se capturan son los tres técnicos o de navegación de la backoffice, y `POST /inventory/movements` todavía no emite `inventory_movement_recorded`. No hemos fabricado ninguno para la evidencia.
+En esa ejecución (2026-10-26) todavía no había eventos de negocio. El primero se añadió después y se describe en [Evento de negocio desde el backend](#evento-de-negocio-desde-el-backend).
 
 ### Lote mixto
 
@@ -89,6 +89,38 @@ El mismo lote enviado otra vez devuelve `{"received":5,"stored":0,"rejected":2}`
 
 `git diff main -- uis/` está vacío: no hemos tocado ninguna línea de `uis/` ni la URL del endpoint.
 
+## Evento de negocio desde el backend
+
+`POST /inventory/movements` emite `inventory_movement_recorded` cuando el movimiento ya está confirmado en la base de inventario. Es el único evento de negocio con disparador real hoy (demo local, `APP_ENV` development/test + `INVENTORY_DEMO_ENABLED`).
+
+| Campo | Valor |
+|---|---|
+| `properties` | `sku`, `warehouse`, `quantity_delta` (el de la petición) y `quantity_after` (stock derivado tras el movimiento) |
+| `timestamp` | `occurred_at` del movimiento en la base de inventario, en UTC con milisegundos |
+| `requestId` | El `X-Request-Id` de la petición si es un UUID válido del contrato (se normaliza a minúsculas); si falta o no es válido, uno nuevo |
+| `sessionId` / `userId` | `null` (no hay sesión de navegador ni Auth) |
+| `service` | `backend` (el `x-source` del catálogo) |
+
+- **Cuándo se guarda:** se programa como `BackgroundTask`, así que se escribe después de enviar la respuesta, con la misma inserción idempotente que el endpoint de ingesta (`emit_event` en `app/services/telemetry_store.py`). El evento se valida contra el contrato antes de guardarlo.
+- **Rechazos:** un 404 (SKU/almacén inexistente), 409 (stock negativo) o 422 (cuerpo inválido) no emite nada. `inventory_movement_rejected` sigue sin implementar.
+- **Fallos:** si falta `TELEMETRY_DATABASE_DSN`, la BD no responde o el evento no cumple el contrato, el movimiento no se ve afectado. La API registra `telemetry_emit_failed event_type=… error=<clase>` (sin DSN) y descarta el evento, **sin reintento**.
+
+### Flujo real: movimiento → FastAPI → Supabase local
+
+Ejecutado el 2026-11-06 con un `docker compose run` puntual del servicio `api` (sin modificar `docker-compose.yml`): el inventario demo en el Postgres de Compose y `TELEMETRY_DATABASE_DSN` pasada con `-e` hacia la BD `postgres` del Supabase local, con un rol de login temporal que solo tenía `telemetry_writer` y que se borró al terminar. Registro completo: [`evidence/business-event-checks.txt`](./evidence/business-event-checks.txt).
+
+| Caso | Respuesta | Evento guardado |
+|---|---|---|
+| Salida válida con `X-Request-Id` | 201 | Sí, con ese `request_id` |
+| Entrada válida con `X-Request-Id` en mayúsculas | 201 | Sí, con el `request_id` en minúsculas |
+| Entrada válida sin `X-Request-Id` | 201 | Sí, con un `request_id` generado |
+| SKU inexistente, con y sin `X-Request-Id` | 404 | No |
+| Stock insuficiente | 409 | No |
+| `quantity_delta: 0` | 422 | No |
+| Salida válida con el Postgres de Supabase pausado (`docker pause`) | 201 en 16 ms | No; el movimiento sí queda confirmado y el log muestra `telemetry_emit_failed … error=TelemetryStoreError` |
+
+Resultado: 4 movimientos confirmados en el inventario y 3 eventos `inventory_movement_recorded` en Supabase, uno por cada movimiento con la telemetría disponible. En cada fila, `quantity_after` coincide con el stock que devolvió la API y `timestamp` con `occurred_at` truncado a milisegundos.
+
 ## Limitaciones
 
 - **Supabase remoto:** no hay un proyecto de desarrollo de TrackFlow autorizado. La migración solo se ha aplicado y verificado en local. Para aplicarla en remoto hace falta autorización y crear allí el rol de login del backend.
@@ -96,4 +128,6 @@ El mismo lote enviado otra vez devuelve `{"received":5,"stored":0,"rejected":2}`
 - **Lista de columnas:** el enunciado del ejercicio no está en el repositorio; hemos derivado las 8 columnas del sobre del contrato.
 - **Retención:** la retención de 30/90 días que propone el plan obliga a borrar filas, y los triggers lo impiden. Hará falta un procedimiento de mantenimiento controlado por el propietario que no está implementado.
 - **Conexiones:** se abre una conexión por lote, sin pool. Sirve en desarrollo, pero para más volumen habría que usar el pooler de Supabase o un pool en la API.
-- Siguen pendientes el evento de negocio, la adopción de `X-Request-Id` en el middleware y la lectura de los datos (no hay rol lector ni endpoint de consulta).
+- **Eventos del backend sin reintento:** si el almacén no está disponible, `inventory_movement_recorded` se pierde (solo queda el aviso en el log). El cliente de la backoffice sí reintenta; el backend no tiene cola ni buffer.
+- **`X-Request-Id`:** de momento solo lo lee `POST /inventory/movements`. El middleware no lo valida ni lo devuelve en la respuesta, así que el cliente no conoce el `requestId` que se genera cuando no lo envía.
+- Siguen pendientes los demás eventos backend con disparador real (`inventory_movement_rejected`, `inventory_stock_low_detected`, `inventory_items_viewed`, `api_request_failed`, `api_request_completed`, `service_status_changed`, `inventory_seed_executed`) y la lectura de los datos (no hay rol lector ni endpoint de consulta).
