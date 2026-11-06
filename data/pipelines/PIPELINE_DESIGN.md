@@ -1,6 +1,6 @@
 # Pipeline de desempeño de negocio — Diseño (Parte 1 de 3)
 
-> **Estado:** solo diseño. Todavía no hay código de orquestación, ni esquema `reporting`, ni endpoints nuevos. La implementación llega en las Partes 2 y 3.
+> **Estado:** implementado en la Parte 2 (`data/pipelines/pipeline.py`, esquema `reporting` y endpoints `/reporting`). La §9 resume cómo se ejecuta, con qué frecuencia y qué ha cambiado respecto a este diseño. El dashboard llega en la Parte 3.
 
 > **Bloqueo: falta el `company-BRIEFING.md` de data pipelines.** No está en el repositorio ni en ninguna rama, igual que el BRIEFING de telemetría en las fases anteriores. Los datos que debería fijar ese documento se han tomado de `CONTEXT.md` y del código, y están todos en la tabla siguiente. Cuando tengamos el BRIEFING hay que sustituirlos aquí y en el resto del documento.
 
@@ -317,7 +317,9 @@ En la Parte 3 las etapas pasarán a subflows; aquí quedan como tasks.
 | `load_kpis` | Carga | 3 (10 s, 60 s, 300 s) | Un día por transacción (§3.1) |
 | `finish_run` | Control | 3 | Cierra `pipeline_runs` con contadores y estado |
 
-Las tareas con acceso a la base de datos solo reintentan errores transitorios (`retry_condition_fn` con `psycopg.OperationalError`). Ninguna usa caché de resultados (`cache_policy=NO_CACHE`): una reejecución tiene que leer otra vez la fuente porque pueden haber llegado eventos tardíos.
+Las tareas con acceso a la base de datos solo reintentan errores transitorios (`retry_condition_fn` con `psycopg.OperationalError`) y no usan caché (`cache_policy=NO_CACHE`): una reejecución tiene que leer otra vez la fuente porque pueden haber llegado eventos tardíos. `transform_kpis` sí se cachea durante 1 hora, con una clave calculada a partir de su entrada (§9.3): como `telemetry_events` es append-only, los mismos `event_id` son siempre los mismos datos, y un evento tardío cambia la clave.
+
+En la implementación se añadieron dos pasos no críticos que se invocan con `return_state=True`: `check_quality` (si falla, los KPIs se cargan igual y cada día guarda el motivo en `quality`) y `export_eval_snapshot` (resumen JSON de la corrida en `data/eval/business_performance/runs/`).
 
 ### 4.3 Estados relevantes
 
@@ -349,16 +351,23 @@ Lo que no es secreto no va en blocks: la ventana de 7 días, la auditoría de 35
 ### 5.1 Dónde vive cada pieza
 
 ```text
-data/pipelines/business_performance/
-  flows.py          business_performance_flow, business_performance_backfill_flow
-  tasks.py          register_run, detect_changed_days, extract_events, transform_kpis,
-                    check_quality, load_kpis, finish_run
-  entrypoints.py    get_pipeline_status, trigger_run, get_run, get_kpis  ← lo único que importa services/
+data/pipelines/
+  pipeline.py         business_performance_flow, sus tasks (register_run, detect_changed_days,
+                      extract_events, transform_kpis, check_quality, load_kpis, finish_run,
+                      export_eval_snapshot) y la línea de comandos
+  business_performance/
+    config.py         parámetros no secretos
+    storage.py        SQL de la fuente y del destino
+    entrypoints.py    get_pipeline_status, trigger_run, get_run, get_kpis  ← lo único que importa services/
+    synthetic.py      eventos sintéticos para telemetry_test
 data/process/
-  business_kpis.py  funciones pandas puras y reutilizables: dedupe_by_natural_key,
-                    attach_return_country, compute_kpis, assign_status
-services/reporting/ router y modelos Pydantic de los endpoints, sin lógica de ETL
+  business_kpis.py    funciones pandas puras y reutilizables: flag_invalid, flag_duplicates,
+                      return_countries, compute_kpis, assign_status, plan_window,
+                      quality_by_day, aggregate_weekly
+services/reporting/   router y modelos Pydantic de los endpoints, sin lógica de ETL
 ```
+
+El enunciado de la Parte 2 pide que el flow y sus tasks estén en `data/pipelines/pipeline.py`, así que `flows.py` y `tasks.py` se juntaron ahí.
 
 `services/reporting/` importa de `data/pipelines/`; nunca al revés. Ninguna regla de cálculo, SQL de extracción ni upsert vive en `services/`.
 
@@ -373,7 +382,10 @@ services/reporting/ router y modelos Pydantic de los endpoints, sin lógica de E
 
 El disparo manual no puede ser público: no hay autenticación (las rutas de auth son stub 501). Hasta que exista, va detrás del mismo tipo de gate que el inventario demo (`APP_ENV` development/test).
 
-### 5.3 Decisión pendiente para la Parte 2: cómo llega el código al contenedor
+### 5.3 Cómo llega el código al contenedor
+
+**Resuelto en la Parte 2 con la opción 1:** Compose monta `./services/reporting` y `./data` en solo lectura bajo `/repo` y añade `PYTHONPATH=/repo`; el router se importa desde `services/reporting/` (no desde `services/api/app/`). La API depende de `prefect-client` para disparar el deployment. Planteamiento original:
+
 
 Compose solo monta `./services/api` en `/app`, así que hoy ni `services/reporting/` ni `data/pipelines/` son importables desde la API. El reporte técnico resolvió lo mismo colocando el código dentro de `services/api/app/` ([`report.md`](../../docs/telemetry/report.md)). Para este pipeline hay dos opciones, y las dos requieren autorización antes de implementar:
 
@@ -453,9 +465,54 @@ Señales de un solapamiento: más de una fila `running` en `pipeline_runs`, corr
 ## 8. Decisiones abiertas y riesgos
 
 - **BRIEFING de data pipelines:** sustituir la tabla del inicio (nombre de la tabla de destino, KPIs, audiencia, frecuencia y agregación) y revisar §2.2 con sus «KPIs a medir».
-- **Instrumentación:** ningún evento fuente de los KPIs se emite todavía. La Parte 2 probará el pipeline con eventos sintéticos en la base de test (`telemetry_test`), no con datos de producción.
-- **Ubicación del código en el contenedor** (§5.3) y **dependencia de Prefect** en `data/pipelines`: requieren autorización.
+- **Instrumentación:** ningún evento fuente de los KPIs se emite todavía. La Parte 2 prueba el pipeline con eventos sintéticos en la base de test (`telemetry_test`); con los datos reales todos los KPIs salen `not_instrumented`.
+- ~~**Ubicación del código en el contenedor** (§5.3) y **dependencia de Prefect** en `data/pipelines`~~: autorizadas y resueltas en la Parte 2 (§9).
 - **`data/process/`:** su README la describe como carpeta de datos procesados; el enunciado pide poner ahí los scripts de transformación reutilizables. Seguimos el enunciado y lo dejamos indicado.
 - **Zona horaria del informe:** `CONTEXT.md` dice «lunes a las 7 de la mañana» sin zona. Usamos días UTC hasta que el BRIEFING lo concrete.
 - **Retención:** el plan de telemetría propone conservar los eventos de negocio crudos 90 días (hoy los triggers impiden borrarlos). El pipeline necesita al menos los 35 días de auditoría, y un backfill solo puede recalcular lo que siga en la tabla. Los agregados de `reporting` seguirían la propuesta de 25 meses del plan.
 - **Supabase remoto:** igual que la telemetría, solo existe el entorno local.
+
+---
+
+## 9. Implementación (Parte 2)
+
+### 9.1 Ejecución y frecuencia
+
+Desde la raíz del repositorio, con `BUSINESS_PERFORMANCE_SOURCE_DSN` (rol miembro de `telemetry_reader`) y `BUSINESS_PERFORMANCE_REPORTING_DSN` (rol miembro de `reporting_writer`), o con los bloques `Secret` de §4.4:
+
+```sh
+uv run --project data/pipelines python data/pipelines/pipeline.py                         # últimos 7 días + días tardíos
+uv run --project data/pipelines python data/pipelines/pipeline.py --start 2026-10-01 --end 2026-10-08
+PREFECT_API_URL=http://127.0.0.1:4200/api uv run --project data/pipelines python data/pipelines/pipeline.py --serve
+```
+
+**Frecuencia:** diaria a las 04:00 UTC (`Cron("0 4 * * *", timezone="UTC")` en el deployment `business-performance-daily`, con `concurrency_limit=1` y estrategia `ENQUEUE`). El informe ejecutivo sigue siendo semanal, los lunes a las 07:00, y lee los 7 días anteriores. Instalación, roles, datos sintéticos y tests en [`README.es.md`](README.es.md).
+
+### 9.2 Del diseño al código
+
+| Diseño | Implementación |
+|---|---|
+| Esquema `reporting` con sus cuatro tablas, roles y RLS (§2.6, §3.2, §3.3) | Migración `services/api/supabase/migrations/20261106193654_create_reporting_schema.sql`, igual que en el diseño. `failed_stage` admite los valores de §3.2 |
+| Flow y tasks (§4.1, §4.2) | `business_performance_flow` en `pipeline.py` con las siete tasks de §4.2 y `export_eval_snapshot` |
+| Reintentos 3 (10 s, 60 s, 300 s) solo con `OperationalError` | `DB_TASK` en `pipeline.py`. Comprobado con una caída real de Postgres (`data/eval/business_performance/evidence/db-outage-retry.txt`) |
+| Idempotencia: un día por transacción, upsert con guarda de cambio, borrado de obsoletos (§3.1) | `storage.load_day`. Una segunda corrida deja todas las filas `unchanged`; una corrida que falla en el día 4 y se repite acaba igual que una corrida limpia (tests de `tests/test_pipeline_flow.py`) |
+| Eventos tardíos por huella de 35 días (§2.5) | `detect_changed_days` + `business_kpis.plan_window`. Probado con un evento del 26 de octubre: `late_days_detected = 1`, `revision = 2` e histórico |
+| Candado y corridas huérfanas (§6.10) | `register_run`: `pg_try_advisory_lock` en una conexión que dura toda la corrida; sin candado la corrida queda `skipped` y se devuelve `Cancelled`; con el candado, las otras filas `running` pasan a `crashed` |
+| Estados `ok`, `no_activity`, `capture_gap`, `not_instrumented` (§6.4) | `business_kpis.assign_status` y `_return_rate_rows` |
+| Endpoints (§5.2) | `services/reporting/router.py` + `entrypoints.py`. `POST /reporting/pipeline/runs` usa `run_deployment(timeout=0)` y devuelve 202, 409, 422, 404 o 503 |
+
+### 9.3 Cambios respecto al diseño
+
+- **Caché de `transform_kpis`** (§4.2 decía que ninguna task usaría caché). El ticket de la Parte 2 pide no repetir una task que ya corrió bien en la última hora. La clave es un hash de los `event_id` de entrada, del latido de los productores, de la primera aparición de cada tipo, de la ventana, de los países y del código de `data/process/business_kpis.py`, y caduca a la hora. La extracción y la carga siguen sin caché.
+- **`not_instrumented` por día:** un KPI cuenta como no instrumentado los días anteriores a la primera aparición de su evento, no solo si no ha aparecido nunca. Así los días previos a la instrumentación no salen como `no_activity` con un 0.
+- **`capture_gap` con eventos inutilizables:** si hay eventos fuente ese día y país pero ninguno sirve para el KPI (entregas sin coste para `shipping_cost_*`), la fila es `capture_gap` y no un 0. En `return_rate`, si no hay devoluciones y el backend no envió nada ese día, también.
+- **País de las devoluciones:** primero `order_created.destination_country` y, si falta, el `shipment_created` del mismo `order_id`; si no, `unknown`. Solo se buscan en los 30 días de lectura previa.
+- **Productor de `customer_satisfaction_submitted`:** el contrato lo marca `frontend` y no lleva `app`, así que llega con `service = frontend`. Ningún otro evento usa ese `service`, por lo que un día sin encuestas sale `capture_gap`, nunca `no_activity`.
+- **`GET /reporting/kpis`:** `country=all` devuelve todos los países sin sumarlos (las monedas son distintas). Con `granularity=week` se suman transportistas; la semana toma el estado más grave de sus días y no tiene `value` si algún día no se pudo medir. Periodo por defecto: los últimos 28 días, como mucho 366.
+- **Ventana explícita:** el flow valida también la ventana (las dos fechas o ninguna, como mucho hasta mañana y 90 días), no solo la API.
+- **Sin flow de backfill:** `business_performance_backfill_flow` era opcional y no se ha implementado; una ventana explícita de hasta 90 días cubre los recálculos de la v1.
+- **Versión de Prefect:** 3.4.5, la más reciente compatible con `fastapi==0.115.12` de la API. `data/pipelines/pyproject.toml` limita `pydantic-settings`, FastAPI y SQLAlchemy porque con versiones más nuevas Prefect 3.4.5 avisa en cada arranque, no arranca el servidor o su scheduler no crea las corridas del cron.
+
+### 9.4 Comprobaciones
+
+Tests automatizados: 32 en `data/pipelines/tests/` (23 de la transformación pura y 9 del flow completo contra `telemetry_test`) y 28 en `services/api/tests/test_reporting.py`; la suite de la API queda en 252 passed con base de test. Corridas reales sobre el Supabase local y extremo a extremo con API, servidor de Prefect y deployment servido: ver [`data/eval/business_performance/README.md`](../eval/business_performance/README.md).

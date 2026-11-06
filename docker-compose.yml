@@ -33,10 +33,14 @@ services:
       DATABASE_NAME: ${POSTGRES_DB:-trackflow}
       DATABASE_USER: ${POSTGRES_USER:-trackflow}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-trackflow_dev}
+      # services/reporting importa data/pipelines y data/process (PIPELINE_DESIGN.md §5.3).
+      PYTHONPATH: /repo
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     volumes:
       - ./services/api:/app
+      - ./services/reporting:/repo/services/reporting:ro
+      - ./data:/repo/data:ro
     depends_on:
       db:
         condition: service_healthy

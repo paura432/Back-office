@@ -8,3 +8,16 @@ Each subfolder or file under `data/pipelines/` should represent **one pipeline o
 - **Recommendation**: document pipelines as you add them—their goal, data sources and sinks, dependencies, and how to run them in development, testing, and production.
 
 > _Spanish version: [README.es.md](./README.es.md)._
+
+## `business_performance` — business performance pipeline
+
+Computes the executive report KPIs (shipments, on-time deliveries, shipping cost, returns and customer satisfaction, per country) every day from `public.telemetry_events` and stores them in `reporting.executive_kpis_daily` (provisional name until the BRIEFING exists). Design and implementation notes: [`PIPELINE_DESIGN.md`](PIPELINE_DESIGN.md) (section 9). The full guide (database roles, variables, synthetic data, tests and versions) is in [README.es.md](./README.es.md).
+
+```sh
+uv sync --project data/pipelines --frozen
+uv run --project data/pipelines python data/pipelines/pipeline.py                         # last 7 days + late days
+uv run --project data/pipelines python data/pipelines/pipeline.py --start 2026-10-01 --end 2026-10-08
+PREFECT_API_URL=http://127.0.0.1:4200/api uv run --project data/pipelines python data/pipelines/pipeline.py --serve
+```
+
+Schedule: daily at 04:00 UTC (`business-performance-daily` deployment, one run at a time). Variables: `BUSINESS_PERFORMANCE_SOURCE_DSN` (login role in `telemetry_reader`), `BUSINESS_PERFORMANCE_REPORTING_DSN` (login role in `reporting_writer`) and, for deployments, `PREFECT_API_URL`.
