@@ -68,3 +68,9 @@ Los README locales definen la responsabilidad de cada carpeta y piden documentar
 - Los eventos de `POST /telemetry/events` se guardan en Supabase (PostgreSQL 17), en `public.telemetry_events`. La migración versionada y `config.toml` de la CLI están en `services/api/supabase/`. Solo existe el entorno local (`npx supabase@2.122.0 start --workdir services/api`); no hay proyecto remoto de TrackFlow.
 - La API escribe con `psycopg` usando `TELEMETRY_DATABASE_DSN` (solo backend), con un rol de login miembro de `telemetry_writer` (solo INSERT). El inventario demo y `/status` siguen en el PostgreSQL de Compose (`DATABASE_*`). Compose todavía no pasa `TELEMETRY_DATABASE_DSN`.
 - `POST /inventory/movements` emite `inventory_movement_recorded` desde el backend en una `BackgroundTask` tras confirmar el movimiento; si la telemetría falla, el movimiento no se ve afectado y el evento se descarta sin reintento. El `X-Request-Id` solo lo lee ese endpoint; el middleware aún no lo gestiona.
+
+## Reporte técnico de telemetría (2026-11-06)
+
+- `GET /telemetry/report` lee `public.telemetry_events` con `TELEMETRY_READ_DATABASE_DSN`, un rol de login miembro de `telemetry_reader` (solo SELECT y política `FOR SELECT`). `telemetry_writer` sigue sin poder leer.
+- El pipeline vive en `services/api/app/telemetry/analysis.py` (pandas 3.1.1): cada métrica carga en SQL solo sus columnas y tipos dentro de `[start, end)`, extrae `tags`, convierte a UTC con `pd.to_datetime(utc=True)` y agrega con `groupby`. El endpoint fija el periodo y cachea 60 s en proceso (`TTLCache`).
+- La página `/telemetry` del backoffice consume el endpoint desde el navegador vía el rewrite `/api`.

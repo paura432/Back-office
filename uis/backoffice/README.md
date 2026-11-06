@@ -2,7 +2,7 @@
 
 ## Objective
 
-An internal, frontend-only operations dashboard for TrackFlow. It provides a structured view of the warehouse, carrier, reverse-logistics, customer-experience, and technology areas and summarizes documented operational needs. It is a static context overview: no backend is connected, no live data is shown, and status labels describe needs in `CONTEXT.md` rather than live alerts.
+An internal, frontend-only operations dashboard for TrackFlow. It provides a structured view of the warehouse, carrier, reverse-logistics, customer-experience, and technology areas and summarizes documented operational needs. The root route `/` is a static context overview: no live operational data is shown, and status labels describe needs in `CONTEXT.md` rather than live alerts. `/telemetry` is the technical telemetry report described below.
 
 ## Stack
 
@@ -34,9 +34,17 @@ contract in `docs/telemetry/event-schemas.json`. It batches events in memory
 backoff, and uses `sendBeacon` when the page is hidden or closed.
 `app/telemetry-reporter.tsx` captures `page_viewed`, `frontend_error_occurred`
 and `web_vitals_measured`; `BackendStatus` reports failed `/api/status` calls.
-Copy `.env.example` to `.env.local` to set `NEXT_PUBLIC_TELEMETRY_ENDPOINT`
+`routeTemplate` knows the static routes `/` and `/telemetry`; anything else is
+reported as `<unmatched>`. Copy `.env.example` to `.env.local` to set `NEXT_PUBLIC_TELEMETRY_ENDPOINT`
 (default `/api/telemetry/events`, same-origin via the `/api` rewrite). Details,
 pending events and evidence: `docs/telemetry/frontend-capture.md`.
+
+`/telemetry` (`app/telemetry/`) shows `GET /api/telemetry/report` for the
+engineering team: the period it covers (`from` → `to`, UTC), events per day,
+frontend error rate, frontend errors by route and kind, and Web Vitals per day.
+Two date fields change the period (start inclusive, end exclusive); without
+them the API uses the last 7 days. It uses plain tables and CSS bars, with no
+chart library. Details: `docs/telemetry/report.md`.
 
 ```sh
 npm test          # node:test unit tests for the telemetry client

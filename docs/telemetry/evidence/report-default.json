@@ -1,0 +1,160 @@
+{
+  "period": {
+    "from": "2026-10-30T18:48:43Z",
+    "to": "2026-11-06T18:48:43Z"
+  },
+  "metrics": {
+    "events_per_day": [
+      {
+        "date": "2026-11-06",
+        "service": "backend",
+        "event_type": "inventory_movement_recorded",
+        "events": 3,
+        "share": 0.0857
+      },
+      {
+        "date": "2026-11-06",
+        "service": "backoffice",
+        "event_type": "frontend_error_occurred",
+        "events": 1,
+        "share": 0.0286
+      },
+      {
+        "date": "2026-11-06",
+        "service": "backoffice",
+        "event_type": "page_viewed",
+        "events": 6,
+        "share": 0.1714
+      },
+      {
+        "date": "2026-11-06",
+        "service": "backoffice",
+        "event_type": "web_vitals_measured",
+        "events": 25,
+        "share": 0.7143
+      }
+    ],
+    "error_rate_per_day": [
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "sessions": 5,
+        "sessions_with_errors": 1,
+        "errors": 1,
+        "error_rate": 0.2
+      }
+    ],
+    "frontend_errors_per_day": [
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/",
+        "error_kind": "fetch_failed",
+        "errors": 1,
+        "distinct_errors": 1,
+        "sessions": 1
+      }
+    ],
+    "web_vitals_per_day": [
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/",
+        "metric": "CLS",
+        "unit": "score",
+        "samples": 4,
+        "mean": 0.002,
+        "p75": 0.003,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/",
+        "metric": "FCP",
+        "unit": "ms",
+        "samples": 4,
+        "mean": 114,
+        "p75": 124,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/",
+        "metric": "LCP",
+        "unit": "ms",
+        "samples": 4,
+        "mean": 114,
+        "p75": 124,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/",
+        "metric": "TTFB",
+        "unit": "ms",
+        "samples": 4,
+        "mean": 6.175,
+        "p75": 7.15,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/telemetry",
+        "metric": "CLS",
+        "unit": "score",
+        "samples": 2,
+        "mean": 0.001,
+        "p75": 0.001,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/telemetry",
+        "metric": "FCP",
+        "unit": "ms",
+        "samples": 2,
+        "mean": 66,
+        "p75": 73,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/telemetry",
+        "metric": "INP",
+        "unit": "ms",
+        "samples": 1,
+        "mean": 8,
+        "p75": 8,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/telemetry",
+        "metric": "LCP",
+        "unit": "ms",
+        "samples": 2,
+        "mean": 66,
+        "p75": 73,
+        "poor_rate": 0
+      },
+      {
+        "date": "2026-11-06",
+        "app": "backoffice",
+        "route_template": "/telemetry",
+        "metric": "TTFB",
+        "unit": "ms",
+        "samples": 2,
+        "mean": 8.4,
+        "p75": 9.95,
+        "poor_rate": 0
+      }
+    ]
+  }
+}
