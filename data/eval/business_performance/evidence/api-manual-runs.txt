@@ -1,0 +1,17 @@
+# API local (uvicorn :8010) + prefect server + python data/pipelines/pipeline.py --serve, sobre telemetry_test con eventos sintéticos
+
+## POST /reporting/pipeline/runs
+{"run_id":"b2ab2488-8241-413b-92c2-795b04d233ce","status":"scheduled"}
+HTTP 202 in 0.124420s
+
+## POST /reporting/pipeline/runs inmediatamente después
+{"detail":"A pipeline run is already active","run_id":"b2ab2488-8241-413b-92c2-795b04d233ce"}
+HTTP 409 in 0.031884s
+
+## POST /reporting/pipeline/runs tras insertar un shipment_created tardío del 2026-10-26
+{"run_id":"23e63e3b-3ea9-4726-89e0-f4595f2a3eec","status":"scheduled"}
+HTTP 202
+
+## POST /reporting/pipeline/runs con el servidor de Prefect parado
+{"detail":"Reporting unavailable"}
+HTTP 503 in 1.512698s

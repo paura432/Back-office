@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from db import check_database
 from app.routers import health, auth, inventory, orders, shipments, returns, customers, dashboard, users, telemetry
 from app.schemas.status import StatusResponse
+from services.reporting.router import router as reporting_router
 
 app = FastAPI(title="TrackFlow API", version="0.1.0")
 logger = logging.getLogger("trackflow.http")
@@ -41,6 +42,7 @@ app.include_router(customers.router)
 app.include_router(dashboard.router)
 app.include_router(users.router)
 app.include_router(telemetry.router)
+app.include_router(reporting_router)
 
 
 @app.get(

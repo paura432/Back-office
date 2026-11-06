@@ -1,0 +1,669 @@
+{
+    "run_id": "23e63e3b-3ea9-4726-89e0-f4595f2a3eec",
+    "flow_name": "business-performance",
+    "trigger": "manual",
+    "requested_by": null,
+    "window_start": "2026-10-26",
+    "window_end": "2026-11-06",
+    "started_at": "2026-11-06T20:04:02.423024Z",
+    "finished_at": "2026-11-06T20:04:02.756848Z",
+    "duration_seconds": 0.334,
+    "status": "completed",
+    "failed_stage": null,
+    "last_completed_date": "2026-11-05",
+    "events_extracted": 672,
+    "events_deduplicated": 15,
+    "events_invalid": 0,
+    "rows_inserted": 0,
+    "rows_updated": 1,
+    "rows_unchanged": 301,
+    "rows_deleted": 0,
+    "late_days_detected": 1,
+    "source_max_timestamp": "2026-11-05T22:53:00Z",
+    "pipeline_version": "1.0.0",
+    "error_class": null,
+    "error_message": null,
+    "days": [
+        {
+            "metric_date": "2026-10-26",
+            "status": "loaded",
+            "events_extracted": 63,
+            "events_after_dedupe": 62,
+            "rows_written": 1,
+            "source_checksum": "928c1908617349cfa1dcd1410e7f0ece",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 1,
+                "source_events": 63,
+                "duplicate_rate": 0.0159,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "06": 4,
+                        "07": 3,
+                        "08": 2,
+                        "09": 16,
+                        "10": 2,
+                        "11": 5,
+                        "12": 6,
+                        "13": 1,
+                        "14": 2,
+                        "15": 4,
+                        "16": 2,
+                        "18": 5,
+                        "19": 4,
+                        "20": 3
+                    },
+                    "frontend": {
+                        "06": 1,
+                        "21": 1,
+                        "22": 1
+                    },
+                    "backoffice": {
+                        "09": 67,
+                        "19": 1
+                    },
+                    "integration": {
+                        "01": 1,
+                        "02": 2,
+                        "03": 1,
+                        "05": 1,
+                        "08": 1,
+                        "11": 1,
+                        "12": 1,
+                        "14": 1,
+                        "15": 2,
+                        "16": 2,
+                        "17": 2,
+                        "22": 1
+                    }
+                },
+                "volume_ratio_vs_median": null,
+                "median_source_events_prev_7d": 0.0
+            },
+            "finished_at": "2026-11-06T20:04:02.698546Z"
+        },
+        {
+            "metric_date": "2026-10-27",
+            "status": "loaded",
+            "events_extracted": 57,
+            "events_after_dedupe": 56,
+            "rows_written": 0,
+            "source_checksum": "b01c4364709636659d4e9a32862f9c4d",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 1,
+                "source_events": 57,
+                "duplicate_rate": 0.0175,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "04": 1,
+                        "06": 4,
+                        "07": 2,
+                        "08": 2,
+                        "09": 2,
+                        "10": 4,
+                        "11": 3,
+                        "12": 2,
+                        "13": 1,
+                        "14": 2,
+                        "15": 2,
+                        "16": 2,
+                        "17": 1,
+                        "19": 1,
+                        "20": 1,
+                        "22": 1
+                    },
+                    "frontend": {
+                        "02": 1,
+                        "04": 1,
+                        "12": 1,
+                        "13": 1,
+                        "14": 1,
+                        "16": 2
+                    },
+                    "integration": {
+                        "02": 1,
+                        "03": 2,
+                        "08": 1,
+                        "09": 2,
+                        "11": 1,
+                        "12": 2,
+                        "14": 2,
+                        "15": 1,
+                        "16": 2,
+                        "17": 2,
+                        "18": 1,
+                        "19": 1,
+                        "21": 1
+                    }
+                },
+                "volume_ratio_vs_median": null,
+                "median_source_events_prev_7d": 0.0
+            },
+            "finished_at": "2026-11-06T20:04:02.705376Z"
+        },
+        {
+            "metric_date": "2026-10-28",
+            "status": "loaded",
+            "events_extracted": 59,
+            "events_after_dedupe": 59,
+            "rows_written": 0,
+            "source_checksum": "c79c14916f0a767784d948b74cb616a2",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 0,
+                "source_events": 59,
+                "duplicate_rate": 0.0,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "04": 1,
+                        "05": 1,
+                        "06": 6,
+                        "07": 1,
+                        "08": 3,
+                        "10": 2,
+                        "12": 3,
+                        "13": 2,
+                        "14": 3,
+                        "15": 2,
+                        "16": 2,
+                        "17": 3,
+                        "18": 4,
+                        "19": 1,
+                        "20": 2
+                    },
+                    "frontend": {
+                        "03": 1,
+                        "07": 1,
+                        "18": 1,
+                        "19": 1
+                    },
+                    "integration": {
+                        "00": 1,
+                        "06": 2,
+                        "08": 1,
+                        "09": 2,
+                        "10": 2,
+                        "12": 2,
+                        "13": 1,
+                        "16": 1,
+                        "17": 2,
+                        "19": 1,
+                        "21": 1,
+                        "22": 2,
+                        "23": 1
+                    }
+                },
+                "volume_ratio_vs_median": 1.475,
+                "median_source_events_prev_7d": 40.0
+            },
+            "finished_at": "2026-11-06T20:04:02.708520Z"
+        },
+        {
+            "metric_date": "2026-10-29",
+            "status": "loaded",
+            "events_extracted": 59,
+            "events_after_dedupe": 58,
+            "rows_written": 0,
+            "source_checksum": "26d1526a00b39a5e5d4aa85ff3ad0961",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 1,
+                "source_events": 59,
+                "duplicate_rate": 0.0169,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "03": 1,
+                        "05": 2,
+                        "06": 3,
+                        "07": 6,
+                        "08": 2,
+                        "09": 1,
+                        "10": 4,
+                        "11": 4,
+                        "12": 3,
+                        "15": 3,
+                        "16": 1,
+                        "18": 4,
+                        "19": 4,
+                        "20": 2
+                    },
+                    "frontend": {
+                        "02": 1,
+                        "09": 1,
+                        "22": 2,
+                        "23": 1
+                    },
+                    "integration": {
+                        "01": 1,
+                        "02": 1,
+                        "04": 1,
+                        "09": 1,
+                        "10": 1,
+                        "11": 1,
+                        "12": 1,
+                        "13": 1,
+                        "15": 1,
+                        "17": 2,
+                        "20": 2,
+                        "23": 1
+                    }
+                },
+                "volume_ratio_vs_median": 1.475,
+                "median_source_events_prev_7d": 40.0
+            },
+            "finished_at": "2026-11-06T20:04:02.711623Z"
+        },
+        {
+            "metric_date": "2026-10-30",
+            "status": "loaded",
+            "events_extracted": 51,
+            "events_after_dedupe": 50,
+            "rows_written": 0,
+            "source_checksum": "c292c535a738cc08db882eeae43ad50d",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 1,
+                "source_events": 51,
+                "duplicate_rate": 0.0196,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "06": 1,
+                        "07": 1,
+                        "08": 5,
+                        "09": 3,
+                        "10": 4,
+                        "11": 2,
+                        "12": 3,
+                        "13": 4,
+                        "14": 3,
+                        "15": 2,
+                        "16": 2,
+                        "17": 1,
+                        "18": 1
+                    },
+                    "frontend": {
+                        "10": 1,
+                        "22": 1
+                    },
+                    "integration": {
+                        "00": 1,
+                        "02": 2,
+                        "05": 1,
+                        "07": 2,
+                        "08": 1,
+                        "13": 1,
+                        "14": 1,
+                        "15": 1,
+                        "18": 1,
+                        "20": 1,
+                        "21": 2,
+                        "22": 1,
+                        "23": 2
+                    }
+                },
+                "volume_ratio_vs_median": 0.8947,
+                "median_source_events_prev_7d": 57.0
+            },
+            "finished_at": "2026-11-06T20:04:02.714331Z"
+        },
+        {
+            "metric_date": "2026-10-31",
+            "status": "loaded",
+            "events_extracted": 50,
+            "events_after_dedupe": 50,
+            "rows_written": 0,
+            "source_checksum": "e36c3cc01e5bc3965f75fbb869eba9ea",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 0,
+                "source_events": 50,
+                "duplicate_rate": 0.0,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "06": 2,
+                        "07": 1,
+                        "08": 2,
+                        "09": 1,
+                        "10": 3,
+                        "11": 5,
+                        "12": 3,
+                        "13": 2,
+                        "14": 2,
+                        "15": 2,
+                        "16": 4,
+                        "18": 1,
+                        "22": 1,
+                        "23": 1
+                    },
+                    "frontend": {
+                        "01": 1,
+                        "02": 1,
+                        "04": 1,
+                        "21": 1
+                    },
+                    "integration": {
+                        "02": 1,
+                        "03": 2,
+                        "06": 1,
+                        "09": 1,
+                        "11": 1,
+                        "12": 3,
+                        "14": 1,
+                        "15": 1,
+                        "16": 2,
+                        "18": 1,
+                        "20": 2
+                    }
+                },
+                "volume_ratio_vs_median": 0.8772,
+                "median_source_events_prev_7d": 57.0
+            },
+            "finished_at": "2026-11-06T20:04:02.717124Z"
+        },
+        {
+            "metric_date": "2026-11-01",
+            "status": "loaded",
+            "events_extracted": 65,
+            "events_after_dedupe": 63,
+            "rows_written": 0,
+            "source_checksum": "a6974a47ea83ab3c3079c4a07e0aa4c4",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 2,
+                "source_events": 65,
+                "duplicate_rate": 0.0308,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "02": 1,
+                        "04": 1,
+                        "07": 3,
+                        "08": 4,
+                        "09": 1,
+                        "10": 4,
+                        "11": 4,
+                        "12": 3,
+                        "13": 2,
+                        "14": 3,
+                        "15": 1,
+                        "16": 2,
+                        "17": 3,
+                        "18": 1,
+                        "19": 4,
+                        "20": 4
+                    },
+                    "frontend": {
+                        "04": 1,
+                        "05": 1,
+                        "17": 2,
+                        "20": 2,
+                        "22": 1
+                    },
+                    "integration": {
+                        "00": 1,
+                        "01": 1,
+                        "02": 1,
+                        "03": 2,
+                        "07": 1,
+                        "08": 1,
+                        "12": 2,
+                        "13": 2,
+                        "15": 2,
+                        "16": 1,
+                        "19": 1,
+                        "20": 1,
+                        "21": 1
+                    }
+                },
+                "volume_ratio_vs_median": 1.1404,
+                "median_source_events_prev_7d": 57.0
+            },
+            "finished_at": "2026-11-06T20:04:02.720652Z"
+        },
+        {
+            "metric_date": "2026-11-02",
+            "status": "loaded",
+            "events_extracted": 81,
+            "events_after_dedupe": 77,
+            "rows_written": 0,
+            "source_checksum": "687698d87ffc0bd7511ef13cf611a9bf",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 4,
+                "source_events": 81,
+                "duplicate_rate": 0.0494,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "02": 1,
+                        "04": 1,
+                        "05": 2,
+                        "06": 7,
+                        "07": 3,
+                        "08": 3,
+                        "09": 2,
+                        "10": 4,
+                        "11": 2,
+                        "12": 1,
+                        "13": 1,
+                        "14": 2,
+                        "15": 7,
+                        "16": 4,
+                        "17": 7,
+                        "18": 2,
+                        "19": 2,
+                        "20": 3,
+                        "21": 1,
+                        "22": 1
+                    },
+                    "frontend": {
+                        "09": 1,
+                        "13": 1,
+                        "16": 3,
+                        "20": 2
+                    },
+                    "integration": {
+                        "00": 1,
+                        "01": 2,
+                        "03": 1,
+                        "06": 1,
+                        "10": 1,
+                        "12": 1,
+                        "14": 2,
+                        "16": 1,
+                        "18": 1,
+                        "19": 2,
+                        "22": 3,
+                        "23": 2
+                    }
+                },
+                "volume_ratio_vs_median": 1.3729,
+                "median_source_events_prev_7d": 59.0
+            },
+            "finished_at": "2026-11-06T20:04:02.723229Z"
+        },
+        {
+            "metric_date": "2026-11-03",
+            "status": "loaded",
+            "events_extracted": 59,
+            "events_after_dedupe": 59,
+            "rows_written": 0,
+            "source_checksum": "925fb5b91b205060ad5a8ed9f078ec05",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 0,
+                "source_events": 59,
+                "duplicate_rate": 0.0,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "02": 1,
+                        "06": 1,
+                        "07": 3,
+                        "08": 2,
+                        "09": 3,
+                        "10": 3,
+                        "11": 3,
+                        "13": 1,
+                        "14": 5,
+                        "15": 3,
+                        "16": 4,
+                        "17": 1,
+                        "18": 2,
+                        "19": 3,
+                        "20": 1
+                    },
+                    "frontend": {
+                        "06": 1,
+                        "08": 1,
+                        "19": 1,
+                        "23": 1
+                    },
+                    "integration": {
+                        "03": 1,
+                        "04": 2,
+                        "05": 2,
+                        "07": 1,
+                        "11": 1,
+                        "13": 1,
+                        "14": 1,
+                        "15": 1,
+                        "16": 1,
+                        "17": 2,
+                        "18": 1,
+                        "21": 3,
+                        "22": 1,
+                        "23": 1
+                    }
+                },
+                "volume_ratio_vs_median": 1.0,
+                "median_source_events_prev_7d": 59.0
+            },
+            "finished_at": "2026-11-06T20:04:02.726308Z"
+        },
+        {
+            "metric_date": "2026-11-04",
+            "status": "loaded",
+            "events_extracted": 65,
+            "events_after_dedupe": 61,
+            "rows_written": 0,
+            "source_checksum": "c5ba60f4121a02969b3b1242ba1eb6b3",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 4,
+                "source_events": 65,
+                "duplicate_rate": 0.0615,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "00": 1,
+                        "05": 2,
+                        "06": 3,
+                        "07": 2,
+                        "09": 4,
+                        "10": 5,
+                        "12": 5,
+                        "13": 5,
+                        "14": 5,
+                        "15": 2,
+                        "18": 3
+                    },
+                    "frontend": {
+                        "00": 1,
+                        "02": 1,
+                        "03": 1,
+                        "10": 1,
+                        "12": 1,
+                        "20": 2,
+                        "21": 1,
+                        "22": 1
+                    },
+                    "integration": {
+                        "01": 1,
+                        "03": 1,
+                        "04": 1,
+                        "05": 1,
+                        "06": 1,
+                        "07": 2,
+                        "08": 1,
+                        "10": 2,
+                        "13": 1,
+                        "16": 1,
+                        "18": 1,
+                        "20": 2,
+                        "21": 3,
+                        "22": 1
+                    }
+                },
+                "volume_ratio_vs_median": 1.1017,
+                "median_source_events_prev_7d": 59.0
+            },
+            "finished_at": "2026-11-06T20:04:02.728899Z"
+        },
+        {
+            "metric_date": "2026-11-05",
+            "status": "loaded",
+            "events_extracted": 63,
+            "events_after_dedupe": 62,
+            "rows_written": 0,
+            "source_checksum": "d17ebcb2f35de2842c7ed095697f9159",
+            "quality": {
+                "invalid": 0,
+                "duplicates": 1,
+                "source_events": 63,
+                "duplicate_rate": 0.0159,
+                "future_timestamps": 0,
+                "events_by_service_hour": {
+                    "backend": {
+                        "05": 1,
+                        "06": 2,
+                        "07": 4,
+                        "08": 2,
+                        "09": 2,
+                        "10": 4,
+                        "11": 5,
+                        "12": 4,
+                        "13": 6,
+                        "14": 3,
+                        "15": 3,
+                        "17": 1,
+                        "18": 1,
+                        "19": 2,
+                        "20": 2
+                    },
+                    "frontend": {
+                        "03": 1,
+                        "04": 1,
+                        "08": 1,
+                        "11": 1,
+                        "15": 2,
+                        "20": 1,
+                        "22": 1
+                    },
+                    "integration": {
+                        "00": 1,
+                        "01": 1,
+                        "02": 2,
+                        "04": 2,
+                        "09": 1,
+                        "10": 1,
+                        "12": 2,
+                        "15": 1,
+                        "19": 1,
+                        "20": 1
+                    }
+                },
+                "volume_ratio_vs_median": 1.0678,
+                "median_source_events_prev_7d": 59.0
+            },
+            "finished_at": "2026-11-06T20:04:02.731448Z"
+        }
+    ]
+}

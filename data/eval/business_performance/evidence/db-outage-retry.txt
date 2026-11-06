@@ -1,0 +1,42 @@
+# Caída real de Postgres: docker pause del contenedor de Supabase a las 20:04:14 UTC y docker unpause a las 20:04:20 UTC.
+# Las horas del log de Prefect son locales (UTC+1).
+# uv run --project data/pipelines python data/pipelines/pipeline.py --start 2026-10-30 --end 2026-11-06 (telemetry_test)
+
+21:04:15.498 | INFO    | Flow run 'orthodox-silkworm' - Beginning flow run 'orthodox-silkworm' for flow 'business-performance'
+21:04:18.547 | INFO    | Task run 'register_run-057' - Task run failed with exception: ConnectionTimeout('connection timeout expired') - Retry 1/3 will start 10 second(s) from now
+21:04:28.570 | INFO    | Task run 'register_run-057' - Finished in state Completed()
+21:04:28.599 | INFO    | Task run 'extract_events-c40' - Extracted 752 source event(s) for 2026-10-30..2026-11-06
+21:04:28.619 | INFO    | Task run 'extract_events-c40' - Finished in state Completed()
+21:04:28.681 | INFO    | Task run 'transform_kpis-30b' - Finished in state Completed()
+21:04:28.706 | INFO    | Task run 'check_quality-bf2' - Finished in state Completed()
+21:04:28.767 | INFO    | Task run 'load_kpis-8cb' - Finished in state Completed()
+21:04:28.793 | INFO    | Task run 'finish_run-5e8' - Finished in state Completed()
+21:04:28.809 | INFO    | Task run 'export_eval_snapshot-c8d' - Finished in state Completed()
+21:04:28.811 | INFO    | Flow run 'orthodox-silkworm' - Eval snapshot written to ./data/eval/business_performance/runs/4d22152e-c2aa-4455-8759-57c3bd4c65fd.json
+21:04:28.811 | INFO    | Flow run 'orthodox-silkworm' - pipeline_run {"run_id": "4d22152e-c2aa-4455-8759-57c3bd4c65fd", "flow_name": "business-performance", "trigger": "manual", "status": "completed", "pipeline_version":
+21:04:28.877 | INFO    | Flow run 'orthodox-silkworm' - Finished in state Completed()
+exit=0
+
+{
+  "run_id": "4d22152e-c2aa-4455-8759-57c3bd4c65fd",
+  "flow_name": "business-performance",
+  "trigger": "manual",
+  "status": "completed",
+  "pipeline_version": "1.0.0",
+  "started_at": "2026-11-06T20:04:15.503289+00:00",
+  "finished_at": "2026-11-06T20:04:28.793913+00:00",
+  "window_start": "2026-10-30",
+  "window_end": "2026-11-06",
+  "events_extracted": 434,
+  "events_deduplicated": 12,
+  "events_invalid": 0,
+  "source_max_timestamp": "2026-11-05T22:53:00+00:00",
+  "rows_inserted": 0,
+  "rows_updated": 0,
+  "rows_unchanged": 192,
+  "rows_deleted": 0,
+  "kpi_status_counts": {
+    "ok": 192
+  },
+  "quality_available": true
+}

@@ -74,3 +74,9 @@ Los README locales definen la responsabilidad de cada carpeta y piden documentar
 - `GET /telemetry/report` lee `public.telemetry_events` con `TELEMETRY_READ_DATABASE_DSN`, un rol de login miembro de `telemetry_reader` (solo SELECT y política `FOR SELECT`). `telemetry_writer` sigue sin poder leer.
 - El pipeline vive en `services/api/app/telemetry/analysis.py` (pandas 3.1.1): cada métrica carga en SQL solo sus columnas y tipos dentro de `[start, end)`, extrae `tags`, convierte a UTC con `pd.to_datetime(utc=True)` y agrega con `groupby`. El endpoint fija el periodo y cachea 60 s en proceso (`TTLCache`).
 - La página `/telemetry` del backoffice consume el endpoint desde el navegador vía el rewrite `/api`.
+
+## Pipeline de desempeño de negocio (2026-11-06)
+
+- `data/pipelines/` es un proyecto uv propio (Prefect 3.4.5, pandas 3.1.1, psycopg 3.2.6). Punto de entrada `data/pipelines/pipeline.py`; se ejecuta desde la raíz con `uv run --project data/pipelines python data/pipelines/pipeline.py` y sirve el deployment `business-performance-daily` (cron 04:00 UTC, una corrida a la vez) con `--serve`. Los módulos se importan como paquetes desde la raíz (`data.pipelines...`, `data.process...`, `services.reporting...`).
+- Esquema `reporting` en el mismo Supabase que la telemetría, fuera de la Data API: `executive_kpis_daily` (+ `_history`), `pipeline_runs`, `pipeline_run_days`. El pipeline usa un login miembro de `telemetry_reader` y `reporting_writer`; la API lee con `REPORTING_READ_DATABASE_DSN` (`reporting_reader`).
+- La API monta `/reporting` desde `services/reporting/` y depende de `prefect-client==3.4.5`; en local necesita `PYTHONPATH=../..` y, para disparar corridas, `PREFECT_API_URL` y `APP_ENV` development/test. Compose monta `services/reporting` y `data` en `/repo` (solo lectura) pero aún no pasa las DSN ni `PREFECT_API_URL`.

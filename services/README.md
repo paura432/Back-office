@@ -22,3 +22,7 @@ Dockerfile and starts the `api` container on loopback port 8000 with Uvicorn rel
 The service uses Python 3.12, uv 0.6.17 and frozen dependencies from `api/uv.lock`.
 Sources are bind-mounted at `/app`; dependencies are installed outside the mount.
 Other containers use `api:8000`; browsers use the Next.js frontend's `/api` rewrite.
+
+`reporting/` is not a separate service: it holds the `/reporting` router of the
+business performance pipeline, mounted by `api/main.py`. Its logic lives in
+`data/pipelines/business_performance/`. See [reporting/README.md](reporting/README.md).
