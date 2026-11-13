@@ -1,7 +1,7 @@
 // Client-side capture for the TrackFlow telemetry contract
 // (docs/telemetry/event-schemas.json). Public API: `track` only.
 
-export type RouteTemplate = '/' | '/telemetry' | '<unmatched>';
+export type RouteTemplate = '/' | '/telemetry' | '/reporting' | '<unmatched>';
 type App = 'backoffice';
 type ViewportClass = 'mobile' | 'tablet' | 'desktop';
 

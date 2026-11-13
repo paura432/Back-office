@@ -9,7 +9,7 @@ const VITALS = new Set<string>(['LCP', 'CLS', 'INP', 'TTFB', 'FCP']);
 let pageViewed = false; // React Strict Mode runs effects twice in development.
 
 // Only templates, never raw URLs: the backoffice only has static routes.
-const ROUTES: readonly RouteTemplate[] = ['/', '/telemetry'];
+const ROUTES: readonly RouteTemplate[] = ['/', '/telemetry', '/reporting'];
 export const routeTemplate = (): RouteTemplate =>
   ROUTES.find((route) => route === window.location.pathname) ?? '<unmatched>';
 

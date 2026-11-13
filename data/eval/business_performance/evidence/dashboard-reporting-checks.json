@@ -1,0 +1,213 @@
+{
+ "synthetic_telemetry_test": {
+  "browser": "156.0.8078.4",
+  "navLink": "◫\nBusiness performance",
+  "title": "Business performance — TrackFlow",
+  "h1": "Business performance",
+  "updated": "Figures updated 6 Nov 2026, 20:03 UTC.",
+  "status": null,
+  "lastWeek": "Last complete week 2 – 8 Nov 2026",
+  "tiles": [
+   "Shipment volume: United States=38, Spain=37",
+   "On-time delivery rate: United States=97.0 %, Spain=91.7 %",
+   "Operating cost (shipping): United States=$713.51, Spain=€766.01",
+   "Shipping cost per kg: United States=$3.48 / kg, Spain=€3.32 / kg",
+   "Return rate: United States=18.2 %, Spain=16.7 %",
+   "Customer satisfaction: United States=3.8 / 5, Spain=3.5 / 5, Country not reported=4.5 / 5"
+  ],
+  "tables": [
+   {
+    "kpi": "Shipment volume",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "2 – 8 Nov 2026 · 4 of 7 days | 38 | 37",
+     "26 Oct – 1 Nov 2026 | 56 revised | 62",
+     "19 – 25 Oct 2026 · 2 of 7 days | 20 | 16"
+    ]
+   },
+   {
+    "kpi": "On-time delivery rate",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "2 – 8 Nov 2026 · 4 of 7 days | 97.0 % | 91.7 %",
+     "26 Oct – 1 Nov 2026 | 77.6 % | 85.0 %",
+     "19 – 25 Oct 2026 · 2 of 7 days | Incomplete data | Incomplete data"
+    ]
+   },
+   {
+    "kpi": "Operating cost (shipping)",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "2 – 8 Nov 2026 · 4 of 7 days | $713.51 | €766.01",
+     "26 Oct – 1 Nov 2026 | $1,239.38 | €1,301.50",
+     "19 – 25 Oct 2026 · 2 of 7 days | Incomplete data | Incomplete data"
+    ]
+   },
+   {
+    "kpi": "Shipping cost per kg",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "2 – 8 Nov 2026 · 4 of 7 days | $3.48 / kg | €3.32 / kg",
+     "26 Oct – 1 Nov 2026 | $3.52 / kg | €3.39 / kg",
+     "19 – 25 Oct 2026 · 2 of 7 days | Incomplete data | Incomplete data"
+    ]
+   },
+   {
+    "kpi": "Return rate",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "2 – 8 Nov 2026 · 4 of 7 days | 18.2 % | 16.7 %",
+     "26 Oct – 1 Nov 2026 | 15.5 % | 6.7 %",
+     "19 – 25 Oct 2026 · 2 of 7 days | Incomplete data | Incomplete data"
+    ]
+   },
+   {
+    "kpi": "Customer satisfaction",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain",
+     "Country not reported"
+    ],
+    "weeks": [
+     "2 – 8 Nov 2026 · 4 of 7 days | 3.8 / 5 | 3.5 / 5 | 4.5 / 5",
+     "26 Oct – 1 Nov 2026 | 4.1 / 5 | 3.8 / 5 | 3.2 / 5",
+     "19 – 25 Oct 2026 · 2 of 7 days | Incomplete data | Incomplete data | —"
+    ]
+   }
+  ],
+  "zeroShownForMissing": 0,
+  "api": [
+   "200 /api/reporting/kpis?granularity=week&start_date=2026-09-21&end_date=2026-11-16",
+   "200 /api/reporting/pipeline/status"
+  ],
+  "mobile": {
+   "scrollWidth": 390,
+   "innerWidth": 390
+  },
+  "consoleErrors": []
+ },
+ "real_postgres": {
+  "browser": "156.0.8078.4",
+  "navLink": "◫\nBusiness performance",
+  "title": "Business performance — TrackFlow",
+  "h1": "Business performance",
+  "updated": "Figures updated 13 Nov 2026, 18:53 UTC.",
+  "status": null,
+  "lastWeek": "Last complete week 2 – 8 Nov 2026",
+  "tiles": [
+   "Shipment volume: United States=Not tracked yet, Spain=Not tracked yet",
+   "On-time delivery rate: United States=Not tracked yet, Spain=Not tracked yet",
+   "Operating cost (shipping): United States=Not tracked yet, Spain=Not tracked yet",
+   "Shipping cost per kg: United States=Not tracked yet, Spain=Not tracked yet",
+   "Return rate: United States=Not tracked yet, Spain=Not tracked yet",
+   "Customer satisfaction: United States=Not tracked yet, Spain=Not tracked yet"
+  ],
+  "tables": [
+   {
+    "kpi": "Shipment volume",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "9 – 15 Nov 2026 · so far | Not tracked yet | Not tracked yet",
+     "2 – 8 Nov 2026 | Not tracked yet | Not tracked yet",
+     "26 Oct – 1 Nov 2026 · 3 of 7 days | Not tracked yet | Not tracked yet"
+    ]
+   },
+   {
+    "kpi": "On-time delivery rate",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "9 – 15 Nov 2026 · so far | Not tracked yet | Not tracked yet",
+     "2 – 8 Nov 2026 | Not tracked yet | Not tracked yet",
+     "26 Oct – 1 Nov 2026 · 3 of 7 days | Not tracked yet | Not tracked yet"
+    ]
+   },
+   {
+    "kpi": "Operating cost (shipping)",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "9 – 15 Nov 2026 · so far | Not tracked yet | Not tracked yet",
+     "2 – 8 Nov 2026 | Not tracked yet | Not tracked yet",
+     "26 Oct – 1 Nov 2026 · 3 of 7 days | Not tracked yet | Not tracked yet"
+    ]
+   },
+   {
+    "kpi": "Shipping cost per kg",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "9 – 15 Nov 2026 · so far | Not tracked yet | Not tracked yet",
+     "2 – 8 Nov 2026 | Not tracked yet | Not tracked yet",
+     "26 Oct – 1 Nov 2026 · 3 of 7 days | Not tracked yet | Not tracked yet"
+    ]
+   },
+   {
+    "kpi": "Return rate",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "9 – 15 Nov 2026 · so far | Not tracked yet | Not tracked yet",
+     "2 – 8 Nov 2026 | Not tracked yet | Not tracked yet",
+     "26 Oct – 1 Nov 2026 · 3 of 7 days | Not tracked yet | Not tracked yet"
+    ]
+   },
+   {
+    "kpi": "Customer satisfaction",
+    "columns": [
+     "Week",
+     "United States",
+     "Spain"
+    ],
+    "weeks": [
+     "9 – 15 Nov 2026 · so far | Not tracked yet | Not tracked yet",
+     "2 – 8 Nov 2026 | Not tracked yet | Not tracked yet",
+     "26 Oct – 1 Nov 2026 · 3 of 7 days | Not tracked yet | Not tracked yet"
+    ]
+   }
+  ],
+  "zeroShownForMissing": 0,
+  "api": [
+   "200 /api/reporting/kpis?granularity=week&start_date=2026-09-21&end_date=2026-11-16",
+   "200 /api/reporting/pipeline/status"
+  ],
+  "consoleErrors": []
+ }
+}

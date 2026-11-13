@@ -26,6 +26,7 @@ package = false
 constraint-dependencies = ["pydantic-settings<2.11", "fastapi==0.115.12", "sqlalchemy<2.1"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# Los tests están en tests/pipelines/, en la raíz del monorepo.
+testpaths = ["../../tests/pipelines"]
 python_files = ["test_*.py"]
 pythonpath = ["../.."]

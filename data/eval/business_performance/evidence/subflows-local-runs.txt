@@ -1,0 +1,80 @@
+# python data/pipelines/pipeline.py contra el Supabase local (base postgres, datos reales: ningún evento de negocio)
+# 2026-11-13, con el flow dividido en subflows. Las trazas del servidor temporal de Prefect se han resumido en una línea.
+
+## Corrida 1
+19:52:41.083 | INFO    | prefect - Starting temporary server on http://127.0.0.1:8000
+See https://docs.prefect.io/3.0/manage/self-host#self-host-a-prefect-server for more information on running a dedicated Prefect server.
+19:52:55.721 | INFO    | Flow run 'greedy-turaco' - Beginning flow run 'greedy-turaco' for flow 'business-performance'
+19:52:56.067 | INFO    | Task run 'register_run-3ef' - Finished in state Completed()
+19:52:56.397 | ERROR   | uvicorn.error - Exception in ASGI application
+    [traza omitida: sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked, en POST /task_runs del servidor temporal de Prefect (SQLite)]
+19:52:59.197 | INFO    | Flow run 'spectacular-corgi' - Beginning subflow run 'spectacular-corgi' for flow 'extract-executive-kpi-events'
+19:52:59.419 | INFO    | Task run 'detect_changed_days-1e3' - Window 2026-11-06..2026-11-13, 0 changed day(s), 0 late day(s)
+19:52:59.427 | INFO    | Task run 'detect_changed_days-1e3' - Finished in state Completed()
+19:52:59.523 | INFO    | Task run 'extract_events-818' - Extracted 0 source event(s) for 2026-11-06..2026-11-13
+19:52:59.630 | INFO    | Task run 'extract_events-818' - Finished in state Completed()
+19:52:59.983 | INFO    | Flow run 'spectacular-corgi' - Finished in state Completed()
+19:53:00.891 | INFO    | Flow run 'auspicious-dragon' - Beginning subflow run 'auspicious-dragon' for flow 'compute-executive-kpis'
+19:53:01.288 | INFO    | Task run 'prepare_kpi_events-938' - Finished in state Completed()
+19:53:01.638 | INFO    | Task run 'compute_shipments_total-e00' - Finished in state Completed()
+19:53:01.897 | INFO    | Task run 'compute_on_time_delivery_rate-059' - Finished in state Completed()
+19:53:01.949 | INFO    | Task run 'compute_shipping_cost_total-461' - Finished in state Completed()
+19:53:02.111 | INFO    | Task run 'compute_shipping_cost_per_kg-3bf' - Finished in state Completed()
+19:53:02.229 | INFO    | Task run 'compute_return_rate-b53' - Finished in state Completed()
+19:53:02.374 | INFO    | Task run 'compute_customer_satisfaction_avg-6b5' - Finished in state Completed()
+19:53:02.842 | INFO    | Task run 'assign_kpi_statuses-66d' - Finished in state Completed()
+19:53:03.032 | INFO    | Flow run 'auspicious-dragon' - Finished in state Completed()
+19:53:04.027 | INFO    | Flow run 'obedient-owl' - Beginning subflow run 'obedient-owl' for flow 'check-executive-kpi-quality'
+19:53:04.267 | INFO    | Task run 'check_quality-ec7' - Finished in state Completed()
+19:53:05.242 | INFO    | Flow run 'obedient-owl' - Finished in state Completed()
+19:53:05.794 | INFO    | Flow run 'uncovered-mustang' - Beginning subflow run 'uncovered-mustang' for flow 'load-executive-kpis-daily'
+19:53:06.830 | INFO    | Task run 'load_kpis-990' - Finished in state Completed()
+19:53:06.963 | INFO    | Flow run 'uncovered-mustang' - Finished in state Completed()
+19:53:07.193 | INFO    | Task run 'finish_run-8e5' - Finished in state Completed()
+19:53:07.617 | INFO    | Flow run 'chocolate-flounder' - Beginning subflow run 'chocolate-flounder' for flow 'export-executive-kpi-snapshot'
+19:53:07.692 | INFO    | Task run 'export_eval_snapshot-934' - Finished in state Completed()
+19:53:07.854 | INFO    | Flow run 'chocolate-flounder' - Finished in state Completed()
+19:53:07.865 | INFO    | Flow run 'greedy-turaco' - Eval snapshot written to ./data/eval/business_performance/runs/214d19bf-8056-4040-9cfb-329859d75626.json
+19:53:07.872 | INFO    | Flow run 'greedy-turaco' - pipeline_run {"run_id": "214d19bf-8056-4040-9cfb-329859d75626", "flow_name": "business-performance", "trigger": "manual", "status": "completed", "pipeline_version": "1.0.0", "started_at": "2026-11-13T18:52:55.738542+00:00", "finished_at": "2026-11-13T18:53:07.196469+00:00", "window_start": "2026-11-06", "window_end": "2026-11-13", "late_days_detected": 0, "events_extracted": 0, "events_deduplicated": 0, "events_invalid": 0, "source_max_timestamp": null, "rows_inserted": 84, "rows_updated": 0, "rows_unchanged": 0, "rows_deleted": 0, "kpi_status_counts": {"not_instrumented": 84}, "quality_available": true}
+19:53:07.915 | INFO    | Flow run 'greedy-turaco' - Finished in state Completed()
+19:53:08.205 | INFO    | prefect - Stopping temporary server on http://127.0.0.1:8000
+
+## Corrida 2
+19:53:22.134 | INFO    | prefect - Starting temporary server on http://127.0.0.1:8468
+See https://docs.prefect.io/3.0/manage/self-host#self-host-a-prefect-server for more information on running a dedicated Prefect server.
+19:53:34.037 | INFO    | Flow run 'stirring-skink' - Beginning flow run 'stirring-skink' for flow 'business-performance'
+19:53:34.406 | INFO    | Task run 'register_run-d3f' - Finished in state Completed()
+19:53:34.955 | INFO    | Flow run 'fuzzy-tiger' - Beginning subflow run 'fuzzy-tiger' for flow 'extract-executive-kpi-events'
+19:53:35.076 | INFO    | Task run 'detect_changed_days-091' - Window 2026-11-06..2026-11-13, 0 changed day(s), 0 late day(s)
+19:53:35.082 | INFO    | Task run 'detect_changed_days-091' - Finished in state Completed()
+19:53:35.175 | INFO    | Task run 'extract_events-562' - Extracted 0 source event(s) for 2026-11-06..2026-11-13
+19:53:35.317 | INFO    | Task run 'extract_events-562' - Finished in state Completed()
+19:53:35.543 | INFO    | Flow run 'fuzzy-tiger' - Finished in state Completed()
+19:53:35.875 | INFO    | Flow run 'ebony-sloth' - Beginning subflow run 'ebony-sloth' for flow 'compute-executive-kpis'
+19:53:36.326 | INFO    | Task run 'prepare_kpi_events-209' - Finished in state Cached(type=COMPLETED)
+19:53:36.467 | INFO    | Task run 'compute_shipments_total-783' - Finished in state Completed()
+19:53:36.525 | INFO    | Task run 'compute_on_time_delivery_rate-1a4' - Finished in state Completed()
+19:53:36.578 | INFO    | Task run 'compute_shipping_cost_total-d3d' - Finished in state Completed()
+19:53:36.633 | INFO    | Task run 'compute_shipping_cost_per_kg-5d5' - Finished in state Completed()
+19:53:36.790 | INFO    | Task run 'compute_return_rate-b18' - Finished in state Completed()
+19:53:36.917 | INFO    | Task run 'compute_customer_satisfaction_avg-360' - Finished in state Completed()
+19:53:37.006 | INFO    | Task run 'assign_kpi_statuses-ba0' - Finished in state Completed()
+19:53:37.676 | INFO    | Flow run 'ebony-sloth' - Finished in state Completed()
+19:53:38.171 | ERROR   | uvicorn.error - Exception in ASGI application
+    [traza omitida: sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked, en POST /task_runs del servidor temporal de Prefect (SQLite)]
+19:53:40.697 | INFO    | Flow run 'slick-gopher' - Beginning subflow run 'slick-gopher' for flow 'check-executive-kpi-quality'
+19:53:40.876 | INFO    | Task run 'check_quality-656' - Finished in state Completed()
+19:53:41.042 | INFO    | Flow run 'slick-gopher' - Finished in state Completed()
+19:53:41.435 | INFO    | Flow run 'enchanted-termite' - Beginning subflow run 'enchanted-termite' for flow 'load-executive-kpis-daily'
+19:53:41.682 | INFO    | Task run 'load_kpis-064' - Finished in state Completed()
+19:53:41.762 | INFO    | Flow run 'enchanted-termite' - Finished in state Completed()
+19:53:41.863 | INFO    | Task run 'finish_run-ae1' - Finished in state Completed()
+19:53:42.149 | ERROR   | uvicorn.error - Exception in ASGI application
+    [traza omitida: sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked, en POST /task_runs del servidor temporal de Prefect (SQLite)]
+19:53:44.801 | INFO    | Flow run 'warm-crow' - Beginning subflow run 'warm-crow' for flow 'export-executive-kpi-snapshot'
+19:53:44.924 | INFO    | Task run 'export_eval_snapshot-9ca' - Finished in state Completed()
+19:53:45.024 | INFO    | Flow run 'warm-crow' - Finished in state Completed()
+19:53:45.035 | INFO    | Flow run 'stirring-skink' - Eval snapshot written to ./data/eval/business_performance/runs/ce1eb4f5-4bf8-4b8f-a135-ecd12e533a5b.json
+19:53:45.039 | INFO    | Flow run 'stirring-skink' - pipeline_run {"run_id": "ce1eb4f5-4bf8-4b8f-a135-ecd12e533a5b", "flow_name": "business-performance", "trigger": "manual", "status": "completed", "pipeline_version": "1.0.0", "started_at": "2026-11-13T18:53:34.056969+00:00", "finished_at": "2026-11-13T18:53:41.866297+00:00", "window_start": "2026-11-06", "window_end": "2026-11-13", "late_days_detected": 0, "events_extracted": 0, "events_deduplicated": 0, "events_invalid": 0, "source_max_timestamp": null, "rows_inserted": 0, "rows_updated": 0, "rows_unchanged": 84, "rows_deleted": 0, "kpi_status_counts": {"not_instrumented": 84}, "quality_available": true}
+19:53:45.079 | INFO    | Flow run 'stirring-skink' - Finished in state Completed()
+19:53:45.105 | INFO    | prefect - Stopping temporary server on http://127.0.0.1:8468
