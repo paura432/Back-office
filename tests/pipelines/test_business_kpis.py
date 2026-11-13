@@ -1,66 +1,24 @@
-"""Tests de las transformaciones puras (data/process/business_kpis.py)."""
-import uuid
+"""Tests de las funciones puras de data/process/business_kpis.py: dedupe,
+monedas, estados, ventana, calidad y agregado semanal. Sin base de datos."""
 from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 import pytest
 
 from data.process import business_kpis as bk
-
-DAY = date(2026, 3, 2)  # lunes
-SEEN_LONG_AGO = {event_type: "2026-01-01T00:00:00+00:00" for event_type in bk.SOURCE_EVENT_TYPES}
-COLUMNS = ["event_id", "event_type", "timestamp", "service", "tags"]
-
-
-def at(day: date, hour: int = 10, minute: int = 0) -> str:
-    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=timezone.utc).isoformat()
-
-
-def event(event_type, moment, event_id=None, **tags):
-    return {
-        "event_id": event_id or str(uuid.uuid4()),
-        "event_type": event_type,
-        "timestamp": moment,
-        "service": bk.SOURCE_EVENTS[event_type].producer,
-        "tags": {**tags, "schemaVersion": "1.0.0"},
-    }
-
-
-def created(day, shipment_id, country="US", carrier="ups", hour=10, **extra):
-    return event("shipment_created", at(day, hour), shipment_id=shipment_id, order_id=shipment_id, carrier=carrier,
-                 origin_warehouse="los-angeles", destination_country=country, weight_kg=1.0, **extra)
-
-
-def delivered(day, shipment_id, country="US", carrier="ups", on_time=True, **extra):
-    return event("shipment_delivered", at(day, 15), shipment_id=shipment_id, carrier=carrier,
-                 destination_country=country, on_time=on_time, transit_hours=24, **extra)
-
-
-def heartbeat(*entries):
-    """(service, día, hora) con un evento."""
-    return pd.DataFrame(
-        [{"service": service, "hour": pd.Timestamp(at(day, hour)), "events": 1} for service, day, hour in entries],
-        columns=["service", "hour", "events"],
-    )
-
-
-def all_alive(*days):
-    producers = {spec.producer for spec in bk.SOURCE_EVENTS.values()}
-    return heartbeat(*[(producer, day, 0) for producer in producers for day in days])
-
-
-def compute(events, start=DAY, end=None, beat=None, seen=SEEN_LONG_AGO, countries=("US", "ES")):
-    end = end or start + timedelta(days=1)
-    beat = all_alive(*bk.days_between(start, end)) if beat is None else beat
-    return bk.compute_kpis(pd.DataFrame(events, columns=COLUMNS), beat, seen, start, end, countries)
-
-
-def pick(result, kpi, day=DAY, country="US", **match):
-    return [
-        row for row in result["rows"]
-        if row["kpi"] == kpi and row["metric_date"] == day.isoformat() and row["country"] == country
-        and all(row[key] == value for key, value in match.items())
-    ]
+from tests.pipelines.kpi_events import (
+    COLUMNS,
+    DAY,
+    SEEN_LONG_AGO,
+    all_alive,
+    at,
+    compute,
+    created,
+    delivered,
+    event,
+    heartbeat,
+    pick,
+)
 
 
 def test_same_shipment_sent_twice_counts_once_on_its_first_day():

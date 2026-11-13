@@ -35,6 +35,10 @@ services:
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-trackflow_dev}
       # services/reporting importa data/pipelines y data/process (PIPELINE_DESIGN.md §5.3).
       PYTHONPATH: /repo
+      # Lectura de reporting.* para GET /reporting/* y el dashboard /reporting del
+      # backoffice (rol de login miembro de reporting_reader). Sin valor, esas rutas
+      # responden 503 y el dashboard lo indica.
+      REPORTING_READ_DATABASE_DSN: ${REPORTING_READ_DATABASE_DSN:-}
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     volumes:

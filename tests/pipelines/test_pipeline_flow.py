@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta, timezone
 import psycopg
 import pytest
 from prefect.client.orchestration import get_client
-from prefect.client.schemas.filters import FlowRunFilter, FlowRunFilterId
+from prefect.client.schemas.filters import FlowRunFilter, FlowRunFilterId, FlowRunFilterParentFlowRunId
 from prefect.testing.utilities import prefect_test_harness
 from psycopg.rows import dict_row
 
@@ -112,12 +112,23 @@ def carrier_rows(seeded: Seeded, kpi: str = "shipments_total") -> dict[tuple[str
     return {(row["metric_date"].isoformat(), row["country"], row["carrier"]): row for row in rows}
 
 
-def task_states(state) -> dict[str, str]:
+def run_tree(state) -> tuple[dict[str, str], dict[str, str]]:
+    """Estado final de cada subflow (por nombre de flow) y de cada task de la
+    corrida, también las que se ejecutan dentro de los subflows."""
+    root = state.state_details.flow_run_id
     with get_client(sync_client=True) as client:
-        task_runs = client.read_task_runs(
-            flow_run_filter=FlowRunFilter(id=FlowRunFilterId(any_=[state.state_details.flow_run_id]))
+        children = client.read_flow_runs(
+            flow_run_filter=FlowRunFilter(parent_flow_run_id=FlowRunFilterParentFlowRunId(any_=[root]))
         )
-    return {task_run.name.rsplit("-", 1)[0]: task_run.state_name for task_run in task_runs}
+        subflows = {client.read_flow(child.flow_id).name: child.state_name for child in children}
+        task_runs = client.read_task_runs(
+            flow_run_filter=FlowRunFilter(id=FlowRunFilterId(any_=[root, *(child.id for child in children)]))
+        )
+    return subflows, {task_run.name.rsplit("-", 1)[0]: task_run.state_name for task_run in task_runs}
+
+
+def task_states(state) -> dict[str, str]:
+    return run_tree(state)[1]
 
 
 def test_run_loads_the_kpis_and_logs_its_metadata(seeded, env):
@@ -142,6 +153,11 @@ def test_run_loads_the_kpis_and_logs_its_metadata(seeded, env):
     assert all(row["run_id"] == log["run_id"] and row["revision"] == 1 for row in shipments.values())
 
     assert (env / "runs" / f"{log['run_id']}.json").exists()
+    subflows, _ = run_tree(state)
+    assert subflows == dict.fromkeys([
+        "extract-executive-kpi-events", "compute-executive-kpis", "check-executive-kpi-quality",
+        "load-executive-kpis-daily", "export-executive-kpi-snapshot",
+    ], "Completed")
 
 
 def test_second_run_changes_nothing_and_reuses_the_cached_transformation(seeded):
@@ -150,7 +166,7 @@ def test_second_run_changes_nothing_and_reuses_the_cached_transformation(seeded)
     second = run_row(second_state)
     assert (second["rows_inserted"], second["rows_updated"], second["rows_deleted"]) == (0, 0, 0)
     assert second["rows_unchanged"] == first["rows_inserted"]
-    assert task_states(second_state)["transform_kpis"] == "Cached"
+    assert task_states(second_state)["prepare_kpi_events"] == "Cached"
     assert {row["run_id"] for row in carrier_rows(seeded).values()} == {first["run_id"]}
     assert query("select count(*) as n from reporting.executive_kpis_daily_history where carrier like %s",
                  (f"{seeded.prefix}_%",))[0]["n"] == 0
@@ -248,8 +264,10 @@ def test_optional_steps_can_fail_without_stopping_the_run(seeded, env, monkeypat
 
     state = run(seeded)
     assert state.is_completed()
-    states = task_states(state)
-    assert (states["check_quality"], states["export_eval_snapshot"]) == ("Failed", "Failed")
+    subflows, tasks = run_tree(state)
+    assert (tasks["check_quality"], tasks["export_eval_snapshot"]) == ("Failed", "Failed")
+    assert (subflows["check-executive-kpi-quality"], subflows["export-executive-kpi-snapshot"]) == ("Failed", "Failed")
+    assert subflows["load-executive-kpis-daily"] == "Completed"
     log = run_row(state)
     assert log["status"] == "completed"
     qualities = query("select quality from reporting.pipeline_run_days where run_id = %s", (log["run_id"],))

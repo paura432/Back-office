@@ -9,4 +9,4 @@ This folder contains **processed/intermediate data** and/or artifacts produced b
 
 ## `business_kpis.py`
 
-Pure pandas transformations of the business performance pipeline (`data/pipelines/pipeline.py`): event validation and natural-key dedupe, country of returns, KPIs as numerator and denominator, statuses, recompute window, quality signals and weekly aggregation. No database access. It is a script rather than a dataset because the pipeline brief asks for reusable transformation scripts in `data/process/`. Tests in `data/pipelines/tests/test_business_kpis.py`.
+Pure pandas transformations of the business performance pipeline (`data/pipelines/pipeline.py`), one function per transformation task: event validation against the event contract and natural-key dedupe, country of returns, KPIs as numerator and denominator, statuses, recompute window, quality signals and weekly aggregation. No database access. It is a script rather than a dataset because the pipeline brief asks for reusable transformation scripts in `data/process/`. Tests in `tests/pipelines/test_business_kpis.py` and, through the pipeline tasks, `tests/pipelines/test_pipeline.py`.

@@ -9,19 +9,20 @@ Cada subcarpeta o archivo dentro de `data/pipelines/` debe representar **un pipe
 
 ## `business_performance` — pipeline de desempeño de negocio
 
-Calcula cada día, a partir de `public.telemetry_events`, los KPIs del informe ejecutivo (volumen de envíos, entregas a tiempo, coste de transporte, devoluciones y satisfacción, por país) y los guarda en `reporting.executive_kpis_daily` (nombre provisional: falta el BRIEFING). El diseño está en [`PIPELINE_DESIGN.md`](PIPELINE_DESIGN.md); la §9 resume cómo se ha implementado.
+Calcula cada día, a partir de `public.telemetry_events`, los KPIs del informe ejecutivo (volumen de envíos, entregas a tiempo, coste de transporte, devoluciones y satisfacción, por país) y los guarda en `reporting.executive_kpis_daily` (nombre provisional: falta el BRIEFING). El diseño está en [`PIPELINE_DESIGN.md`](PIPELINE_DESIGN.md); la §9 resume cómo se ha implementado y la §10, los subflows, los tests y el dashboard `/reporting` del backoffice que muestra estos KPIs.
 
 ```text
 data/pipelines/
-  pipeline.py                     flow business_performance_flow, sus tasks y la línea de comandos
+  pipeline.py                     business_performance_flow, sus cinco subflows (extracción, transformación,
+                                  calidad, carga y snapshot) con sus tasks, y la línea de comandos
   business_performance/
     config.py                     parámetros no secretos: ventanas, cron, países, candado
     storage.py                    SQL de la fuente (telemetry_events) y del destino (reporting.*)
     entrypoints.py                lo único que importa services/reporting
     synthetic.py                  eventos de negocio sintéticos para telemetry_test
-  tests/                          transformación pura y flow completo contra telemetry_test
   pyproject.toml, uv.lock         Prefect 3.4.5, pandas 3.1.1, psycopg 3.2.6
-data/process/business_kpis.py     transformaciones pandas puras
+data/process/business_kpis.py     transformaciones pandas puras (una función por KPI)
+tests/pipelines/                  tests unitarios de las tasks, de los subflows y del flow completo
 data/raw/business_performance/    eventos sintéticos generados (no se versionan)
 data/eval/business_performance/   resumen JSON de cada corrida (runs/, no se versiona) y evidencias
 ```
@@ -75,11 +76,15 @@ uv run --project data/pipelines python -m data.pipelines.business_performance.sy
 
 ### Tests
 
+Están en `tests/pipelines/`, en la raíz del monorepo (PIPELINE_DESIGN.md §10.2). Desde la raíz:
+
 ```sh
-cd data/pipelines && uv run --frozen --extra dev pytest
+uv sync --project data/pipelines --frozen --extra dev
+uv run --project data/pipelines python -m pytest tests/pipelines/test_pipeline.py   # unitarios de las tasks
+uv run --project data/pipelines python -m pytest tests/pipelines                    # todos
 ```
 
-Los tests del flow (`tests/test_pipeline_flow.py`) necesitan `REPORTING_TEST_PIPELINE_DSN` (login con `telemetry_reader` y `reporting_writer`) y `REPORTING_TEST_ADMIN_DSN` (rol con BYPASSRLS) sobre `telemetry_test` con las migraciones aplicadas; si no están, se saltan.
+`test_pipeline.py`, `test_business_kpis.py` y `test_subflows.py` no usan base de datos: los eventos están en memoria (`tests/pipelines/kpi_events.py`). Los del flow completo (`tests/pipelines/test_pipeline_flow.py`) necesitan `REPORTING_TEST_PIPELINE_DSN` (login con `telemetry_reader` y `reporting_writer`) y `REPORTING_TEST_ADMIN_DSN` (rol con BYPASSRLS) sobre `telemetry_test` con las migraciones aplicadas; si no están, se saltan.
 
 ### Versiones
 

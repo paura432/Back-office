@@ -1,7 +1,7 @@
 # Validación del pipeline de desempeño de negocio
 
 - `runs/` (no se versiona): resumen JSON de cada corrida, escrito por la task no crítica `export_eval_snapshot` de `data/pipelines/pipeline.py`. Si esa task falla, la corrida sigue `completed`.
-- `evidence/`: salidas de las comprobaciones del 2026-11-06 sobre el Supabase local.
+- `evidence/`: salidas de las comprobaciones del 2026-11-06 (Parte 2) y del 2026-11-13 (subflows y dashboard, Parte 3) sobre el Supabase local.
 
 | Archivo | Qué muestra |
 |---|---|
@@ -11,5 +11,9 @@
 | `evidence/kpis-week-US.json`, `evidence/kpis-day-ES.json` | `GET /reporting/kpis` por semana ISO (EE. UU.) y por día (España). Las cifras semanales de EE. UU. coinciden con un recuento independiente sobre el JSONL de entrada: 55 envíos, 45/58 a tiempo, 9/58 devoluciones, 1.239,38 USD, 3,521466 USD/kg y 61/15 de satisfacción |
 | `evidence/run-late.json` | `GET /reporting/pipeline/runs/{run_id}` de la corrida tras insertar un `shipment_created` del 2026-10-26: ventana ampliada al 26, `late_days_detected = 1`, 1 fila actualizada y 301 sin cambios. La fila pasó de 3 a 4 envíos con `revision = 2` y la versión publicada quedó en `executive_kpis_daily_history` |
 | `evidence/db-outage-retry.txt` | Caída real de Postgres (`docker pause` 6 s): `register_run` falla con `ConnectionTimeout`, Prefect lo reintenta a los 10 s y la corrida termina `completed` |
+| `evidence/subflows-local-runs.txt` | Parte 3. Dos corridas de `python data/pipelines/pipeline.py` sobre la base `postgres` con el flow dividido en subflows: los cinco subflows terminan `Completed`, salen 84 filas `not_instrumented` (sigue sin emitirse ningún evento de negocio) y la segunda corrida reutiliza `prepare_kpi_events` (`Cached`) y deja las 84 filas `unchanged`. El servidor temporal de Prefect (SQLite) registró un `database is locked` en la primera corrida y dos en la segunda al crear un task run; las corridas terminaron `completed` y no afecta a los datos de `reporting` |
+| `evidence/dashboard-reporting-synthetic.png` | Parte 3. Dashboard `/reporting` del backoffice (build de producción) contra la API local leyendo `telemetry_test`: las cifras de EE. UU. de la semana del 26 de octubre coinciden con `kpis-week-US.json` (77,6 % a tiempo, 15,5 % de devoluciones, 1.239,38 USD, 3,52 USD/kg y 4,1 de satisfacción); los envíos son 56 y no 55, marcados «revised», por el evento tardío de `run-late.json`. Las semanas con días sin calcular lo indican («4 of 7 days») y las que no se pueden medir dicen «Incomplete data» |
+| `evidence/dashboard-reporting-real.png` | Parte 3. El mismo dashboard contra la base `postgres` con los datos reales: todos los KPIs dicen «Not tracked yet», nunca un 0 |
+| `evidence/dashboard-reporting-checks.json` | Parte 3. Salida del script de Playwright (Chromium 156 headless) que hizo las dos capturas: navegación desde la portada, texto de cada recuadro y tabla, respuestas 200 de `GET /api/reporting/kpis` y `/api/reporting/pipeline/status`, ningún error de consola y sin scroll horizontal a 390 px |
 
 Los datos de la API y de la caída son eventos sintéticos en la base `telemetry_test` (ver `data/raw/business_performance/README.md`), no datos de producción.
