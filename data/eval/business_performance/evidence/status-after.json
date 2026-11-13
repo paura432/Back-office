@@ -1,0 +1,138 @@
+{
+    "last_run": {
+        "run_id": "b2ab2488-8241-413b-92c2-795b04d233ce",
+        "flow_name": "business-performance",
+        "trigger": "manual",
+        "requested_by": null,
+        "window_start": "2026-10-24",
+        "window_end": "2026-11-06",
+        "started_at": "2026-11-06T20:03:29.697596Z",
+        "finished_at": "2026-11-06T20:03:30.161816Z",
+        "duration_seconds": 0.464,
+        "status": "completed",
+        "failed_stage": null,
+        "last_completed_date": "2026-11-05",
+        "events_extracted": 751,
+        "events_deduplicated": 19,
+        "events_invalid": 0,
+        "rows_inserted": 337,
+        "rows_updated": 0,
+        "rows_unchanged": 0,
+        "rows_deleted": 0,
+        "late_days_detected": 0,
+        "source_max_timestamp": "2026-11-05T22:53:00Z",
+        "pipeline_version": "1.0.0",
+        "error_class": null,
+        "error_message": null
+    },
+    "last_completed_run": {
+        "run_id": "b2ab2488-8241-413b-92c2-795b04d233ce",
+        "flow_name": "business-performance",
+        "trigger": "manual",
+        "requested_by": null,
+        "window_start": "2026-10-24",
+        "window_end": "2026-11-06",
+        "started_at": "2026-11-06T20:03:29.697596Z",
+        "finished_at": "2026-11-06T20:03:30.161816Z",
+        "duration_seconds": 0.464,
+        "status": "completed",
+        "failed_stage": null,
+        "last_completed_date": "2026-11-05",
+        "events_extracted": 751,
+        "events_deduplicated": 19,
+        "events_invalid": 0,
+        "rows_inserted": 337,
+        "rows_updated": 0,
+        "rows_unchanged": 0,
+        "rows_deleted": 0,
+        "late_days_detected": 0,
+        "source_max_timestamp": "2026-11-05T22:53:00Z",
+        "pipeline_version": "1.0.0",
+        "error_class": null,
+        "error_message": null
+    },
+    "active_run": null,
+    "latest_metric_date": "2026-11-05",
+    "latest_computed_at": "2026-11-06T20:03:30.128376Z",
+    "data_freshness_hours": 0.0,
+    "kpis": [
+        {
+            "kpi": "customer_satisfaction_avg",
+            "country": "ES",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "customer_satisfaction_avg",
+            "country": "US",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "customer_satisfaction_avg",
+            "country": "unknown",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "on_time_delivery_rate",
+            "country": "ES",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "on_time_delivery_rate",
+            "country": "US",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "return_rate",
+            "country": "ES",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "return_rate",
+            "country": "US",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "shipments_total",
+            "country": "ES",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "shipments_total",
+            "country": "US",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "shipping_cost_per_kg",
+            "country": "ES",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "shipping_cost_per_kg",
+            "country": "US",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "shipping_cost_total",
+            "country": "ES",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        },
+        {
+            "kpi": "shipping_cost_total",
+            "country": "US",
+            "metric_date": "2026-11-05",
+            "status": "ok"
+        }
+    ]
+}

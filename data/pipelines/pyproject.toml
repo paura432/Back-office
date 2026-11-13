@@ -1,0 +1,31 @@
+[project]
+name = "trackflow-pipelines"
+version = "0.1.0"
+description = "Pipelines de datos de TrackFlow orquestados con Prefect"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pandas==3.1.1",
+    "pydantic==2.11.4",
+    "prefect==3.4.5",
+    "psycopg[binary]==3.2.6",
+    # prefect server start (3.4.5) lo importa en prefect/workers/base.py, pero solo lo declara para Python < 3.10.
+    "importlib-metadata==8.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.5",
+]
+
+[tool.uv]
+package = false
+# Límites para Prefect 3.4.5, que declara rangos más amplios de los que soporta:
+# - pydantic-settings >= 2.11: UserWarning al cargar su configuración;
+# - FastAPI más nueva que la de services/api: el servidor no arranca;
+# - SQLAlchemy 2.1: el scheduler del servidor no puede crear las corridas del cron.
+constraint-dependencies = ["pydantic-settings<2.11", "fastapi==0.115.12", "sqlalchemy<2.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["../.."]

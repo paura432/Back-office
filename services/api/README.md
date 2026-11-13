@@ -129,13 +129,39 @@ variable yet.
 (login role with `telemetry_reader` on the test database), besides the two
 variables above; otherwise it is skipped.
 
+## Business performance reporting
+
+`main.py` mounts the `/reporting` router from `services/reporting/`, which
+imports `data/pipelines/business_performance/entrypoints.py`. Neither lives in
+this folder, so the repository root must be importable: `PYTHONPATH=../..` when
+running locally (pytest already adds it), and Compose mounts `services/reporting`
+and `data` read-only under `/repo` with `PYTHONPATH=/repo`. Details in
+`services/reporting/README.md`.
+
+Migration `20261106193654_create_reporting_schema.sql` creates the `reporting`
+schema. The endpoints read it with `REPORTING_READ_DATABASE_DSN`, a login role
+granted `reporting_reader` (SELECT only):
+
+```sh
+npx supabase migration up --local --workdir .
+docker exec -i supabase_db_trackflow-back-office psql -U postgres -d postgres \
+  -c "create role trackflow_reporting_local login password '<local password>' in role reporting_reader"
+```
+
+`POST /reporting/pipeline/runs` also needs `PREFECT_API_URL` and
+`APP_ENV=development` or `test`. Without the DSN or Prefect the endpoints answer
+503; the Compose `api` service sets neither yet. `tests/test_reporting.py` runs
+its database tests only when `REPORTING_TEST_PIPELINE_DSN` (login role with
+`reporting_writer`) and `REPORTING_TEST_READER_DSN` (login role with
+`reporting_reader`) point at the test database.
+
 ## Local Development
 
 Requires Python 3.12 and uv 0.6.17 or compatible newer version:
 
 ```sh
 uv sync --frozen
-uv run uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+PYTHONPATH=../.. uv run uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Runtime and testing dependencies, including transitive packages and hashes, are
@@ -147,8 +173,8 @@ dependency, edit `pyproject.toml` and run the pinned project uv version's
 ## Docker Development
 
 From the repository root, run `docker compose up --build -d`. Compose installs
-locked dependencies automatically, mounts this directory and runs Uvicorn with
-`--reload`. The virtual environment is outside the bind mount at `/opt/venv`.
+locked dependencies automatically, mounts this directory (plus `services/reporting`
+and `data` read-only under `/repo`) and runs Uvicorn with `--reload`. The virtual environment is outside the bind mount at `/opt/venv`.
 
 The service is available internally at `http://api:8000/health` and locally at
 `http://localhost:8000/health`. Browser clients use `/api/health` on either Next.js

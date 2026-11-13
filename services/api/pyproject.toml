@@ -6,6 +6,7 @@ dependencies = [
     "fastapi==0.115.12",
     "pydantic[email]==2.11.4",
     "pandas==3.1.1",
+    "prefect-client==3.4.5",
     "psycopg[binary]==3.2.6",
     "uvicorn[standard]==0.34.2",
 ]
@@ -20,9 +21,13 @@ dev = [
 
 [tool.uv]
 package = false
+# Prefect 3.4.5 emite UserWarning al cargar su configuración con pydantic-settings >= 2.11.
+constraint-dependencies = ["pydantic-settings<2.11"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Raíz del repositorio: services/reporting y data/pipelines se importan como paquetes.
+pythonpath = ["../.."]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

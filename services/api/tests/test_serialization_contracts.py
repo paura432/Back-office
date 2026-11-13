@@ -9,7 +9,7 @@ from main import app
 async def test_every_application_route_declares_a_pydantic_response_model():
     routes = [route for route in app.routes if isinstance(route, APIRoute)]
 
-    assert len(routes) == 35
+    assert len(routes) == 39
     assert all(route.response_model is not None for route in routes)
     assert all(
         route.response_field is not None
@@ -29,7 +29,7 @@ def test_openapi_documents_health_status_and_application_routes():
     for route in (route for route in app.routes if isinstance(route, APIRoute)):
         for method in route.methods or ():
             operation = schema["paths"][route.path][method.lower()]
-            assert "200" in operation["responses"] or "201" in operation["responses"]
+            assert {"200", "201", "202"} & set(operation["responses"])
 
 
 async def test_http_response_model_filters_sensitive_and_uncontracted_fields():

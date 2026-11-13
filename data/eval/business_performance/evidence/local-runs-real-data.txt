@@ -1,0 +1,85 @@
+# python data/pipelines/pipeline.py contra el Supabase local (base postgres, datos reales: ningún evento de negocio)
+
+## Corrida 1
+20:48:56.240 | INFO    | prefect - Starting temporary server on http://127.0.0.1:8269
+20:49:05.441 | INFO    | Flow run 'festive-fennec' - Beginning flow run 'festive-fennec' for flow 'business-performance'
+20:49:05.507 | INFO    | Task run 'register_run-3b1' - Finished in state Completed()
+20:49:05.550 | INFO    | Task run 'detect_changed_days-b93' - Window 2026-10-30..2026-11-06, 0 changed day(s), 0 late day(s)
+20:49:05.553 | INFO    | Task run 'detect_changed_days-b93' - Finished in state Completed()
+20:49:05.584 | INFO    | Task run 'extract_events-6e1' - Extracted 0 source event(s) for 2026-10-30..2026-11-06
+20:49:05.606 | INFO    | Task run 'extract_events-6e1' - Finished in state Completed()
+20:49:05.658 | INFO    | Task run 'transform_kpis-593' - Finished in state Completed()
+20:49:05.689 | INFO    | Task run 'check_quality-7bc' - Finished in state Completed()
+20:49:05.757 | INFO    | Task run 'load_kpis-4d2' - Finished in state Completed()
+20:49:05.791 | INFO    | Task run 'finish_run-2b9' - Finished in state Completed()
+20:49:05.816 | INFO    | Task run 'export_eval_snapshot-8dd' - Finished in state Completed()
+20:49:05.818 | INFO    | Flow run 'festive-fennec' - Eval snapshot written to ./data/eval/business_performance/runs/baff4113-bc3b-4a8c-ac2e-92793153312b.json
+20:49:05.819 | INFO    | Flow run 'festive-fennec' - pipeline_run {"run_id": "baff4113-bc3b-4a8c-ac2e-92793153312b", "flow_name": "business-performance", "trigger": "manual", "status": "completed", "p
+20:49:05.845 | INFO    | Flow run 'festive-fennec' - Finished in state Completed()
+20:49:05.864 | INFO    | prefect - Stopping temporary server on http://127.0.0.1:8269
+
+{
+  "run_id": "baff4113-bc3b-4a8c-ac2e-92793153312b",
+  "flow_name": "business-performance",
+  "trigger": "manual",
+  "status": "completed",
+  "pipeline_version": "1.0.0",
+  "started_at": "2026-11-06T19:49:05.443605+00:00",
+  "finished_at": "2026-11-06T19:49:05.793328+00:00",
+  "late_days_detected": 0,
+  "window_start": "2026-10-30",
+  "window_end": "2026-11-06",
+  "events_extracted": 0,
+  "events_deduplicated": 0,
+  "events_invalid": 0,
+  "source_max_timestamp": null,
+  "rows_inserted": 84,
+  "rows_updated": 0,
+  "rows_unchanged": 0,
+  "rows_deleted": 0,
+  "kpi_status_counts": {
+    "not_instrumented": 84
+  },
+  "quality_available": true
+}
+
+## Corrida 2 (mismos datos)
+20:49:18.338 | INFO    | Flow run 'steadfast-moth' - Beginning flow run 'steadfast-moth' for flow 'business-performance'
+20:49:18.413 | INFO    | Task run 'register_run-807' - Finished in state Completed()
+20:49:18.465 | INFO    | Task run 'detect_changed_days-435' - Window 2026-10-30..2026-11-06, 0 changed day(s), 0 late day(s)
+20:49:18.468 | INFO    | Task run 'detect_changed_days-435' - Finished in state Completed()
+20:49:18.506 | INFO    | Task run 'extract_events-e3a' - Extracted 0 source event(s) for 2026-10-30..2026-11-06
+20:49:18.533 | INFO    | Task run 'extract_events-e3a' - Finished in state Completed()
+20:49:18.566 | INFO    | Task run 'transform_kpis-987' - Finished in state Cached(type=COMPLETED)
+20:49:18.605 | INFO    | Task run 'check_quality-5f2' - Finished in state Completed()
+20:49:18.686 | INFO    | Task run 'load_kpis-974' - Finished in state Completed()
+20:49:18.729 | INFO    | Task run 'finish_run-6b9' - Finished in state Completed()
+20:49:18.760 | INFO    | Task run 'export_eval_snapshot-bf7' - Finished in state Completed()
+20:49:18.763 | INFO    | Flow run 'steadfast-moth' - Eval snapshot written to ./data/eval/business_performance/runs/fdfab76d-e23e-4b1b-ad68-521f12edc841.json
+20:49:18.765 | INFO    | Flow run 'steadfast-moth' - pipeline_run {"run_id": "fdfab76d-e23e-4b1b-ad68-521f12edc841", "flow_name": "business-performance", "trigger": "manual", "status": "completed", "p
+20:49:18.827 | INFO    | Flow run 'steadfast-moth' - Finished in state Completed()
+
+{
+  "run_id": "fdfab76d-e23e-4b1b-ad68-521f12edc841",
+  "flow_name": "business-performance",
+  "trigger": "manual",
+  "status": "completed",
+  "pipeline_version": "1.0.0",
+  "started_at": "2026-11-06T19:49:18.342058+00:00",
+  "finished_at": "2026-11-06T19:49:18.730654+00:00",
+  "late_days_detected": 0,
+  "window_start": "2026-10-30",
+  "window_end": "2026-11-06",
+  "events_extracted": 0,
+  "events_deduplicated": 0,
+  "events_invalid": 0,
+  "source_max_timestamp": null,
+  "rows_inserted": 0,
+  "rows_updated": 0,
+  "rows_unchanged": 84,
+  "rows_deleted": 0,
+  "kpi_status_counts": {
+    "not_instrumented": 84
+  },
+  "quality_available": true
+}
