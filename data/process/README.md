@@ -10,3 +10,7 @@ This folder contains **processed/intermediate data** and/or artifacts produced b
 ## `business_kpis.py`
 
 Pure pandas transformations of the business performance pipeline (`data/pipelines/pipeline.py`), one function per transformation task: event validation against the event contract and natural-key dedupe, country of returns, KPIs as numerator and denominator, statuses, recompute window, quality signals and weekly aggregation. No database access. It is a script rather than a dataset because the pipeline brief asks for reusable transformation scripts in `data/process/`. Tests in `tests/pipelines/test_business_kpis.py` and, through the pipeline tasks, `tests/pipelines/test_pipeline.py`.
+
+## `sales_forecast_features.py`
+
+Pure pandas functions of the sales forecast: `load_sales` (checks `data/raw/trackflow_sales.csv` against the sales forecasting BRIEFING and handles missing values), `add_time_features` (causal lags, rolling statistics and cyclic month, plus the same values scaled by the mean of the previous 12 months) and `split_train_test` (first 8 years for training, last 2 for testing, split by date). Used by `scripts/train_sales_forecast.py`; tests in `tests/pipelines/test_sales_forecast.py`. Results and design in `data/eval/sales_forecast/README.md`.
