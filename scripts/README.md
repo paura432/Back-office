@@ -16,3 +16,11 @@ uv run scripts/train_sales_forecast.py
 ```
 
 The choice of algorithm is justified in the script header; results and metric explanations in `data/eval/sales_forecast/README.md`.
+
+## `evaluate_sales_forecast.py`
+
+Evaluates the same Random Forest (it imports `make_model` from `train_sales_forecast.py`) with time-series cross-validation (`TimeSeriesSplit`, 5 folds of one calendar year on 2017-2023), a learning curve and candidate corrective actions; the 2024-2025 test years are never used. Checks that the folds keep chronological order and that lag/rolling features do not leak across fold boundaries. Writes `data/eval/learning_curve.png` and `data/eval/sales_forecast/evaluation_cv.json`; the diagnosis is in `data/eval/evaluation_report.md`. Dependencies inline, pinned in `evaluate_sales_forecast.py.lock`:
+
+```sh
+uv run scripts/evaluate_sales_forecast.py
+```

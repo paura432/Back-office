@@ -75,6 +75,12 @@ OUT = ROOT / "data" / "eval" / "sales_forecast"
 SEED = 42
 BAND = (0.10, 0.90)  # banda del 80 %
 PSI_BINS = 5
+RF_PARAMS = {"n_estimators": 500, "min_samples_leaf": 2, "random_state": SEED, "n_jobs": 1}
+
+
+def make_model(**overrides) -> RandomForestRegressor:
+    """El Random Forest del pronóstico; la evaluación (evaluate_sales_forecast.py) usa el mismo."""
+    return RandomForestRegressor(**{**RF_PARAMS, **overrides})
 
 
 def psi(expected: pd.Series, actual: pd.Series, bins: int = PSI_BINS) -> float:
@@ -170,8 +176,7 @@ def main() -> None:
 
     decomp = decomposition(raw, test["month"].min())
 
-    model = RandomForestRegressor(n_estimators=500, min_samples_leaf=2, oob_score=True,
-                                  random_state=SEED, n_jobs=1)
+    model = make_model(oob_score=True)
     model.fit(train[MODEL_FEATURES], train[MODEL_TARGET])
 
     # Predicción mes a mes: para cada mes de prueba el modelo usa los meses

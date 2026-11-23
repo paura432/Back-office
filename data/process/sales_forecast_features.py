@@ -125,3 +125,22 @@ def split_train_test(df: pd.DataFrame, train_years: int = TRAIN_YEARS) -> tuple[
     if MODEL_TARGET in df.columns:
         train = train.dropna(subset=MODEL_FEATURES + [MODEL_TARGET])
     return train.copy(), test.copy()
+
+
+def time_series_folds(n_samples: int, n_splits: int = 5, test_size: int = 12) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Folds de validación cruzada temporal con ventana de entrenamiento creciente.
+
+    Equivale a ``sklearn.model_selection.TimeSeriesSplit(n_splits, test_size=test_size)``
+    (el script de evaluación comprueba que coinciden), pero sin depender de
+    scikit-learn para poder testearlo con el entorno de los pipelines. Las filas
+    deben estar en orden cronológico: cada fold valida los ``test_size`` meses
+    siguientes a su entrenamiento y nada se baraja.
+    """
+    first_val = n_samples - n_splits * test_size
+    if first_val <= 0:
+        raise ValueError(f"{n_samples} filas no alcanzan para {n_splits} folds de {test_size}")
+    folds = []
+    for k in range(n_splits):
+        start = first_val + k * test_size
+        folds.append((np.arange(0, start), np.arange(start, start + test_size)))
+    return folds
