@@ -113,6 +113,10 @@ PSI con 5 cortes por cuantiles de entrenamiento (`metrics.json` → `psi_train_v
 
 Con solo 24 meses de prueba (unos 5 por tramo), el PSI es ruidoso: sirve para señalar qué vigilar, no como alarma. El BRIEFING pide usarlo para detectar si cambió la mezcla de volumen entre Los Ángeles y Zaragoza. **No se puede medir con este dataset**, porque solo trae la fila `consolidated` y no hay filas por mercado. El cambio en el ingreso por envío podría tener que ver con esa mezcla, pero con estos datos no se puede afirmar.
 
+## Evaluación previa a staging
+
+La validación cruzada temporal, la curva de aprendizaje y el diagnóstico de este modelo (overfitting moderado y acción correctiva propuesta) están en [`../evaluation_report.md`](../evaluation_report.md). El detalle numérico está en `evaluation_cv.json`, que escribe `scripts/evaluate_sales_forecast.py`.
+
 ## Límites
 
 - 84 meses de entrenamiento y 24 de prueba: las métricas tienen incertidumbre. Una validación cruzada temporal daría una estimación más robusta.
